@@ -14,6 +14,22 @@ NotchDeck is a small native macOS menu bar app written in Swift and SwiftUI. Cli
 **⌥⌘N**, and a panel opens with your todos, system stats, clipboard history, timers, music controls and quick
 system toggles. It has no Dock icon and needs no account.
 
+![NotchDeck home page](docs/media/home.png)
+
+## Screenshots
+
+| System monitor | Clipboard history |
+| --- | --- |
+| ![System monitor](docs/media/monitor.png) | ![Clipboard history](docs/media/clipboard.png) |
+| **Quick controls** | **Search** |
+| ![Quick controls](docs/media/controls.png) | ![Search](docs/media/search.png) |
+| **Music** | **Timers** |
+| ![Music](docs/media/music.png) | ![Timers](docs/media/timer.png) |
+| **Second home page** | **Look Busy** |
+| ![Second home page](docs/media/home2.png) | ![Look Busy scene](docs/media/lookbusy.png) |
+
+The screenshots use made-up demo data. The interface is currently in Chinese.
+
 ## Features
 
 - **Home cards**: todos, sticky note, clock, system monitor, music, clipboard, timer, month calendar and Look Busy.

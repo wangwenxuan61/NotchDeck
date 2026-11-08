@@ -13,6 +13,22 @@
 NotchDeck 是一个用 Swift 和 SwiftUI 写的 macOS 菜单栏小工具。点菜单栏图标或按 **⌥⌘N**，就会弹出一个面板，里面有待办、
 系统状态、剪贴板历史、计时器、音乐控制和常用系统开关。它不占用程序坞，也不需要注册账号。
 
+![NotchDeck 首页](docs/media/home.png)
+
+## 截图
+
+| 系统监控 | 剪贴板历史 |
+| --- | --- |
+| ![系统监控](docs/media/monitor.png) | ![剪贴板历史](docs/media/clipboard.png) |
+| **快捷开关** | **搜索** |
+| ![快捷开关](docs/media/controls.png) | ![搜索](docs/media/search.png) |
+| **音乐** | **计时器** |
+| ![音乐](docs/media/music.png) | ![计时器](docs/media/timer.png) |
+| **首页第 2 页** | **装忙** |
+| ![首页第 2 页](docs/media/home2.png) | ![装忙场景](docs/media/lookbusy.png) |
+
+截图里都是虚构的演示数据。
+
 ## 功能
 
 - **首页卡片**：待办、短记、时钟、系统监控、音乐、剪贴板、计时器、月历和装忙，可以调整顺序、隐藏，或放到两个页面上。
