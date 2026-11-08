@@ -172,16 +172,16 @@ struct MusicPage: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            PageHeader(title: "音乐", model: model) {
+            PageHeader(title: L("音乐"), model: model) {
                 if !media.sourceName.isEmpty {
-                    Text("来自 \(media.sourceName)").font(.system(size: 12)).foregroundStyle(Theme.secondary)
+                    Text(L("来自 %@", media.sourceName)).font(.system(size: 12)).foregroundStyle(Theme.secondary)
                 }
             }
             Card(padding: 10) {
                 HStack(spacing: 16) {
                     artwork
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(hasMedia ? media.title : "未在播放")
+                        Text(hasMedia ? media.title : L("未在播放"))
                             .font(.system(size: 18, weight: .semibold))
                             .lineLimit(1)
                         Text(subtitle.isEmpty ? " " : subtitle)

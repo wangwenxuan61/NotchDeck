@@ -1,0 +1,3 @@
+"NSBluetoothAlwaysUsageDescription" = "NotchDeck は Bluetooth の状態の表示と切り替え、およびデバイスの電池残量の取得に Bluetooth を使用します。";
+"NSRemindersUsageDescription" = "NotchDeck は ToDo カードにリマインダーを表示し、編集します。";
+"NSRemindersFullAccessUsageDescription" = "NotchDeck は ToDo カードにリマインダーを表示し、編集します。";

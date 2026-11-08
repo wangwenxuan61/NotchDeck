@@ -8,15 +8,15 @@ enum CardKind: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .todo: return "待办"
-        case .note: return "短记"
-        case .clock: return "时钟"
-        case .monitor: return "系统监控"
-        case .music: return "音乐"
-        case .clipboard: return "剪贴板"
-        case .timer: return "计时器"
-        case .calendar: return "月历"
-        case .lookBusy: return "装忙"
+        case .todo: return L("待办")
+        case .note: return L("短记")
+        case .clock: return L("时钟")
+        case .monitor: return L("系统监控")
+        case .music: return L("音乐")
+        case .clipboard: return L("剪贴板")
+        case .timer: return L("计时器")
+        case .calendar: return L("月历")
+        case .lookBusy: return L("装忙")
         }
     }
 
@@ -180,19 +180,34 @@ struct CustomizePage: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            PageHeader(title: "首页卡片", model: model, backTo: .settings) {
-                Button("恢复默认") { store.reset() }.buttonStyle(.plain).font(.system(size: 12))
+            PageHeader(title: L("首页卡片"), model: model, backTo: .settings) {
+                Button(L("恢复默认")) { store.reset() }.buttonStyle(.plain).font(.system(size: 12))
             }
             HStack(spacing: 8) {
-                column("第 1 页", 0)
-                column("第 2 页", 1)
-                column("不显示", CardLayoutStore.hiddenColumn)
+                column(L("第 1 页"), 0)
+                column(L("第 2 页"), 1)
+                column(L("不显示"), CardLayoutStore.hiddenColumn)
             }
         }
     }
 }
 
 struct CalendarCard: View {
+    private func monthTitle(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = LanguageStore.shared.locale
+        formatter.setLocalizedDateFormatFromTemplate("yMMMM")
+        return formatter.string(from: date)
+    }
+
+    private func weekdaySymbols(calendar: Calendar) -> [String] {
+        let formatter = DateFormatter()
+        formatter.locale = LanguageStore.shared.locale
+        let symbols = formatter.veryShortStandaloneWeekdaySymbols ?? []
+        let start = calendar.firstWeekday - 1
+        return Array(symbols[start...] + symbols[..<start])
+    }
+
     private func days(for date: Date, calendar: Calendar) -> [Int?] {
         guard let interval = calendar.dateInterval(of: .month, for: date),
               let range = calendar.range(of: .day, in: .month, for: date) else { return [] }
@@ -211,12 +226,14 @@ struct CalendarCard: View {
                     let today = calendar.component(.day, from: timeline.date)
                     let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
                     let cells = days(for: timeline.date, calendar: calendar)
+                    let symbols = weekdaySymbols(calendar: calendar)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(verbatim: "\(calendar.component(.year, from: timeline.date)) 年 \(calendar.component(.month, from: timeline.date)) 月")
+                        Text(monthTitle(timeline.date))
                             .font(.system(size: 12, weight: .semibold))
                         LazyVGrid(columns: columns, spacing: 1) {
-                            ForEach(["日", "一", "二", "三", "四", "五", "六"], id: \.self) { name in
-                                Text(name).font(.system(size: 9, weight: .medium)).foregroundStyle(Theme.secondary)
+                            // id 用负数，避免和下面日期格子的 id 重复。
+                            ForEach(-7..<0, id: \.self) { offset in
+                                Text(symbols[offset + 7]).font(.system(size: 9, weight: .medium)).foregroundStyle(Theme.secondary)
                             }
                             // 同一个网格里两组 ForEach 的 id 不能重复，否则重复的格子会显示成空白。
                             ForEach(cells.indices, id: \.self) { index in
@@ -234,6 +251,6 @@ struct CalendarCard: View {
             }
         }
         .buttonStyle(.plain)
-        .help("打开日历")
+        .help(L("打开日历"))
     }
 }

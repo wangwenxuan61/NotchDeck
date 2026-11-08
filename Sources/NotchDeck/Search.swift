@@ -123,27 +123,27 @@ final class SearchModel: ObservableObject {
                 let secondPrefix = second.name.lowercased().hasPrefix(text.lowercased())
                 return firstPrefix != secondPrefix ? firstPrefix : first.name.count < second.name.count
             }
-        output += apps.prefix(6).map { SearchResult(id: "app-\($0.path)", title: $0.name, kind: "应用", target: .app($0)) }
+        output += apps.prefix(6).map { SearchResult(id: "app-\($0.path)", title: $0.name, kind: L("应用"), target: .app($0)) }
 
         output += TodoStore.shared.items
             .filter { $0.title.localizedCaseInsensitiveContains(text) }
             .prefix(3)
-            .map { SearchResult(id: "todo-\($0.id)", title: $0.title, kind: "待办", target: .todo) }
+            .map { SearchResult(id: "todo-\($0.id)", title: $0.title, kind: L("待办"), target: .todo) }
 
         let note = NoteStore.shared.text
         if note.localizedCaseInsensitiveContains(text) {
             let line = note.split(separator: "\n").first { $0.localizedCaseInsensitiveContains(text) }.map(String.init) ?? note
-            output.append(SearchResult(id: "note", title: line, kind: "短记", target: .note))
+            output.append(SearchResult(id: "note", title: line, kind: L("短记"), target: .note))
         }
 
         output += ClipboardStore.shared.items
             .filter { $0.preview.localizedCaseInsensitiveContains(text) }
             .prefix(3)
-            .map { SearchResult(id: "clip-\($0.id)", title: $0.preview.replacingOccurrences(of: "\n", with: " "), kind: "剪贴板", target: .clipboard($0)) }
+            .map { SearchResult(id: "clip-\($0.id)", title: $0.preview.replacingOccurrences(of: "\n", with: " "), kind: L("剪贴板"), target: .clipboard($0)) }
 
         output += files.map { SearchResult(id: "file-\($0.path)", title: $0.lastPathComponent, kind: $0.deletingLastPathComponent().lastPathComponent, target: .file($0)) }
 
-        output.append(SearchResult(id: "web", title: "用网页搜索“\(text)”", kind: "网页", target: .web(text)))
+        output.append(SearchResult(id: "web", title: L("用网页搜索“%@”", text), kind: L("网页"), target: .web(text)))
         results = output
         selection = min(selection, output.count - 1)
     }
@@ -212,7 +212,7 @@ struct SearchPage: View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(Theme.secondary)
-                TextField("搜索应用、文件、待办、短记和剪贴板", text: $search.query)
+                TextField(L("搜索应用、文件、待办、短记和剪贴板"), text: $search.query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))
                     .focused($focused)
@@ -224,7 +224,7 @@ struct SearchPage: View {
 
             Card(padding: 4) {
                 if search.results.isEmpty {
-                    Text("输入关键词开始搜索，方向键选择，回车打开")
+                    Text(L("输入关键词开始搜索，方向键选择，回车打开"))
                         .font(.system(size: 12))
                         .foregroundStyle(Theme.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)

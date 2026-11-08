@@ -11,10 +11,10 @@ final class OverlayWindow: NSWindow {
 extension SceneKind {
     var shortTitle: String {
         switch self {
-        case .agent: return "AI 写代码"
-        case .training: return "训练"
-        case .paper: return "写论文"
-        case .notebook: return "数据分析"
+        case .agent: return L("AI 写代码")
+        case .training: return L("训练")
+        case .paper: return L("写论文")
+        case .notebook: return L("数据分析")
         }
     }
 }
@@ -147,6 +147,8 @@ struct LookBusyCard: View {
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(selected ? Theme.blue : Theme.primary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .padding(.horizontal, 4)
                 .frame(maxWidth: .infinity, minHeight: 22)
                 .background(Capsule().fill(selected ? Theme.blue.opacity(0.16) : Theme.control))
                 .contentShape(Capsule())
@@ -161,7 +163,7 @@ struct LookBusyCard: View {
             VStack(spacing: 5) {
                 HStack(spacing: 5) {
                     Image(systemName: "briefcase.fill").foregroundStyle(Theme.purple)
-                    Text("装忙").font(.system(size: 13, weight: .semibold))
+                    Text(L("装忙")).font(.system(size: 13, weight: .semibold))
                     Spacer()
                     Text("⌃⌥B").font(.system(size: 11)).foregroundStyle(Theme.secondary)
                 }
@@ -173,7 +175,7 @@ struct LookBusyCard: View {
                     chip(.paper)
                     chip(.notebook)
                 }
-                chip("随机", LookBusyController.randomChoice)
+                chip(L("随机"), LookBusyController.randomChoice)
             }
         }
     }

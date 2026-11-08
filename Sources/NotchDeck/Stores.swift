@@ -235,7 +235,7 @@ final class AppSettings: ObservableObject {
             if enabled { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
             launchError = nil
         } catch {
-            launchError = "设置失败：\(error.localizedDescription)"
+            launchError = L("设置失败：%@", error.localizedDescription)
         }
     }
 }
@@ -282,7 +282,7 @@ final class FocusTimer: ObservableObject {
         Self.runShortcut("NotchDeck 专注结束")
         if completed {
             NSSound(named: "Glass")?.play()
-            Toasts.shared.show("专注结束", icon: "checkmark.circle")
+            Toasts.shared.show(L("专注结束"), icon: "checkmark.circle")
         }
     }
 

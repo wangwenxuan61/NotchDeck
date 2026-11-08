@@ -28,7 +28,7 @@ system toggles. It has no Dock icon and needs no account.
 | **Second home page** | **Look Busy** |
 | ![Second home page](docs/media/home2.png) | ![Look Busy scene](docs/media/lookbusy.png) |
 
-The screenshots use made-up demo data. The interface is currently in Chinese.
+The screenshots use made-up demo data and show the Chinese interface. Other languages are available in Settings.
 
 ## Features
 
@@ -46,6 +46,7 @@ The screenshots use made-up demo data. The interface is currently in Chinese.
   sleep and lock screen, plus battery levels for connected Bluetooth devices.
 - **Reminders sync** (optional): use a list from the system Reminders app as your todo card.
 - **Look Busy**: four convincing full-screen work scenes for demos and screenshots. Nothing they show is real.
+- **Languages**: Simplified and Traditional Chinese, English, Japanese, Korean, French, German and Spanish. Switch in Settings without restarting.
 
 ## Keyboard shortcuts
 
