@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 enum Page: String { case home, monitor, apps, pinned, settings, clipboard, timer, music, customize, search, toggles }
@@ -42,6 +43,7 @@ final class PanelController {
     let model = PanelModel()
     private let panel: FloatingPanel
     private var hideWork: DispatchWorkItem?
+    private var appearanceSubscription: AnyCancellable?
 
     init() {
         panel = FloatingPanel(
@@ -58,7 +60,9 @@ final class PanelController {
         panel.hasShadow = false
         panel.hidesOnDeactivate = false
         panel.isMovable = false
-        panel.appearance = NSAppearance(named: .aqua)
+        appearanceSubscription = AppSettings.shared.$appearance.sink { [weak panel] mode in
+            panel?.appearance = mode.nsAppearance
+        }
         panel.contentView = NSHostingView(rootView: RootView(model: model))
     }
 
@@ -68,9 +72,10 @@ final class PanelController {
         view.cacheDisplay(in: view.bounds, to: rep)
         let image = NSImage(size: NSSize(width: rep.pixelsWide, height: rep.pixelsHigh))
         image.lockFocus()
-        NSColor(white: 0.72, alpha: 1).setFill()
+        let isDark = view.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        NSColor(white: isDark ? 0.15 : 0.72, alpha: 1).setFill()
         NSRect(origin: .zero, size: image.size).fill()
-        rep.draw(in: NSRect(origin: .zero, size: image.size))
+        rep.draw(in: NSRect(origin: .zero, size: image.size), from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: false, hints: nil)
         image.unlockFocus()
         guard let tiff = image.tiffRepresentation, let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { return }
         try? png.write(to: URL(fileURLWithPath: path))

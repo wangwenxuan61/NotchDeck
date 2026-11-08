@@ -268,7 +268,7 @@ struct ToggleTile: View {
             }
             .padding(.horizontal, 10)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).cardFill(hovering && enabled ? Color.white.opacity(0.9) : Theme.card))
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).cardFill(hovering && enabled ? Theme.cardHover : Theme.card))
             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)

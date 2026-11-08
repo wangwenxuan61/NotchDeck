@@ -1,4 +1,7 @@
 let frenchStrings: [String: String] = [
+    "外观": "Apparence",
+    "浅色": "Clair",
+    "深色": "Sombre",
     "语言": "Langue",
     "跟随系统": "Système",
     "开始": "Démarrer",

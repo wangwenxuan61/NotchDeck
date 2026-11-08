@@ -351,6 +351,16 @@ struct SettingsPage: View {
                 .controlSize(.small)
                 .fixedSize()
             }
+            row(L("外观")) {
+                Picker("", selection: $settings.appearance) {
+                    ForEach(AppearanceMode.allCases) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .labelsHidden()
+                .controlSize(.small)
+                .fixedSize()
+            }
             row(L("开机自动启动")) {
                 toggle(Binding(get: { settings.launchAtLogin }, set: { settings.setLaunchAtLogin($0) }))
             }
@@ -359,9 +369,6 @@ struct SettingsPage: View {
             }
             row(L("菜单栏显示 CPU 温度")) {
                 toggle($settings.showMenuBarTemperature)
-            }
-            row(L("首页卡片")) {
-                Button(L("自定义")) { model.page = .customize }.controlSize(.small)
             }
         }
     }
@@ -397,6 +404,9 @@ struct SettingsPage: View {
                     }
                     Button(L("选择文件夹")) { busy.chooseProject() }.controlSize(.small)
                 }
+            }
+            row(L("首页卡片")) {
+                Button(L("自定义")) { model.page = .customize }.controlSize(.small)
             }
         }
     }
