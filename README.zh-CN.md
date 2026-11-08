@@ -55,7 +55,19 @@ NotchDeck 是一个用 Swift 和 SwiftUI 写的 macOS 菜单栏小工具。点�
 
 ## 安装
 
-需要 macOS 14 或更高版本，从源码编译，只要装了 Xcode 命令行工具（`xcode-select --install`）就行。
+### 下载
+
+从 [Releases](https://github.com/wangwenxuan61/NotchDeck/releases) 下载最新的 `.dmg`，打开后把 NotchDeck 拖到“应用程序”文件夹。
+需要 macOS 14 或更高版本，并且是 Apple 芯片的 Mac。
+
+NotchDeck 没有经过 Apple 公证，第一次打开时会被 macOS 拦截：
+
+1. 先打开一次 NotchDeck，然后关掉警告。
+2. 进入“系统设置 → 隐私与安全性”，往下滚动，在 NotchDeck 旁边点“仍要打开”。
+
+### 从源码编译
+
+只要装了 Xcode 命令行工具（`xcode-select --install`）就行。
 
 ```bash
 git clone https://github.com/wangwenxuan61/NotchDeck.git

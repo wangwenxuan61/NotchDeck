@@ -59,8 +59,19 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 
 ## Install
 
-NotchDeck requires macOS 14 or later and is built from source. You only need the Xcode Command Line Tools
-(`xcode-select --install`).
+### Download
+
+Download the latest `.dmg` from [Releases](https://github.com/wangwenxuan61/NotchDeck/releases), open it and drag
+NotchDeck to Applications. It requires macOS 14 or later on an Apple silicon Mac.
+
+NotchDeck is not notarized by Apple, so macOS blocks it the first time:
+
+1. Open NotchDeck once and dismiss the warning.
+2. Go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to NotchDeck.
+
+### Build from source
+
+You only need the Xcode Command Line Tools (`xcode-select --install`).
 
 ```bash
 git clone https://github.com/wangwenxuan61/NotchDeck.git
