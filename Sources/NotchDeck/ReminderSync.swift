@@ -54,7 +54,7 @@ final class ReminderSync: ObservableObject {
                 if granted {
                     self.activate(movingLocalTodos: true)
                 } else {
-                    Toasts.shared.show("未获得提醒事项权限", icon: "exclamationmark.triangle")
+                    Toasts.shared.show(L("未获得提醒事项权限"), icon: "exclamationmark.triangle")
                     QuickControls.shared.openPrivacyPane("Privacy_Reminders")
                 }
             }
@@ -68,7 +68,7 @@ final class ReminderSync: ObservableObject {
             selectedListID = store.defaultCalendarForNewReminders()?.calendarIdentifier ?? lists.first?.calendarIdentifier ?? ""
         }
         guard currentList != nil else {
-            Toasts.shared.show("提醒事项里没有可用列表", icon: "exclamationmark.triangle")
+            Toasts.shared.show(L("提醒事项里没有可用列表"), icon: "exclamationmark.triangle")
             return
         }
         UserDefaults.standard.set(true, forKey: Self.enabledKey)
@@ -115,7 +115,7 @@ final class ReminderSync: ObservableObject {
         do {
             try operation()
         } catch {
-            Toasts.shared.show("同步失败", icon: "exclamationmark.triangle")
+            Toasts.shared.show(L("同步失败"), icon: "exclamationmark.triangle")
         }
         reload()
     }

@@ -35,7 +35,7 @@ struct HomeCards: View {
     var body: some View {
         let pages = layout.visiblePages
         if pages.isEmpty {
-            Button("首页没有卡片，点这里添加") { model.page = .customize }
+            Button(L("首页没有卡片，点这里添加")) { model.page = .customize }
                 .buttonStyle(.plain)
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.secondary)
@@ -69,7 +69,7 @@ struct TodoCard: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 5) {
                     Image(systemName: "checkmark.circle").foregroundStyle(Theme.teal)
-                    Text("待办").font(.system(size: 13, weight: .semibold))
+                    Text(L("待办")).font(.system(size: 13, weight: .semibold))
                     if reminders.isActive {
                         Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 10)).foregroundStyle(Theme.secondary)
                     }
@@ -83,7 +83,7 @@ struct TodoCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .scrollIndicators(.never)
-                TextField("添加待办", text: $draft)
+                TextField(L("添加待办"), text: $draft)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .focused($focused)
@@ -111,8 +111,8 @@ struct TodoCard: View {
                 .foregroundStyle(item.done ? Theme.tertiary : Theme.primary)
         }
         .contextMenu {
-            Button("删除") { store.remove(item.id) }
-            Button("清除已完成") { store.clearDone() }
+            Button(L("删除")) { store.remove(item.id) }
+            Button(L("清除已完成")) { store.clearDone() }
         }
     }
 }
@@ -127,14 +127,14 @@ struct NoteCard: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 5) {
                     Image(systemName: "note.text").foregroundStyle(Theme.orange)
-                    Text("短记").font(.system(size: 13, weight: .semibold))
+                    Text(L("短记")).font(.system(size: 13, weight: .semibold))
                     Spacer()
                     Menu {
                         ForEach(NoteStore.palette.indices, id: \.self) { index in
-                            Button(NoteStore.palette[index].name) { store.colorIndex = index }
+                            Button(L(NoteStore.palette[index].name)) { store.colorIndex = index }
                         }
                         Divider()
-                        Button("清空") { store.text = "" }
+                        Button(L("清空")) { store.text = "" }
                     } label: {
                         Image(systemName: "ellipsis")
                     }
@@ -158,12 +158,12 @@ struct NoteCard: View {
 }
 
 struct ClockCard: View {
-    private static let dateFormatter: DateFormatter = {
+    private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "M月d日 EEE"
+        formatter.locale = LanguageStore.shared.locale
+        formatter.setLocalizedDateFormatFromTemplate("MMMdEEE")
         return formatter
-    }()
+    }
 
     private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -178,7 +178,7 @@ struct ClockCard: View {
             Card {
                 TimelineView(.periodic(from: .now, by: 1)) { timeline in
                     VStack(spacing: 6) {
-                        Text(Self.dateFormatter.string(from: timeline.date))
+                        Text(dateFormatter.string(from: timeline.date))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(Theme.secondary)
                         Text(Self.timeFormatter.string(from: timeline.date))
@@ -192,7 +192,7 @@ struct ClockCard: View {
             }
         }
         .buttonStyle(.plain)
-        .help("打开日历")
+        .help(L("打开日历"))
     }
 }
 
@@ -229,10 +229,12 @@ struct MonitorCard: View {
             Ring(value: value, color: color)
             HStack(spacing: 4) {
                 Text(title).foregroundStyle(Theme.secondary)
-                if let detail { Text(detail).foregroundStyle(title == "内存" ? Theme.secondary : Theme.teal) }
+                if let detail { Text(detail).foregroundStyle(title == L("内存") ? Theme.secondary : Theme.teal) }
             }
             .font(.system(size: 11, weight: .medium))
             .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
     }
@@ -250,11 +252,11 @@ struct MonitorCard: View {
                     HStack(spacing: 0) {
                         column("CPU", value: monitor.cpu, color: Theme.blue, detail: formatTemperature(monitor.cpuTemp))
                         column("GPU", value: monitor.gpu, color: Theme.purple, detail: formatTemperature(monitor.gpuTemp))
-                        column("内存", value: monitor.memory, color: Theme.orange, detail: monitor.memoryPressure)
+                        column(L("内存"), value: monitor.memory, color: Theme.orange, detail: L(monitor.memoryPressure))
                     }
                     VStack(spacing: 3) {
                         HStack {
-                            Text("磁盘").foregroundStyle(Theme.secondary)
+                            Text(L("磁盘")).foregroundStyle(Theme.secondary)
                             Spacer()
                             Text("\(gigabytes(monitor.diskUsed)) / \(gigabytes(monitor.diskTotal))")
                                 .foregroundStyle(Theme.secondary)
@@ -271,7 +273,7 @@ struct MonitorCard: View {
                         .frame(height: 5)
                     }
                     HStack(spacing: 10) {
-                        Text("网速").foregroundStyle(Theme.secondary)
+                        Text(L("网速")).foregroundStyle(Theme.secondary)
                         Spacer()
                         Text("↓ \(formatSpeed(monitor.downloadSpeed))").monospacedDigit()
                         Text("↑ \(formatSpeed(monitor.uploadSpeed))").monospacedDigit()
@@ -282,7 +284,7 @@ struct MonitorCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help("查看监控详情")
+        .help(L("查看监控详情"))
     }
 }
 
@@ -303,7 +305,7 @@ struct MusicCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 5) {
                     Image(systemName: "music.note").foregroundStyle(Theme.coral)
-                    Text(hasMedia ? media.title : "未在播放")
+                    Text(hasMedia ? media.title : L("未在播放"))
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
                 }
@@ -348,30 +350,34 @@ struct DockRow: View {
         Button { focus.toggle() } label: {
             HStack(spacing: 6) {
                 Image(systemName: focus.running ? "stop.fill" : "play.fill").foregroundStyle(focus.running ? Theme.coral : Theme.teal)
-                Text(focus.running ? focus.label : "开始专注")
+                Text(focus.running ? focus.label : L("开始专注"))
                     .font(.system(size: 13, weight: .medium))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .fixedSize()
             }
-            .frame(width: 104, height: 36)
+            .padding(.horizontal, 14)
+            .frame(height: 36)
             .background(Capsule().fill(Theme.control))
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .help(focus.running ? "结束专注" : "开始 \(FocusTimer.minutes) 分钟专注")
+        .help(focus.running ? L("结束专注") : L("开始 %d 分钟专注", FocusTimer.minutes))
     }
 
     private var busyButton: some View {
         Button { LookBusyController.shared.show() } label: {
             HStack(spacing: 6) {
                 Image(systemName: "briefcase.fill").foregroundStyle(Theme.purple)
-                Text("装忙").font(.system(size: 13, weight: .medium))
+                Text(L("装忙")).font(.system(size: 13, weight: .medium)).lineLimit(1).fixedSize()
             }
-            .frame(width: 84, height: 36)
+            .padding(.horizontal, 14)
+            .frame(height: 36)
             .background(Capsule().fill(Theme.control))
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .help("全屏装忙（⌃⌥B）")
+        .help(L("全屏装忙（⌃⌥B）"))
     }
 
     private var divider: some View {
@@ -394,13 +400,13 @@ struct DockRow: View {
                             return NSItemProvider(object: app.path as NSString)
                         }
                         .onDrop(of: [.text], delegate: DockDropDelegate(target: app.path, dragging: $dragging))
-                        .contextMenu { Button("从快捷栏移除") { store.unpin(app.path) } }
+                        .contextMenu { Button(L("从快捷栏移除")) { store.unpin(app.path) } }
                 }
-                IconButton(symbol: "ellipsis", help: "全部快捷 App") { model.page = .pinned }
+                IconButton(symbol: "ellipsis", help: L("全部快捷 App")) { model.page = .pinned }
                     .padding(.horizontal, 8)
             }
             divider
-            IconButton(symbol: "circle.grid.3x3.fill", help: "所有应用") { model.page = .apps }
+            IconButton(symbol: "circle.grid.3x3.fill", help: L("所有应用")) { model.page = .apps }
         }
     }
 }

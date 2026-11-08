@@ -29,10 +29,10 @@ final class ClipboardStore: ObservableObject {
         var preview: String {
             switch content {
             case .text(let text): return text.trimmingCharacters(in: .whitespacesAndNewlines)
-            case .image(let image, _, _): return "图片 \(Int(image.size.width))×\(Int(image.size.height))"
+            case .image(let image, _, _): return L("图片 %d×%d", Int(image.size.width), Int(image.size.height))
             case .files(let urls):
                 let first = urls.first?.lastPathComponent ?? ""
-                return urls.count > 1 ? "\(first) 等 \(urls.count) 个文件" : first
+                return urls.count > 1 ? L("%@ 等 %d 个文件", first, urls.count) : first
             }
         }
     }
@@ -209,7 +209,7 @@ final class ClipboardStore: ObservableObject {
         lastChange = pasteboard.changeCount
         items.removeAll { $0.id == item.id }
         items.insert(item, at: item.isPinned ? 0 : insertionIndex)
-        Toasts.shared.show("已复制", icon: "doc.on.clipboard")
+        Toasts.shared.show(L("已复制"), icon: "doc.on.clipboard")
     }
 
     func remove(_ item: Item) { items.removeAll { $0.id == item.id } }
@@ -220,10 +220,10 @@ final class ClipboardStore: ObservableObject {
 
 func relativeTime(_ date: Date) -> String {
     let seconds = Int(Date().timeIntervalSince(date))
-    if seconds < 60 { return "刚刚" }
-    if seconds < 3600 { return "\(seconds / 60) 分钟前" }
-    if seconds < 86400 { return "\(seconds / 3600) 小时前" }
-    return "\(seconds / 86400) 天前"
+    if seconds < 60 { return L("刚刚") }
+    if seconds < 3600 { return L("%d 分钟前", seconds / 60) }
+    if seconds < 86400 { return L("%d 小时前", seconds / 3600) }
+    return L("%d 天前", seconds / 86400)
 }
 
 struct ClipboardRow: View {
@@ -284,7 +284,7 @@ struct ClipboardRow: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.trailing, 4)
-                .help(item.isPinned ? "取消置顶" : "置顶")
+                .help(item.isPinned ? L("取消置顶") : L("置顶"))
             }
         }
         .onHover { hovering = $0 }
@@ -311,29 +311,29 @@ struct ClipboardPage: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            PageHeader(title: "剪贴板", model: model) {
+            PageHeader(title: L("剪贴板"), model: model) {
                 HStack(spacing: 12) {
                     HStack(spacing: 4) {
                         Image(systemName: "magnifyingglass").font(.system(size: 11)).foregroundStyle(Theme.secondary)
-                        TextField("搜索", text: $query).textFieldStyle(.plain).font(.system(size: 12))
+                        TextField(L("搜索"), text: $query).textFieldStyle(.plain).font(.system(size: 12))
                     }
                     .padding(.horizontal, 8)
                     .frame(width: 170, height: 20)
                     .background(Capsule().fill(Theme.control))
-                    headerButton(store.isPaused ? "继续记录" : "暂停记录", store.isPaused ? "play.fill" : "pause.fill") {
+                    headerButton(store.isPaused ? L("继续记录") : L("暂停记录"), store.isPaused ? "play.fill" : "pause.fill") {
                         store.isPaused.toggle()
                     }
-                    headerButton("保存历史", store.saveHistory ? "checkmark.circle.fill" : "circle") {
+                    headerButton(L("保存历史"), store.saveHistory ? "checkmark.circle.fill" : "circle") {
                         store.saveHistory.toggle()
                     }
-                    .help("把文字和文件路径保存到本机，重启后还在；图片不保存")
-                    headerButton("清空", "trash") { store.clear() }
-                        .help("置顶内容不会被清空")
+                    .help(L("把文字和文件路径保存到本机，重启后还在；图片不保存"))
+                    headerButton(L("清空"), "trash") { store.clear() }
+                        .help(L("置顶内容不会被清空"))
                 }
             }
             Card(padding: 6) {
                 if filtered.isEmpty {
-                    Text(store.isPaused ? "已暂停记录" : (query.isEmpty ? "复制的内容会出现在这里，点一下即可重新复制" : "没有匹配的内容"))
+                    Text(store.isPaused ? L("已暂停记录") : (query.isEmpty ? L("复制的内容会出现在这里，点一下即可重新复制") : L("没有匹配的内容")))
                         .font(.system(size: 12))
                         .foregroundStyle(Theme.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -346,8 +346,8 @@ struct ClipboardPage: View {
                                     AppDelegate.shared.closePanel()
                                 }
                                 .contextMenu {
-                                    Button(item.isPinned ? "取消置顶" : "置顶") { store.togglePin(item) }
-                                    Button("删除") { store.remove(item) }
+                                    Button(item.isPinned ? L("取消置顶") : L("置顶")) { store.togglePin(item) }
+                                    Button(L("删除")) { store.remove(item) }
                                 }
                             }
                         }
@@ -369,7 +369,7 @@ struct ClipboardCard: View {
                 Button { model.page = .clipboard } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "doc.on.clipboard").foregroundStyle(Theme.blue)
-                        Text("剪贴板").font(.system(size: 13, weight: .semibold))
+                        Text(L("剪贴板")).font(.system(size: 13, weight: .semibold))
                         Spacer()
                         Image(systemName: "chevron.right").font(.system(size: 10)).foregroundStyle(Theme.tertiary)
                     }
@@ -377,7 +377,7 @@ struct ClipboardCard: View {
                 }
                 .buttonStyle(.plain)
                 if store.items.isEmpty {
-                    Text("暂无内容")
+                    Text(L("暂无内容"))
                         .font(.system(size: 12))
                         .foregroundStyle(Theme.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)

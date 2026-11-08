@@ -47,7 +47,7 @@ final class CountdownTimer: ObservableObject {
         if left <= 0 {
             reset()
             NSSound(named: "Glass")?.play()
-            Toasts.shared.show("计时结束", icon: "timer")
+            Toasts.shared.show(L("计时结束"), icon: "timer")
         } else if left != remaining {
             remaining = left
         }
@@ -123,7 +123,7 @@ struct PillButton: View {
         Button(action: action) {
             HStack(spacing: 4) {
                 if let symbol { Image(systemName: symbol) }
-                Text(title)
+                Text(title).lineLimit(1).minimumScaleFactor(0.7)
             }
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(prominent ? Color.white : Theme.primary)
@@ -173,7 +173,7 @@ struct CountdownPanel: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3), spacing: 6) {
                 ForEach(CountdownTimer.presets, id: \.self) { value in
                     Button { countdown.minutes = value } label: {
-                        Text("\(value) 分")
+                        Text(L("%d 分", value))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(countdown.minutes == value ? Theme.blue : Theme.primary)
                             .frame(maxWidth: .infinity, minHeight: 26)
@@ -185,13 +185,13 @@ struct CountdownPanel: View {
             }
             HStack(spacing: 6) {
                 step("minus", delta: -1)
-                Text("\(countdown.minutes) 分钟")
+                Text(L("%d 分钟", countdown.minutes))
                     .font(.system(size: 12, weight: .medium))
                     .monospacedDigit()
                     .frame(minWidth: 52)
                 step("plus", delta: 1)
                 Spacer(minLength: 0)
-                PillButton(title: "开始", symbol: "play.fill", prominent: true) {
+                PillButton(title: L("开始"), symbol: "play.fill", prominent: true) {
                     countdown.start(seconds: countdown.minutes * 60)
                 }
             }
@@ -200,14 +200,14 @@ struct CountdownPanel: View {
 
     private var activeControls: some View {
         VStack(spacing: 10) {
-            Text(countdown.isPaused ? "已暂停" : "倒计时中")
+            Text(countdown.isPaused ? L("已暂停") : L("倒计时中"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Theme.secondary)
             HStack(spacing: 8) {
-                PillButton(title: countdown.isPaused ? "继续" : "暂停", symbol: countdown.isPaused ? "play.fill" : "pause.fill", prominent: true, width: 86) {
+                PillButton(title: countdown.isPaused ? L("继续") : L("暂停"), symbol: countdown.isPaused ? "play.fill" : "pause.fill", prominent: true, width: 86) {
                     countdown.togglePause()
                 }
-                PillButton(title: "取消", width: 66) { countdown.reset() }
+                PillButton(title: L("取消"), width: 66) { countdown.reset() }
             }
         }
         .frame(maxWidth: .infinity)
@@ -231,7 +231,7 @@ struct StopwatchPanel: View {
         Card {
             VStack(spacing: 6) {
                 HStack {
-                    Text("秒表").font(.system(size: 13, weight: .semibold))
+                    Text(L("秒表")).font(.system(size: 13, weight: .semibold))
                     Spacer()
                 }
                 TimelineView(.animation(minimumInterval: 0.1, paused: !stopwatch.isRunning)) { timeline in
@@ -240,18 +240,18 @@ struct StopwatchPanel: View {
                         .monospacedDigit()
                 }
                 HStack(spacing: 8) {
-                    PillButton(title: stopwatch.isRunning ? "暂停" : "开始", prominent: true, width: 70) { stopwatch.toggle() }
+                    PillButton(title: stopwatch.isRunning ? L("暂停") : L("开始"), prominent: true, width: 88) { stopwatch.toggle() }
                     if stopwatch.isRunning {
-                        PillButton(title: "计次", width: 70) { stopwatch.lap() }
+                        PillButton(title: L("计次"), width: 88) { stopwatch.lap() }
                     } else {
-                        PillButton(title: "复位", width: 70) { stopwatch.reset() }
+                        PillButton(title: L("复位"), width: 88) { stopwatch.reset() }
                     }
                 }
                 ScrollView(.vertical) {
                     VStack(spacing: 2) {
                         ForEach(Array(stopwatch.laps.enumerated()), id: \.offset) { index, lap in
                             HStack {
-                                Text("计次 \(stopwatch.laps.count - index)").foregroundStyle(Theme.secondary)
+                                Text(L("计次 %d", stopwatch.laps.count - index)).foregroundStyle(Theme.secondary)
                                 Spacer()
                                 Text(Stopwatch.format(lap)).monospacedDigit()
                             }
@@ -272,7 +272,7 @@ struct FocusPanel: View {
         Card {
             VStack(spacing: 8) {
                 HStack {
-                    Text("专注").font(.system(size: 13, weight: .semibold))
+                    Text(L("专注")).font(.system(size: 13, weight: .semibold))
                     Spacer()
                 }
                 Spacer(minLength: 0)
@@ -281,7 +281,7 @@ struct FocusPanel: View {
                     .monospacedDigit()
                     .foregroundStyle(focus.running ? Theme.teal : Theme.primary)
                 Spacer(minLength: 0)
-                PillButton(title: focus.running ? "结束" : "开始专注", prominent: !focus.running, width: 96) { focus.toggle() }
+                PillButton(title: focus.running ? L("结束") : L("开始专注"), prominent: !focus.running, width: 96) { focus.toggle() }
             }
         }
     }
@@ -292,7 +292,7 @@ struct TimerPage: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            PageHeader(title: "计时器", model: model)
+            PageHeader(title: L("计时器"), model: model)
             HStack(spacing: 8) {
                 CountdownPanel().frame(maxWidth: .infinity)
                 StopwatchPanel().frame(width: 230)
@@ -312,7 +312,7 @@ struct TimerCard: View {
                 Button { model.page = .timer } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "timer").foregroundStyle(Theme.blue)
-                        Text("计时器").font(.system(size: 13, weight: .semibold))
+                        Text(L("计时器")).font(.system(size: 13, weight: .semibold))
                         Spacer()
                         Image(systemName: "chevron.right").font(.system(size: 10)).foregroundStyle(Theme.tertiary)
                     }
@@ -327,14 +327,14 @@ struct TimerCard: View {
                         .frame(maxWidth: .infinity)
                     Spacer(minLength: 0)
                     HStack(spacing: 6) {
-                        PillButton(title: countdown.isPaused ? "继续" : "暂停", prominent: true) { countdown.togglePause() }
-                        PillButton(title: "取消") { countdown.reset() }
+                        PillButton(title: countdown.isPaused ? L("继续") : L("暂停"), prominent: true) { countdown.togglePause() }
+                        PillButton(title: L("取消")) { countdown.reset() }
                     }
                     .frame(maxWidth: .infinity)
                 } else {
                     HStack(spacing: 6) {
                         ForEach([5, 10, 25], id: \.self) { value in
-                            PillButton(title: "\(value) 分") { countdown.start(seconds: value * 60) }
+                            PillButton(title: L("%d 分", value)) { countdown.start(seconds: value * 60) }
                         }
                     }
                     .frame(maxWidth: .infinity)

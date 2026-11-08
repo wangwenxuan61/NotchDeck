@@ -1,0 +1,3 @@
+"NSBluetoothAlwaysUsageDescription" = "NotchDeck needs Bluetooth access to show and switch the Bluetooth state and read device battery levels.";
+"NSRemindersUsageDescription" = "NotchDeck shows and edits your reminders in its to-do card.";
+"NSRemindersFullAccessUsageDescription" = "NotchDeck shows and edits your reminders in its to-do card.";

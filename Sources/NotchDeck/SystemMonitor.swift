@@ -314,7 +314,7 @@ final class SystemMonitor: ObservableObject {
         isCharging = charging
         onExternalPower = external
         if announce, let known = knownExternalPower, known != external {
-            Toasts.shared.show(external ? "已接电源 \(percent)%" : "使用电池 \(percent)%", icon: external ? "bolt.fill" : "battery.75percent")
+            Toasts.shared.show(external ? L("已接电源 %d%%", percent) : L("使用电池 %d%%", percent), icon: external ? "bolt.fill" : "battery.75percent")
         }
         knownExternalPower = external
     }

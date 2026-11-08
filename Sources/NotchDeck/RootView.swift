@@ -31,6 +31,7 @@ struct VisualEffect: NSViewRepresentable {
 
 struct RootView: View {
     @ObservedObject var model: PanelModel
+    @ObservedObject private var language = LanguageStore.shared
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
@@ -39,6 +40,8 @@ struct RootView: View {
             Color.white.opacity(0.62)
             ExpandedContent(model: model)
                 .frame(width: Metrics.contentWidth, height: Metrics.contentHeight, alignment: .top)
+                // 换语言时重建整个界面，所有文字一起更新。
+                .id(language.current)
         }
         .frame(width: Metrics.panelWidth, height: Metrics.contentHeight)
         .clipShape(shape)
@@ -194,10 +197,10 @@ struct TopBar: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            IconButton(symbol: "square.grid.2x2", selected: model.page == .home, help: "首页") { model.page = .home }
-            tab("doc.on.clipboard", .clipboard, help: "剪贴板")
-            tab("timer", .timer, help: "计时器")
-            tab("music.note", .music, help: "音乐")
+            IconButton(symbol: "square.grid.2x2", selected: model.page == .home, help: L("首页")) { model.page = .home }
+            tab("doc.on.clipboard", .clipboard, help: L("剪贴板"))
+            tab("timer", .timer, help: L("计时器"))
+            tab("music.note", .music, help: L("音乐"))
 
             Spacer()
 
@@ -210,9 +213,9 @@ struct TopBar: View {
                 .frame(height: 28)
                 .background(Capsule().fill(Theme.control))
             }
-            tab("magnifyingglass", .search, help: "搜索")
-            tab("switch.2", .toggles, help: "快捷开关")
-            IconButton(symbol: "gearshape.fill", selected: model.page == .settings, help: "设置") {
+            tab("magnifyingglass", .search, help: L("搜索"))
+            tab("switch.2", .toggles, help: L("快捷开关"))
+            IconButton(symbol: "gearshape.fill", selected: model.page == .settings, help: L("设置")) {
                 model.page = model.page == .settings ? .home : .settings
             }
         }

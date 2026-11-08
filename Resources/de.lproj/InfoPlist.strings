@@ -1,0 +1,3 @@
+"NSBluetoothAlwaysUsageDescription" = "NotchDeck verwendet Bluetooth, um den Status anzuzeigen und umzuschalten und den Akkustand von Geräten zu lesen.";
+"NSRemindersUsageDescription" = "NotchDeck zeigt und bearbeitet deine Erinnerungen in der Aufgabenkarte.";
+"NSRemindersFullAccessUsageDescription" = "NotchDeck zeigt und bearbeitet deine Erinnerungen in der Aufgabenkarte.";

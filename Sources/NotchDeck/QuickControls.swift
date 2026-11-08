@@ -285,15 +285,15 @@ struct QuickControlsPage: View {
     private let refreshTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     private func state(_ value: Bool?) -> String {
-        guard let value else { return "不可用" }
-        return value ? "已开启" : "已关闭"
+        guard let value else { return L("不可用") }
+        return value ? L("已开启") : L("已关闭")
     }
 
     private var bluetoothSubtitle: String {
         switch controls.bluetoothAuthorization {
         case .allowedAlways: return state(controls.bluetooth)
-        case .notDetermined: return "点击授权"
-        default: return "去系统设置授权"
+        case .notDetermined: return L("点击授权")
+        default: return L("去系统设置授权")
         }
     }
 
@@ -318,7 +318,7 @@ struct QuickControlsPage: View {
                     .font(.system(size: 13, weight: .medium))
                     .frame(width: 30, height: 30)
                     .background(Circle().fill(Theme.control))
-                Text(title).font(.system(size: 10)).foregroundStyle(Theme.secondary)
+                Text(title).font(.system(size: 10)).foregroundStyle(Theme.secondary).lineLimit(1).minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
@@ -328,7 +328,7 @@ struct QuickControlsPage: View {
 
     @ViewBuilder private var bluetoothRow: some View {
         if controls.bluetoothDevices.isEmpty {
-            Text(controls.bluetoothAuthorization == .allowedAlways ? "没有已连接的蓝牙设备" : "授权蓝牙后显示设备电量")
+            Text(controls.bluetoothAuthorization == .allowedAlways ? L("没有已连接的蓝牙设备") : L("授权蓝牙后显示设备电量"))
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.secondary)
                 .frame(height: 22)
@@ -347,7 +347,7 @@ struct QuickControlsPage: View {
                         .padding(.horizontal, 8)
                         .frame(height: 22)
                         .background(Capsule().fill(Theme.control))
-                        .help(device.battery.map { "\(device.name)：\($0)" } ?? "\(device.name)：设备未提供电量")
+                        .help(device.battery.map { "\(device.name): \($0)" } ?? L("%@：设备未提供电量", device.name))
                     }
                 }
             }
@@ -360,20 +360,20 @@ struct QuickControlsPage: View {
         Grid(horizontalSpacing: 8, verticalSpacing: 8) {
             GridRow {
                 ToggleTile(title: "Wi-Fi", symbol: "wifi", isOn: controls.wifi == true, subtitle: state(controls.wifi), enabled: controls.wifi != nil) { controls.toggleWiFi() }
-                ToggleTile(title: "蓝牙", symbol: "dot.radiowaves.left.and.right", isOn: controls.bluetooth == true, subtitle: bluetoothSubtitle) { controls.toggleBluetooth() }
-                ToggleTile(title: "深色模式", symbol: "circle.lefthalf.filled", isOn: controls.darkMode == true, subtitle: state(controls.darkMode), enabled: controls.darkMode != nil) { controls.toggleDarkMode() }
+                ToggleTile(title: L("蓝牙"), symbol: "dot.radiowaves.left.and.right", isOn: controls.bluetooth == true, subtitle: bluetoothSubtitle) { controls.toggleBluetooth() }
+                ToggleTile(title: L("深色模式"), symbol: "circle.lefthalf.filled", isOn: controls.darkMode == true, subtitle: state(controls.darkMode), enabled: controls.darkMode != nil) { controls.toggleDarkMode() }
             }
             GridRow {
-                ToggleTile(title: "夜览", symbol: "sun.max", isOn: controls.nightShift == true, subtitle: state(controls.nightShift), enabled: controls.nightShift != nil) { controls.toggleNightShift() }
-                ToggleTile(title: "防止休眠", symbol: "cup.and.saucer", isOn: controls.keepAwake, subtitle: state(controls.keepAwake)) { controls.toggleKeepAwake() }
-                ToggleTile(title: "静音", symbol: "speaker.slash", isOn: controls.muted == true, subtitle: state(controls.muted), enabled: controls.muted != nil) { controls.toggleMute() }
+                ToggleTile(title: L("夜览"), symbol: "sun.max", isOn: controls.nightShift == true, subtitle: state(controls.nightShift), enabled: controls.nightShift != nil) { controls.toggleNightShift() }
+                ToggleTile(title: L("防止休眠"), symbol: "cup.and.saucer", isOn: controls.keepAwake, subtitle: state(controls.keepAwake)) { controls.toggleKeepAwake() }
+                ToggleTile(title: L("静音"), symbol: "speaker.slash", isOn: controls.muted == true, subtitle: state(controls.muted), enabled: controls.muted != nil) { controls.toggleMute() }
             }
         }
     }
 
     var body: some View {
         VStack(spacing: 6) {
-            PageHeader(title: "快捷开关", model: model)
+            PageHeader(title: L("快捷开关"), model: model)
             HStack(spacing: 8) {
                 tiles.frame(maxWidth: .infinity)
                 Card {
@@ -387,12 +387,12 @@ struct QuickControlsPage: View {
                         bluetoothRow
                         Spacer(minLength: 0)
                         HStack(spacing: 0) {
-                            action("截图", "camera.viewfinder") {
+                            action(L("截图"), "camera.viewfinder") {
                                 NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Screenshot.app"))
                             }
-                            action("息屏", "moon.fill") { controls.sleepDisplay() }
-                            action("锁屏", "lock.fill") { controls.lockScreen() }
-                            action("设置", "gearshape") {
+                            action(L("息屏"), "moon.fill") { controls.sleepDisplay() }
+                            action(L("锁屏"), "lock.fill") { controls.lockScreen() }
+                            action(L("设置"), "gearshape") {
                                 NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
                             }
                         }

@@ -52,12 +52,12 @@ struct MonitorPage: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            PageHeader(title: "系统监控", model: model)
+            PageHeader(title: L("系统监控"), model: model)
             HStack(spacing: 8) {
                 readings.frame(width: 200)
                 chart.frame(maxWidth: .infinity)
-                processes(title: "CPU 占用", rows: monitor.topCPU).frame(width: 160)
-                processes(title: "内存占用", rows: monitor.topMemory).frame(width: 160)
+                processes(title: L("CPU 占用"), rows: monitor.topCPU).frame(width: 160)
+                processes(title: L("内存占用"), rows: monitor.topMemory).frame(width: 160)
             }
         }
     }
@@ -68,7 +68,7 @@ struct MonitorPage: View {
                 HStack {
                     Text(title).foregroundStyle(Theme.secondary)
                     Spacer()
-                    Text(value).monospacedDigit()
+                    Text(value).monospacedDigit().lineLimit(1)
                 }
                 .font(.system(size: 12))
             }
@@ -80,20 +80,20 @@ struct MonitorPage: View {
             VStack(spacing: 6) {
                 reading("CPU", formatTemperature(monitor.cpuTemp))
                 reading("GPU", formatTemperature(monitor.gpuTemp))
-                reading("电池", formatTemperature(monitor.batteryTemp))
-                reading("固态硬盘", formatTemperature(monitor.ssdTemp))
+                reading(L("电池"), formatTemperature(monitor.batteryTemp))
+                reading(L("固态硬盘"), formatTemperature(monitor.ssdTemp))
                 ForEach(monitor.fans.indices, id: \.self) { index in
-                    reading(monitor.fans.count > 1 ? "风扇 \(index + 1)" : "风扇", "\(monitor.fans[index]) rpm")
+                    reading(monitor.fans.count > 1 ? L("风扇 %d", index + 1) : L("风扇"), "\(monitor.fans[index]) rpm")
                 }
-                reading("整机功耗", monitor.power.map { String(format: "%.1f W", $0) })
-                reading("网速", "↓ \(formatSpeed(monitor.downloadSpeed))  ↑ \(formatSpeed(monitor.uploadSpeed))")
+                reading(L("整机功耗"), monitor.power.map { String(format: "%.1f W", $0) })
+                reading(L("网速"), "↓ \(formatSpeed(monitor.downloadSpeed))  ↑ \(formatSpeed(monitor.uploadSpeed))")
             }
         }
     }
 
     private func chartTab(_ kind: ChartKind) -> some View {
         Button { chartKind = kind } label: {
-            Text(kind.rawValue)
+            Text(L(kind.rawValue))
                 .foregroundStyle(chartKind == kind ? Theme.blue : Theme.secondary)
                 .padding(.horizontal, 7)
                 .frame(height: 18)
@@ -109,12 +109,12 @@ struct MonitorPage: View {
             legend("CPU", Theme.blue)
             legend("GPU", Theme.purple)
         case .cpu:
-            Text("用户 \(percent(monitor.cpuUser))  系统 \(percent(monitor.cpuSystem))")
+            Text(L("用户 %@  系统 %@", percent(monitor.cpuUser), percent(monitor.cpuSystem)))
                 .foregroundStyle(Theme.secondary)
                 .monospacedDigit()
         case .memory:
             let total = Double(ProcessInfo.processInfo.physicalMemory)
-            Text("已用 \(gigabytes(monitor.memory * total))/\(gigabytes(total))  Swap \(gigabytes(Double(monitor.swapUsed)))")
+            Text(L("已用 %@/%@  Swap %@", gigabytes(monitor.memory * total), gigabytes(total), gigabytes(Double(monitor.swapUsed))))
                 .foregroundStyle(Theme.secondary)
                 .monospacedDigit()
                 .lineLimit(1)
@@ -241,7 +241,7 @@ struct AllAppsPage: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            PageHeader(title: "所有应用", model: model)
+            PageHeader(title: L("所有应用"), model: model)
             ScrollView(.vertical) {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 11), spacing: 10) {
                     ForEach(store.allApps) { app in
@@ -251,9 +251,9 @@ struct AllAppsPage: View {
                         }
                         .contextMenu {
                             if store.paths.contains(app.path) {
-                                Button("从快捷栏移除") { store.unpin(app.path) }
+                                Button(L("从快捷栏移除")) { store.unpin(app.path) }
                             } else {
-                                Button("固定到快捷栏") { store.pin(app.path) }
+                                Button(L("固定到快捷栏")) { store.pin(app.path) }
                             }
                         }
                     }
@@ -276,11 +276,11 @@ struct PinnedAppsPage: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            PageHeader(title: "快捷栏", model: model) {
+            PageHeader(title: L("快捷栏"), model: model) {
                 Button {
                     if let url = AppDelegate.shared.pickApplication() { store.pin(url.path) }
                 } label: {
-                    Label("添加 App", systemImage: "plus").font(.system(size: 12))
+                    Label(L("添加 App"), systemImage: "plus").font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
             }
@@ -291,7 +291,7 @@ struct PinnedAppsPage: View {
                             AppIcon(app: app, size: 40) { collapse() }
                             Text(app.name).font(.system(size: 10)).lineLimit(1)
                         }
-                        .contextMenu { Button("从快捷栏移除") { store.unpin(app.path) } }
+                        .contextMenu { Button(L("从快捷栏移除")) { store.unpin(app.path) } }
                     }
                 }
                 .padding(.vertical, 2)
@@ -306,78 +306,96 @@ struct SettingsPage: View {
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var reminders = ReminderSync.shared
     @ObservedObject private var busy = LookBusyController.shared
+    @ObservedObject private var language = LanguageStore.shared
 
     private func row<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         HStack {
-            Text(title).font(.system(size: 13))
-            Spacer()
+            Text(title).font(.system(size: 13)).lineLimit(1)
+            Spacer(minLength: 8)
             content()
         }
     }
 
     var body: some View {
         VStack(spacing: 6) {
-            PageHeader(title: "设置", model: model) {
+            PageHeader(title: L("设置"), model: model) {
                 HStack(spacing: 12) {
-                    Text("⌥⌘N 面板  ·  ⌃⌥V 剪贴板  ·  ⌃⌥B 装忙")
+                    Text(L("⌥⌘N 面板  ·  ⌃⌥V 剪贴板  ·  ⌃⌥B 装忙"))
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.secondary)
-                    Button("退出 NotchDeck") { NSApp.terminate(nil) }.controlSize(.small)
+                    Button(L("退出 NotchDeck")) { NSApp.terminate(nil) }.controlSize(.small)
                 }
             }
-            Card(padding: 10) {
-                VStack(spacing: 6) {
-                    row("开机自动启动") {
-                        Toggle("", isOn: Binding(get: { settings.launchAtLogin }, set: { settings.setLaunchAtLogin($0) }))
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
+            Card(padding: 12) {
+                HStack(alignment: .top, spacing: 24) {
+                    generalColumn.frame(maxWidth: .infinity)
+                    integrationColumn.frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+
+    private func toggle(_ isOn: Binding<Bool>) -> some View {
+        Toggle("", isOn: isOn).labelsHidden().toggleStyle(.switch).controlSize(.small)
+    }
+
+    private var generalColumn: some View {
+        VStack(spacing: 12) {
+            row(L("语言")) {
+                Picker("", selection: $language.selection) {
+                    ForEach(AppLanguage.allCases) { option in
+                        Text(option.displayName).tag(option)
                     }
-                    if let error = settings.launchError {
-                        Text(error).font(.system(size: 11)).foregroundStyle(Theme.coral).frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    row("菜单栏显示 CPU 温度") {
-                        Toggle("", isOn: $settings.showMenuBarTemperature)
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                    }
-                    row("CPU 过热提醒：\(Int(settings.overheatThreshold))°C") {
-                        Slider(value: $settings.overheatThreshold, in: 70...105, step: 5).frame(width: 220).controlSize(.small)
-                    }
-                    row("同步系统提醒事项") {
-                        HStack(spacing: 8) {
-                            if reminders.isActive {
-                                Picker("", selection: $reminders.selectedListID) {
-                                    ForEach(reminders.lists, id: \.calendarIdentifier) { list in
-                                        Text(list.title).tag(list.calendarIdentifier)
-                                    }
-                                }
-                                .labelsHidden()
-                                .controlSize(.small)
-                                .frame(width: 140)
+                }
+                .labelsHidden()
+                .controlSize(.small)
+                .fixedSize()
+            }
+            row(L("开机自动启动")) {
+                toggle(Binding(get: { settings.launchAtLogin }, set: { settings.setLaunchAtLogin($0) }))
+            }
+            if let error = settings.launchError {
+                Text(error).font(.system(size: 11)).foregroundStyle(Theme.coral).frame(maxWidth: .infinity, alignment: .leading)
+            }
+            row(L("菜单栏显示 CPU 温度")) {
+                toggle($settings.showMenuBarTemperature)
+            }
+            row(L("首页卡片")) {
+                Button(L("自定义")) { model.page = .customize }.controlSize(.small)
+            }
+        }
+    }
+
+    private var integrationColumn: some View {
+        VStack(spacing: 12) {
+            row(L("CPU 过热提醒：%d°C", Int(settings.overheatThreshold))) {
+                Slider(value: $settings.overheatThreshold, in: 70...105, step: 5).frame(width: 130).controlSize(.small)
+            }
+            row(L("同步系统提醒事项")) {
+                HStack(spacing: 8) {
+                    if reminders.isActive {
+                        Picker("", selection: $reminders.selectedListID) {
+                            ForEach(reminders.lists, id: \.calendarIdentifier) { list in
+                                Text(list.title).tag(list.calendarIdentifier)
                             }
-                            Toggle("", isOn: Binding(get: { reminders.isActive }, set: { reminders.setEnabled($0) }))
-                                .labelsHidden()
-                                .toggleStyle(.switch)
-                                .controlSize(.small)
                         }
+                        .labelsHidden()
+                        .controlSize(.small)
+                        .frame(width: 120)
                     }
-                    row("首页卡片") {
-                        Button("自定义") { model.page = .customize }.controlSize(.small)
+                    toggle(Binding(get: { reminders.isActive }, set: { reminders.setEnabled($0) }))
+                }
+            }
+            row(L("装忙用的文件名")) {
+                HStack(spacing: 8) {
+                    Text(busy.usesCustomProject ? busy.project.name : L("演示项目"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.secondary)
+                        .lineLimit(1)
+                    if busy.usesCustomProject {
+                        Button(L("恢复演示")) { busy.useDemoProject() }.controlSize(.small)
                     }
-                    row("装忙用的文件名") {
-                        HStack(spacing: 8) {
-                            Text(busy.usesCustomProject ? busy.project.name : "演示项目")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Theme.secondary)
-                                .lineLimit(1)
-                            if busy.usesCustomProject {
-                                Button("恢复演示") { busy.useDemoProject() }.controlSize(.small)
-                            }
-                            Button("选择文件夹") { busy.chooseProject() }.controlSize(.small)
-                        }
-                    }
+                    Button(L("选择文件夹")) { busy.chooseProject() }.controlSize(.small)
                 }
             }
         }

@@ -237,7 +237,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.togglePageFromHotKey(.clipboard)
         }
         if busyHotKey == nil {
-            Toasts.shared.show("⌃⌥B 已被占用", icon: "exclamationmark.triangle")
+            Toasts.shared.show(L("⌃⌥B 已被占用"), icon: "exclamationmark.triangle")
         }
     }
 
@@ -248,8 +248,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.message = "只读取文件和文件夹的名称，不会打开文件内容。"
-        panel.prompt = "使用这个文件夹"
+        panel.message = L("只读取文件和文件夹的名称，不会打开文件内容。")
+        panel.prompt = L("使用这个文件夹")
         NSApp.activate(ignoringOtherApps: true)
         return panel.runModal() == .OK ? panel.url : nil
     }
@@ -261,7 +261,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.application]
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
-        panel.prompt = "添加"
+        panel.prompt = L("添加")
         NSApp.activate(ignoringOtherApps: true)
         return panel.runModal() == .OK ? panel.url : nil
     }
