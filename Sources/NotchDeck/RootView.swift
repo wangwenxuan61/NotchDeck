@@ -167,6 +167,7 @@ struct TopBar: View {
     @ObservedObject var model: PanelModel
     @ObservedObject private var monitor = SystemMonitor.shared
     @ObservedObject private var layout = CardLayoutStore.shared
+    @ObservedObject private var updates = UpdateChecker.shared
 
     private var batterySymbol: String {
         if monitor.isCharging || monitor.onExternalPower { return "battery.100percent.bolt" }
@@ -233,6 +234,11 @@ struct TopBar: View {
             tab("switch.2", .toggles, help: L("快捷开关"))
             IconButton(symbol: "gearshape.fill", selected: model.page == .settings, help: L("设置")) {
                 model.page = model.page == .settings ? .home : .settings
+            }
+            .overlay(alignment: .topTrailing) {
+                if updates.latestVersion != nil {
+                    Circle().fill(Theme.coral).frame(width: 8, height: 8)
+                }
             }
         }
         .overlay { pager }

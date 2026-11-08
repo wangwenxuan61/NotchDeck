@@ -1,4 +1,11 @@
 let frenchStrings: [String: String] = [
+    "自动检查更新": "Vérifier les mises à jour",
+    "检查更新": "Vérifier",
+    "检查中…": "Vérification…",
+    "更新到 %@": "Obtenir %@",
+    "发现新版本 %@": "Nouvelle version %@",
+    "已是最新版本": "Vous êtes à jour",
+    "检查更新失败": "Échec de la vérification",
     "外观": "Apparence",
     "浅色": "Clair",
     "深色": "Sombre",

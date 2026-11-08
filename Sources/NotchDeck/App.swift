@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MediaController.shared.start()
         ClipboardStore.shared.start()
         ReminderSync.shared.restore()
+        UpdateChecker.shared.start()
         setUpStatusItem()
         refreshMonitorMode()
 
@@ -88,6 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             CountdownTimer.shared.$remaining.map { _ in () }.eraseToAnyPublisher(),
             SystemMonitor.shared.$cpuTemp.map { _ in () }.eraseToAnyPublisher(),
             AppSettings.shared.$showMenuBarTemperature.map { _ in () }.eraseToAnyPublisher(),
+            UpdateChecker.shared.$latestVersion.map { _ in () }.eraseToAnyPublisher(),
         ])
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in self?.refreshStatusText() }
@@ -102,7 +104,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             let temperature = AppSettings.shared.showMenuBarTemperature ? formatTemperature(SystemMonitor.shared.cpuTemp) : nil
             let timer = (FocusTimer.shared.remaining ?? CountdownTimer.shared.remaining).map(FocusTimer.format)
-            text = [temperature, timer].compactMap { $0 }.joined(separator: "  ")
+            let update = UpdateChecker.shared.latestVersion == nil ? nil : "↑"
+            text = [temperature, timer, update].compactMap { $0 }.joined(separator: "  ")
         }
         if !text.isEmpty { text = " \(text)" }
         guard button.title != text else { return }
