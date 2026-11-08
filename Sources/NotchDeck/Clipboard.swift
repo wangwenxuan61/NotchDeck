@@ -233,22 +233,25 @@ struct ClipboardRow: View {
     let action: () -> Void
     @State private var hovering = false
 
+    /// 首页卡片里只有三行的高度，紧凑模式要用更小的缩略图。
+    private var thumbnailSize: CGFloat { showsMeta ? 28 : 20 }
+
     @ViewBuilder private var thumbnail: some View {
         switch item.content {
         case .text:
             Image(systemName: "text.alignleft").foregroundStyle(Theme.secondary)
         case .image(let image, _, _):
-            Image(nsImage: image).resizable().scaledToFill().frame(width: 28, height: 28)
+            Image(nsImage: image).resizable().scaledToFill().frame(width: thumbnailSize, height: thumbnailSize)
                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
         case .files(let urls):
-            Image(nsImage: NSWorkspace.shared.icon(forFile: urls.first?.path ?? "/")).resizable().frame(width: 26, height: 26)
+            Image(nsImage: NSWorkspace.shared.icon(forFile: urls.first?.path ?? "/")).resizable().frame(width: thumbnailSize - 2, height: thumbnailSize - 2)
         }
     }
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                thumbnail.frame(width: 28, height: 28)
+                thumbnail.frame(width: thumbnailSize, height: thumbnailSize)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.preview.replacingOccurrences(of: "\n", with: " "))
                         .font(.system(size: 12))
@@ -264,7 +267,7 @@ struct ClipboardRow: View {
             }
             .padding(.leading, 8)
             .padding(.trailing, onPin == nil ? 8 : 30)
-            .padding(.vertical, 4)
+            .padding(.vertical, showsMeta ? 4 : 2)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(hovering ? Theme.controlHover : Color.clear))
             .contentShape(Rectangle())
