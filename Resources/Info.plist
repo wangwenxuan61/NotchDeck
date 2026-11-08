@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key><string>NotchDeck</string>
+    <key>CFBundleDisplayName</key><string>NotchDeck</string>
+    <key>CFBundleIdentifier</key><string>local.notchdeck.app</string>
+    <key>CFBundleExecutable</key><string>NotchDeck</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>1.0</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>LSMinimumSystemVersion</key><string>14.0</string>
+    <key>LSUIElement</key><true/>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSBluetoothAlwaysUsageDescription</key><string>NotchDeck 需要读取和切换蓝牙开关。</string>
+    <key>NSRemindersUsageDescription</key><string>NotchDeck 需要在待办卡片里显示和修改你的提醒事项。</string>
+    <key>NSRemindersFullAccessUsageDescription</key><string>NotchDeck 需要在待办卡片里显示和修改你的提醒事项。</string>
+</dict>
+</plist>

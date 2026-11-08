@@ -1,0 +1,221 @@
+import AppKit
+import SwiftUI
+
+struct VisualEffect: NSViewRepresentable {
+    let cornerRadius: CGFloat
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .popover
+        view.blendingMode = .behindWindow
+        view.state = .active
+        view.maskImage = Self.mask(radius: cornerRadius)
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+
+    /// 窗口后方的毛玻璃不受 SwiftUI 裁剪影响，圆角要用 maskImage 设置。
+    private static func mask(radius: CGFloat) -> NSImage {
+        let side = radius * 2 + 1
+        let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
+            return true
+        }
+        image.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
+        image.resizingMode = .stretch
+        return image
+    }
+}
+
+struct RootView: View {
+    @ObservedObject var model: PanelModel
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
+        ZStack(alignment: .top) {
+            VisualEffect(cornerRadius: Metrics.cornerRadius)
+            Color.white.opacity(0.62)
+            ExpandedContent(model: model)
+                .frame(width: Metrics.contentWidth, height: Metrics.contentHeight, alignment: .top)
+        }
+        .frame(width: Metrics.panelWidth, height: Metrics.contentHeight)
+        .clipShape(shape)
+        .overlay(shape.strokeBorder(Theme.hairline, lineWidth: 1))
+        .shadow(color: .black.opacity(0.22), radius: 12, y: 4)
+        .frame(width: Metrics.windowWidth, height: Metrics.windowHeight, alignment: .top)
+        .foregroundStyle(Theme.primary)
+    }
+}
+
+extension InsettableShape {
+    /// 卡片样式：浅色填充加一圈细边。
+    func cardFill(_ color: Color = Theme.card) -> some View {
+        fill(color).overlay(strokeBorder(Theme.hairline, lineWidth: 1))
+    }
+}
+
+enum Theme {
+    static let teal = Color(red: 0.03, green: 0.56, blue: 0.47)
+    static let coral = Color(red: 0.92, green: 0.33, blue: 0.36)
+    static let blue = Color(red: 0.00, green: 0.48, blue: 1.00)
+    static let purple = Color(red: 0.55, green: 0.30, blue: 0.88)
+    static let orange = Color(red: 0.92, green: 0.52, blue: 0.05)
+    static let primary = Color.black.opacity(0.86)
+    static let secondary = Color.black.opacity(0.58)
+    static let tertiary = Color.black.opacity(0.38)
+    static let card = Color.white.opacity(0.72)
+    static let control = Color.black.opacity(0.06)
+    static let controlHover = Color.black.opacity(0.11)
+    static let track = Color.black.opacity(0.10)
+    static let hairline = Color.black.opacity(0.08)
+}
+
+struct ExpandedContent: View {
+    @ObservedObject var model: PanelModel
+    @ObservedObject private var toasts = Toasts.shared
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            VStack(spacing: 8) {
+                TopBar(model: model).frame(height: 30)
+                switch model.page {
+                case .home:
+                    HomeCards(model: model).frame(height: 128)
+                    DockRow(model: model).frame(height: 46)
+                case .monitor:
+                    MonitorPage(model: model).frame(height: 182)
+                case .apps:
+                    AllAppsPage(model: model).frame(height: 182)
+                case .pinned:
+                    PinnedAppsPage(model: model).frame(height: 182)
+                case .settings:
+                    SettingsPage(model: model).frame(height: 182)
+                case .clipboard:
+                    ClipboardPage(model: model).frame(height: 182)
+                case .timer:
+                    TimerPage(model: model).frame(height: 182)
+                case .music:
+                    MusicPage(model: model).frame(height: 182)
+                case .customize:
+                    CustomizePage(model: model).frame(height: 182)
+                case .search:
+                    SearchPage(model: model).frame(height: 182)
+                case .toggles:
+                    QuickControlsPage(model: model).frame(height: 182)
+                }
+            }
+            .padding(.top, 12)
+
+            if let toast = toasts.current {
+                Label(toast.text, systemImage: toast.icon)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.black.opacity(0.82)))
+                    .padding(.bottom, 16)
+                    .transition(.opacity)
+            }
+        }
+    }
+}
+
+struct IconButton: View {
+    let symbol: String
+    var selected = false
+    var help = ""
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(selected ? Theme.blue : Theme.primary)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(selected ? Theme.blue.opacity(0.16) : (hovering ? Theme.controlHover : Theme.control)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .onHover { hovering = $0 }
+    }
+}
+
+struct TopBar: View {
+    @ObservedObject var model: PanelModel
+    @ObservedObject private var monitor = SystemMonitor.shared
+    @ObservedObject private var layout = CardLayoutStore.shared
+
+    private var batterySymbol: String {
+        if monitor.isCharging || monitor.onExternalPower { return "battery.100percent.bolt" }
+        switch monitor.batteryPercent ?? 100 {
+        case ..<13: return "battery.0percent"
+        case ..<38: return "battery.25percent"
+        case ..<63: return "battery.50percent"
+        case ..<88: return "battery.75percent"
+        default: return "battery.100percent"
+        }
+    }
+
+    private func tab(_ symbol: String, _ page: Page, help: String) -> some View {
+        IconButton(symbol: symbol, selected: model.page == page, help: help) {
+            model.page = model.page == page ? .home : page
+        }
+    }
+
+    private func pagerArrow(_ symbol: String, delta: Int, enabled: Bool) -> some View {
+        Button { model.turnHomePage(by: delta) } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(enabled ? Theme.primary : Theme.tertiary)
+                .frame(width: 22, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+    }
+
+    @ViewBuilder private var pager: some View {
+        let count = layout.visiblePages.count
+        if model.page == .home && count > 1 {
+            let current = min(model.homePage, count - 1)
+            HStack(spacing: 4) {
+                pagerArrow("chevron.left", delta: -1, enabled: current > 0)
+                ForEach(0..<count, id: \.self) { index in
+                    Circle().fill(index == current ? Theme.primary : Theme.track).frame(width: 6, height: 6)
+                }
+                pagerArrow("chevron.right", delta: 1, enabled: current < count - 1)
+            }
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            IconButton(symbol: "square.grid.2x2", selected: model.page == .home, help: "首页") { model.page = .home }
+            tab("doc.on.clipboard", .clipboard, help: "剪贴板")
+            tab("timer", .timer, help: "计时器")
+            tab("music.note", .music, help: "音乐")
+
+            Spacer()
+
+            if let percent = monitor.batteryPercent {
+                HStack(spacing: 5) {
+                    Image(systemName: batterySymbol).font(.system(size: 13))
+                    Text("\(percent)%").font(.system(size: 12, weight: .medium)).monospacedDigit()
+                }
+                .padding(.horizontal, 10)
+                .frame(height: 28)
+                .background(Capsule().fill(Theme.control))
+            }
+            tab("magnifyingglass", .search, help: "搜索")
+            tab("switch.2", .toggles, help: "快捷开关")
+            IconButton(symbol: "gearshape.fill", selected: model.page == .settings, help: "设置") {
+                model.page = model.page == .settings ? .home : .settings
+            }
+        }
+        .overlay { pager }
+    }
+}
