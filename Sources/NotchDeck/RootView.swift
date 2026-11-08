@@ -37,7 +37,7 @@ struct RootView: View {
         let shape = RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
         ZStack(alignment: .top) {
             VisualEffect(cornerRadius: Metrics.cornerRadius)
-            Color.white.opacity(0.62)
+            Theme.panelTint
             ExpandedContent(model: model)
                 .frame(width: Metrics.contentWidth, height: Metrics.contentHeight, alignment: .top)
                 // 换语言时重建整个界面，所有文字一起更新。
@@ -59,20 +59,36 @@ extension InsettableShape {
     }
 }
 
+/// 所有颜色都分浅色和深色两个值，由面板当前的外观决定使用哪一个。
 enum Theme {
-    static let teal = Color(red: 0.03, green: 0.56, blue: 0.47)
-    static let coral = Color(red: 0.92, green: 0.33, blue: 0.36)
-    static let blue = Color(red: 0.00, green: 0.48, blue: 1.00)
-    static let purple = Color(red: 0.55, green: 0.30, blue: 0.88)
-    static let orange = Color(red: 0.92, green: 0.52, blue: 0.05)
-    static let primary = Color.black.opacity(0.86)
-    static let secondary = Color.black.opacity(0.58)
-    static let tertiary = Color.black.opacity(0.38)
-    static let card = Color.white.opacity(0.72)
-    static let control = Color.black.opacity(0.06)
-    static let controlHover = Color.black.opacity(0.11)
-    static let track = Color.black.opacity(0.10)
-    static let hairline = Color.black.opacity(0.08)
+    private static func adaptive(_ light: NSColor, _ dark: NSColor) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
+        })
+    }
+
+    private static func rgb(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat) -> NSColor {
+        NSColor(srgbRed: red, green: green, blue: blue, alpha: 1)
+    }
+
+    private static func black(_ alpha: CGFloat) -> NSColor { NSColor(white: 0, alpha: alpha) }
+    private static func white(_ alpha: CGFloat) -> NSColor { NSColor(white: 1, alpha: alpha) }
+
+    static let teal = adaptive(rgb(0.03, 0.56, 0.47), rgb(0.36, 0.84, 0.72))
+    static let coral = adaptive(rgb(0.92, 0.33, 0.36), rgb(0.95, 0.47, 0.47))
+    static let blue = adaptive(rgb(0.00, 0.48, 1.00), rgb(0.32, 0.64, 0.98))
+    static let purple = adaptive(rgb(0.55, 0.30, 0.88), rgb(0.68, 0.45, 0.95))
+    static let orange = adaptive(rgb(0.92, 0.52, 0.05), rgb(0.98, 0.65, 0.20))
+    static let primary = adaptive(black(0.86), white(0.92))
+    static let secondary = adaptive(black(0.58), white(0.62))
+    static let tertiary = adaptive(black(0.38), white(0.42))
+    static let panelTint = adaptive(white(0.62), black(0.48))
+    static let card = adaptive(white(0.72), white(0.09))
+    static let cardHover = adaptive(white(0.90), white(0.15))
+    static let control = adaptive(black(0.06), white(0.09))
+    static let controlHover = adaptive(black(0.11), white(0.16))
+    static let track = adaptive(black(0.10), white(0.14))
+    static let hairline = adaptive(black(0.08), white(0.12))
 }
 
 struct ExpandedContent: View {

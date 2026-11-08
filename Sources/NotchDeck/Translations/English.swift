@@ -1,4 +1,7 @@
 let englishStrings: [String: String] = [
+    "外观": "Appearance",
+    "浅色": "Light",
+    "深色": "Dark",
     "语言": "Language",
     "跟随系统": "System Default",
     "开始": "Start",

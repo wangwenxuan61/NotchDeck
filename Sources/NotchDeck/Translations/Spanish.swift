@@ -1,4 +1,7 @@
 let spanishStrings: [String: String] = [
+    "外观": "Apariencia",
+    "浅色": "Claro",
+    "深色": "Oscuro",
     "语言": "Idioma",
     "跟随系统": "Sistema",
     "开始": "Iniciar",

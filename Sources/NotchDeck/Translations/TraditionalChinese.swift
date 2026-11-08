@@ -1,4 +1,7 @@
 let traditionalChineseStrings: [String: String] = [
+    "外观": "外觀",
+    "浅色": "淺色",
+    "深色": "深色",
     "语言": "語言",
     "跟随系统": "跟隨系統",
     "开始": "開始",

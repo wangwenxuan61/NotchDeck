@@ -1,4 +1,7 @@
 let germanStrings: [String: String] = [
+    "外观": "Erscheinungsbild",
+    "浅色": "Hell",
+    "深色": "Dunkel",
     "语言": "Sprache",
     "跟随系统": "System",
     "开始": "Start",
