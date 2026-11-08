@@ -307,6 +307,7 @@ struct SettingsPage: View {
     @ObservedObject private var reminders = ReminderSync.shared
     @ObservedObject private var busy = LookBusyController.shared
     @ObservedObject private var language = LanguageStore.shared
+    @ObservedObject private var updates = UpdateChecker.shared
 
     private func row<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         HStack {
@@ -326,7 +327,7 @@ struct SettingsPage: View {
                     Button(L("退出 NotchDeck")) { NSApp.terminate(nil) }.controlSize(.small)
                 }
             }
-            Card(padding: 12) {
+            Card(padding: 10) {
                 HStack(alignment: .top, spacing: 24) {
                     generalColumn.frame(maxWidth: .infinity)
                     integrationColumn.frame(maxWidth: .infinity)
@@ -340,7 +341,7 @@ struct SettingsPage: View {
     }
 
     private var generalColumn: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             row(L("语言")) {
                 Picker("", selection: $language.selection) {
                     ForEach(AppLanguage.allCases) { option in
@@ -374,7 +375,7 @@ struct SettingsPage: View {
     }
 
     private var integrationColumn: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             row(L("CPU 过热提醒：%d°C", Int(settings.overheatThreshold))) {
                 Slider(value: $settings.overheatThreshold, in: 70...105, step: 5).frame(width: 130).controlSize(.small)
             }
@@ -407,6 +408,24 @@ struct SettingsPage: View {
             }
             row(L("首页卡片")) {
                 Button(L("自定义")) { model.page = .customize }.controlSize(.small)
+            }
+            row(L("自动检查更新")) {
+                HStack(spacing: 8) {
+                    Text(verbatim: "v\(updates.currentVersion)")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.secondary)
+                        .monospacedDigit()
+                    if let latest = updates.latestVersion {
+                        Button(L("更新到 %@", latest)) { updates.openDownloadPage() }
+                            .controlSize(.small)
+                            .keyboardShortcut(.defaultAction)
+                    } else {
+                        Button(updates.isChecking ? L("检查中…") : L("检查更新")) { updates.check(userInitiated: true) }
+                            .controlSize(.small)
+                            .disabled(updates.isChecking)
+                    }
+                    toggle($updates.autoCheck)
+                }
             }
         }
     }

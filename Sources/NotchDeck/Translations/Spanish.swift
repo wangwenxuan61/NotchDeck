@@ -1,4 +1,11 @@
 let spanishStrings: [String: String] = [
+    "自动检查更新": "Buscar actualizaciones",
+    "检查更新": "Comprobar",
+    "检查中…": "Comprobando…",
+    "更新到 %@": "Obtener %@",
+    "发现新版本 %@": "Nueva versión %@",
+    "已是最新版本": "Estás al día",
+    "检查更新失败": "Error al comprobar",
     "外观": "Apariencia",
     "浅色": "Claro",
     "深色": "Oscuro",

@@ -1,4 +1,11 @@
 let germanStrings: [String: String] = [
+    "自动检查更新": "Updates automatisch suchen",
+    "检查更新": "Prüfen",
+    "检查中…": "Wird geprüft…",
+    "更新到 %@": "%@ laden",
+    "发现新版本 %@": "Neue Version %@",
+    "已是最新版本": "Auf dem neuesten Stand",
+    "检查更新失败": "Prüfung fehlgeschlagen",
     "外观": "Erscheinungsbild",
     "浅色": "Hell",
     "深色": "Dunkel",

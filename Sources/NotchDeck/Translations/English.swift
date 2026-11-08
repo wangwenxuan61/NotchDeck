@@ -1,4 +1,11 @@
 let englishStrings: [String: String] = [
+    "自动检查更新": "Check for Updates",
+    "检查更新": "Check Now",
+    "检查中…": "Checking…",
+    "更新到 %@": "Get %@",
+    "发现新版本 %@": "New version: %@",
+    "已是最新版本": "You're up to date",
+    "检查更新失败": "Couldn't check for updates",
     "外观": "Appearance",
     "浅色": "Light",
     "深色": "Dark",
