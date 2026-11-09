@@ -19,6 +19,18 @@ enum Storage {
         guard let data = try? JSONEncoder().encode(value) else { return }
         try? data.write(to: folder.appendingPathComponent(name), options: .atomic)
     }
+
+    /// 偏好设置按 Bundle ID 存放，改 ID 后要把旧设置带过来。必须在任何设置被读取之前调用。
+    /// 旧设置文件不删除，退回旧版本时还能用。
+    static func migrateLegacySettings() {
+        let defaults = UserDefaults.standard
+        let migratedKey = "migratedLegacySettings"
+        guard !defaults.bool(forKey: migratedKey) else { return }
+        for (key, value) in defaults.persistentDomain(forName: "local.notchdeck.app") ?? [:] {
+            defaults.set(value, forKey: key)
+        }
+        defaults.set(true, forKey: migratedKey)
+    }
 }
 
 final class TodoStore: ObservableObject {

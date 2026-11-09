@@ -5,6 +5,7 @@ import Combine
 @main
 enum Entry {
     static func main() {
+        Storage.migrateLegacySettings()
         let app = NSApplication.shared
         app.delegate = AppDelegate.shared
         app.setActivationPolicy(.accessory)

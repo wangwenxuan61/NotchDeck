@@ -6,7 +6,7 @@
     <key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string><string>zh-Hant</string><string>ja</string><string>ko</string><string>fr</string><string>de</string><string>es</string></array>
     <key>CFBundleName</key><string>NotchDeck</string>
     <key>CFBundleDisplayName</key><string>NotchDeck</string>
-    <key>CFBundleIdentifier</key><string>local.notchdeck.app</string>
+    <key>CFBundleIdentifier</key><string>io.github.wangwenxuan61.notchdeck</string>
     <key>CFBundleExecutable</key><string>NotchDeck</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
