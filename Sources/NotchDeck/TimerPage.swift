@@ -148,8 +148,7 @@ struct PillButton: View {
             .foregroundStyle(prominent ? Color.white : Theme.primary)
             .padding(.horizontal, horizontalPadding)
             .frame(width: width, height: 26)
-            .background(Capsule().fill(prominent ? Theme.blue : Theme.control))
-            .contentShape(Capsule())
+            .capsuleFill(prominent ? Theme.blue : Theme.control)
         }
         .buttonStyle(.plain)
     }
@@ -196,8 +195,7 @@ struct CountdownPanel: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(countdown.minutes == value ? Theme.blue : Theme.primary)
                             .frame(maxWidth: .infinity, minHeight: 26)
-                            .background(Capsule().fill(countdown.minutes == value ? Theme.blue.opacity(0.16) : Theme.control))
-                            .contentShape(Capsule())
+                            .capsuleFill(countdown.minutes == value ? Theme.blue.opacity(0.16) : Theme.control)
                     }
                     .buttonStyle(.plain)
                 }

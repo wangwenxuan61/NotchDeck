@@ -354,20 +354,10 @@ final class FocusTimer: ObservableObject {
     /// 系统没有开放勿扰接口；如果用户建了同名“快捷指令”，就由它来开关勿扰。
     private static func runShortcut(_ name: String) {
         DispatchQueue.global(qos: .utility).async {
-            let list = Process()
-            let pipe = Pipe()
-            list.executableURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
-            list.arguments = ["list"]
-            list.standardOutput = pipe
-            list.standardError = FileHandle.nullDevice
-            guard (try? list.run()) != nil else { return }
-            let output = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-            list.waitUntilExit()
-            guard output.split(separator: "\n").contains(Substring(name)) else { return }
-            let run = Process()
-            run.executableURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
-            run.arguments = ["run", name]
-            try? run.run()
+            guard let data = Shell.output("/usr/bin/shortcuts", ["list"]) else { return }
+            let names = String(decoding: data, as: UTF8.self).split(separator: "\n")
+            guard names.contains(Substring(name)) else { return }
+            Shell.launch("/usr/bin/shortcuts", ["run", name])
         }
     }
 }

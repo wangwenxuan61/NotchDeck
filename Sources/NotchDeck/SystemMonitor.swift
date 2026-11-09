@@ -316,17 +316,9 @@ final class SystemMonitor: ObservableObject {
     }
 
     private func sampleDetail() {
-        let process = Process()
-        let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/bin/ps")
-        process.arguments = ["-Aceo", "pcpu=,rss=,comm="]
         // 没有 UTF-8 语言环境时，ps 会把中文进程名转义成 M-e... 的形式。
-        process.environment = ["LC_ALL": "en_US.UTF-8"]
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        guard (try? process.run()) != nil else { return }
-        let output = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-        process.waitUntilExit()
+        guard let data = Shell.output("/bin/ps", ["-Aceo", "pcpu=,rss=,comm="], environment: ["LC_ALL": "en_US.UTF-8"]) else { return }
+        let output = String(decoding: data, as: UTF8.self)
 
         let rows: [(cpu: Double, rss: Double, name: String)] = output.split(separator: "\n").compactMap { line in
             let parts = line.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: true)

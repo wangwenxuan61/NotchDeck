@@ -87,20 +87,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
 
         // @Published 在值改变前发出通知，切到下一轮主循环才能读到新值。
+        func changes<Value>(_ publisher: Published<Value>.Publisher) -> AnyPublisher<Void, Never> {
+            publisher.map { _ in () }.eraseToAnyPublisher()
+        }
         statusSubscription = Publishers.MergeMany([
-            Toasts.shared.$current.map { _ in () }.eraseToAnyPublisher(),
-            FocusTimer.shared.$remaining.map { _ in () }.eraseToAnyPublisher(),
-            CountdownTimer.shared.$remaining.map { _ in () }.eraseToAnyPublisher(),
-            SystemMonitor.shared.$cpuTemp.map { _ in () }.eraseToAnyPublisher(),
-            SystemMonitor.shared.$cpu.map { _ in () }.eraseToAnyPublisher(),
-            SystemMonitor.shared.$downloadSpeed.map { _ in () }.eraseToAnyPublisher(),
-            SystemMonitor.shared.$batteryPercent.map { _ in () }.eraseToAnyPublisher(),
-            SystemMonitor.shared.$isCharging.map { _ in () }.eraseToAnyPublisher(),
-            AppSettings.shared.$showMenuBarTemperature.map { _ in () }.eraseToAnyPublisher(),
-            AppSettings.shared.$showMenuBarCPU.map { _ in () }.eraseToAnyPublisher(),
-            AppSettings.shared.$showMenuBarNetwork.map { _ in () }.eraseToAnyPublisher(),
-            AppSettings.shared.$showMenuBarBattery.map { _ in () }.eraseToAnyPublisher(),
-            UpdateChecker.shared.$latestVersion.map { _ in () }.eraseToAnyPublisher(),
+            changes(Toasts.shared.$current),
+            changes(FocusTimer.shared.$remaining),
+            changes(CountdownTimer.shared.$remaining),
+            changes(SystemMonitor.shared.$cpuTemp),
+            changes(SystemMonitor.shared.$cpu),
+            changes(SystemMonitor.shared.$downloadSpeed),
+            changes(SystemMonitor.shared.$batteryPercent),
+            changes(SystemMonitor.shared.$isCharging),
+            changes(AppSettings.shared.$showMenuBarTemperature),
+            changes(AppSettings.shared.$showMenuBarCPU),
+            changes(AppSettings.shared.$showMenuBarNetwork),
+            changes(AppSettings.shared.$showMenuBarBattery),
+            changes(UpdateChecker.shared.$latestVersion),
         ])
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in self?.refreshStatusText() }

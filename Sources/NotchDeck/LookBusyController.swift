@@ -172,8 +172,7 @@ struct LookBusyCard: View {
                 .minimumScaleFactor(0.7)
                 .padding(.horizontal, 4)
                 .frame(maxWidth: .infinity, minHeight: 22)
-                .background(Capsule().fill(selected ? Theme.blue.opacity(0.16) : Theme.control))
-                .contentShape(Capsule())
+                .capsuleFill(selected ? Theme.blue.opacity(0.16) : Theme.control)
         }
         .buttonStyle(.plain)
     }

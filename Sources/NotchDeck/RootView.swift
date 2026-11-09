@@ -59,6 +59,13 @@ extension InsettableShape {
     }
 }
 
+extension View {
+    /// 胶囊形按钮的底色，整个胶囊都能点击。
+    func capsuleFill(_ color: Color) -> some View {
+        background(Capsule().fill(color)).contentShape(Capsule())
+    }
+}
+
 /// 所有颜色都分浅色和深色两个值，由面板当前的外观决定使用哪一个。
 enum Theme {
     private static func adaptive(_ light: NSColor, _ dark: NSColor) -> Color {
@@ -95,34 +102,31 @@ struct ExpandedContent: View {
     @ObservedObject var model: PanelModel
     @ObservedObject private var toasts = Toasts.shared
 
+    @ViewBuilder private var detailPage: some View {
+        switch model.page {
+        case .home: EmptyView()
+        case .monitor: MonitorPage(model: model)
+        case .apps: AllAppsPage(model: model)
+        case .pinned: PinnedAppsPage(model: model)
+        case .settings: SettingsPage(model: model)
+        case .clipboard: ClipboardPage(model: model)
+        case .timer: TimerPage(model: model)
+        case .music: MusicPage(model: model)
+        case .customize: CustomizePage(model: model)
+        case .search: SearchPage(model: model)
+        case .toggles: QuickControlsPage(model: model)
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             VStack(spacing: 8) {
                 TopBar(model: model).frame(height: 30)
-                switch model.page {
-                case .home:
+                if model.page == .home {
                     HomeCards(model: model).frame(height: 128)
                     DockRow(model: model).frame(height: 46)
-                case .monitor:
-                    MonitorPage(model: model).frame(height: 182)
-                case .apps:
-                    AllAppsPage(model: model).frame(height: 182)
-                case .pinned:
-                    PinnedAppsPage(model: model).frame(height: 182)
-                case .settings:
-                    SettingsPage(model: model).frame(height: 182)
-                case .clipboard:
-                    ClipboardPage(model: model).frame(height: 182)
-                case .timer:
-                    TimerPage(model: model).frame(height: 182)
-                case .music:
-                    MusicPage(model: model).frame(height: 182)
-                case .customize:
-                    CustomizePage(model: model).frame(height: 182)
-                case .search:
-                    SearchPage(model: model).frame(height: 182)
-                case .toggles:
-                    QuickControlsPage(model: model).frame(height: 182)
+                } else {
+                    detailPage.frame(height: 182)
                 }
             }
             .padding(.top, 12)

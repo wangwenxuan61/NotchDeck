@@ -112,12 +112,8 @@ struct AgendaCard: View {
     @ObservedObject private var store = AgendaStore.shared
     private static let maxRows = 3
 
-    private func openCalendar() {
-        NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
-    }
-
     private func header(countdown: String?) -> some View {
-        Button(action: openCalendar) {
+        Button(action: openCalendarApp) {
             HStack(spacing: 5) {
                 Image(systemName: "list.bullet.below.rectangle").foregroundStyle(Theme.coral)
                 Text(L("今日日程")).font(.system(size: 13, weight: .semibold)).lineLimit(1)
@@ -155,8 +151,7 @@ struct AgendaCard: View {
                         .fixedSize()
                         .padding(.horizontal, 7)
                         .frame(height: 18)
-                        .background(Capsule().fill(Theme.blue))
-                        .contentShape(Capsule())
+                        .capsuleFill(Theme.blue)
                 }
                 .buttonStyle(.plain)
                 .help(url.host ?? "")

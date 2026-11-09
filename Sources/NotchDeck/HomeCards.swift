@@ -167,9 +167,7 @@ struct ClockCard: View {
     }
 
     var body: some View {
-        Button {
-            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
-        } label: {
+        Button(action: openCalendarApp) {
             Card {
                 TimelineView(.periodic(from: .now, by: 1)) { timeline in
                     VStack(spacing: 6) {
@@ -359,8 +357,7 @@ struct DockRow: View {
             }
             .padding(.horizontal, 14)
             .frame(height: 36)
-            .background(Capsule().fill(Theme.control))
-            .contentShape(Capsule())
+            .capsuleFill(Theme.control)
         }
         .buttonStyle(.plain)
         .help(L("全屏装忙（⌃⌥B）"))

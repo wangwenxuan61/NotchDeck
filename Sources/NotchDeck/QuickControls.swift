@@ -5,12 +5,6 @@ import CoreWLAN
 import IOKit.pwr_mgt
 import SwiftUI
 
-/// 这些开关大多没有公开接口，只能动态调用系统私有函数；函数不存在时对应开关显示为不可用。
-private func systemFunction<T>(_ path: String, _ name: String, as type: T.Type) -> T? {
-    guard let handle = dlopen(path, RTLD_LAZY), let symbol = dlsym(handle, name) else { return nil }
-    return unsafeBitCast(symbol, to: type)
-}
-
 private let bluetoothPath = "/System/Library/Frameworks/IOBluetooth.framework/IOBluetooth"
 private let skyLightPath = "/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight"
 private let displayServicesPath = "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices"
@@ -99,22 +93,10 @@ final class QuickControls: ObservableObject {
         }
         lastDeviceRefresh = Date()
         DispatchQueue.global(qos: .utility).async {
-            let devices = Self.parseBluetoothDevices(Self.readBluetoothProfile())
+            let profile = Shell.output("/usr/sbin/system_profiler", ["SPBluetoothDataType", "-json"]) ?? Data()
+            let devices = Self.parseBluetoothDevices(profile)
             DispatchQueue.main.async { self.bluetoothDevices = devices }
         }
-    }
-
-    private static func readBluetoothProfile() -> Data {
-        let process = Process()
-        let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
-        process.arguments = ["SPBluetoothDataType", "-json"]
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        guard (try? process.run()) != nil else { return Data() }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        return data
     }
 
     private static func parseBluetoothDevices(_ data: Data) -> [BluetoothDeviceInfo] {
@@ -243,10 +225,7 @@ final class QuickControls: ObservableObject {
     }
 
     func sleepDisplay() {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/pmset")
-        process.arguments = ["displaysleepnow"]
-        try? process.run()
+        Shell.launch("/usr/bin/pmset", ["displaysleepnow"])
     }
 
     func openPrivacyPane(_ name: String) {

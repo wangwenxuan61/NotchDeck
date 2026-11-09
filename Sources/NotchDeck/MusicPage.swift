@@ -9,12 +9,12 @@ struct AudioOutput: Identifiable, Equatable {
 }
 
 enum SystemVolume {
-    private static func globalAddress(_ selector: AudioObjectPropertySelector) -> AudioObjectPropertyAddress {
-        AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+    private static func property(_ selector: AudioObjectPropertySelector, scope: AudioObjectPropertyScope = kAudioObjectPropertyScopeGlobal) -> AudioObjectPropertyAddress {
+        AudioObjectPropertyAddress(mSelector: selector, mScope: scope, mElement: kAudioObjectPropertyElementMain)
     }
 
     private static func text(_ selector: AudioObjectPropertySelector, of device: AudioObjectID) -> String? {
-        var address = globalAddress(selector)
+        var address = property(selector)
         var value: Unmanaged<CFString>?
         var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
         guard AudioObjectGetPropertyData(device, &address, 0, nil, &size, &value) == noErr else { return nil }
@@ -22,14 +22,14 @@ enum SystemVolume {
     }
 
     private static func hasOutputStreams(_ device: AudioObjectID) -> Bool {
-        var address = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyStreams, mScope: kAudioDevicePropertyScopeOutput, mElement: kAudioObjectPropertyElementMain)
+        var address = property(kAudioDevicePropertyStreams, scope: kAudioDevicePropertyScopeOutput)
         var size: UInt32 = 0
         return AudioObjectGetPropertyDataSize(device, &address, 0, nil, &size) == noErr && size > 0
     }
 
     static func outputDevices() -> [AudioOutput] {
         let system = AudioObjectID(kAudioObjectSystemObject)
-        var address = globalAddress(kAudioHardwarePropertyDevices)
+        var address = property(kAudioHardwarePropertyDevices)
         var size: UInt32 = 0
         guard AudioObjectGetPropertyDataSize(system, &address, 0, nil, &size) == noErr else { return [] }
         var devices = [AudioObjectID](repeating: 0, count: Int(size) / MemoryLayout<AudioObjectID>.size)
@@ -42,7 +42,7 @@ enum SystemVolume {
     }
 
     static func setOutputDevice(_ device: AudioObjectID) {
-        var address = globalAddress(kAudioHardwarePropertyDefaultOutputDevice)
+        var address = property(kAudioHardwarePropertyDefaultOutputDevice)
         var value = device
         AudioObjectSetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, UInt32(MemoryLayout<AudioObjectID>.size), &value)
     }
@@ -50,21 +50,13 @@ enum SystemVolume {
     static func outputDevice() -> AudioObjectID? {
         var device = AudioObjectID(kAudioObjectUnknown)
         var size = UInt32(MemoryLayout<AudioObjectID>.size)
-        var address = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
+        var address = property(kAudioHardwarePropertyDefaultOutputDevice)
         let status = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &device)
         return status == noErr && device != kAudioObjectUnknown ? device : nil
     }
 
     private static var volumeAddress: AudioObjectPropertyAddress {
-        AudioObjectPropertyAddress(
-            mSelector: kAudioHardwareServiceDeviceProperty_VirtualMainVolume,
-            mScope: kAudioDevicePropertyScopeOutput,
-            mElement: kAudioObjectPropertyElementMain
-        )
+        property(kAudioHardwareServiceDeviceProperty_VirtualMainVolume, scope: kAudioDevicePropertyScopeOutput)
     }
 
     /// 部分输出设备（例如 HDMI 显示器）不支持软件调节音量，这时返回 nil。
@@ -79,11 +71,7 @@ enum SystemVolume {
     }
 
     private static var muteAddress: AudioObjectPropertyAddress {
-        AudioObjectPropertyAddress(
-            mSelector: kAudioDevicePropertyMute,
-            mScope: kAudioDevicePropertyScopeOutput,
-            mElement: kAudioObjectPropertyElementMain
-        )
+        property(kAudioDevicePropertyMute, scope: kAudioDevicePropertyScopeOutput)
     }
 
     static func isMuted() -> Bool? {

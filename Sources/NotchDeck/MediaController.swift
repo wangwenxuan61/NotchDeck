@@ -144,12 +144,9 @@ final class MediaController: ObservableObject {
         return duration > 0 ? min(advanced, duration) : advanced
     }
 
+    private static let mediaRemotePath = "/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote"
     private typealias SetElapsedTime = @convention(c) (Double) -> Void
-    private static let setElapsedTime: SetElapsedTime? = {
-        guard let handle = dlopen("/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote", RTLD_LAZY),
-              let symbol = dlsym(handle, "MRMediaRemoteSetElapsedTime") else { return nil }
-        return unsafeBitCast(symbol, to: SetElapsedTime.self)
-    }()
+    private static let setElapsedTime = systemFunction(mediaRemotePath, "MRMediaRemoteSetElapsedTime", as: SetElapsedTime.self)
 
     func seek(to seconds: Double) {
         Self.setElapsedTime?(seconds)
@@ -160,11 +157,7 @@ final class MediaController: ObservableObject {
     private enum Command: UInt32 { case toggle = 2, next = 4, previous = 5 }
 
     private typealias SendCommand = @convention(c) (UInt32, CFDictionary?) -> Bool
-    private static let sendCommand: SendCommand? = {
-        guard let handle = dlopen("/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote", RTLD_LAZY),
-              let symbol = dlsym(handle, "MRMediaRemoteSendCommand") else { return nil }
-        return unsafeBitCast(symbol, to: SendCommand.self)
-    }()
+    private static let sendCommand = systemFunction(mediaRemotePath, "MRMediaRemoteSendCommand", as: SendCommand.self)
 
     private func send(_ command: Command) { _ = Self.sendCommand?(command.rawValue, nil) }
 

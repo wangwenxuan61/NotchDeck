@@ -112,8 +112,7 @@ struct MonitorPage: View {
                 .foregroundStyle(chartKind == kind ? Theme.blue : Theme.secondary)
                 .padding(.horizontal, 7)
                 .frame(height: 18)
-                .background(Capsule().fill(chartKind == kind ? Theme.blue.opacity(0.16) : Color.clear))
-                .contentShape(Capsule())
+                .capsuleFill(chartKind == kind ? Theme.blue.opacity(0.16) : Color.clear)
         }
         .buttonStyle(.plain)
     }
@@ -363,8 +362,7 @@ struct SettingsPage: View {
                 .foregroundStyle(isOn.wrappedValue ? Color.white : Theme.primary)
                 .padding(.horizontal, 8)
                 .frame(height: 20)
-                .background(Capsule().fill(isOn.wrappedValue ? Theme.blue : Theme.control))
-                .contentShape(Capsule())
+                .capsuleFill(isOn.wrappedValue ? Theme.blue : Theme.control)
         }
         .buttonStyle(.plain)
     }

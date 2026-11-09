@@ -225,9 +225,7 @@ struct CalendarCard: View {
     }
 
     var body: some View {
-        Button {
-            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
-        } label: {
+        Button(action: openCalendarApp) {
             Card(padding: 8) {
                 TimelineView(.everyMinute) { timeline in
                     let calendar = Calendar(identifier: .gregorian)
