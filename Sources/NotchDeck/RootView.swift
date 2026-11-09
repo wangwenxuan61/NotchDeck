@@ -145,28 +145,6 @@ struct ExpandedContent: View {
     }
 }
 
-struct IconButton: View {
-    let symbol: String
-    var selected = false
-    var help = ""
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(selected ? Theme.blue : Theme.primary)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(selected ? Theme.blue.opacity(0.16) : (hovering ? Theme.controlHover : Theme.control)))
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .help(help)
-        .onHover { hovering = $0 }
-    }
-}
-
 struct TopBar: View {
     @ObservedObject var model: PanelModel
     @ObservedObject private var monitor = SystemMonitor.shared
