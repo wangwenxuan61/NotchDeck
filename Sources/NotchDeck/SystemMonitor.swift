@@ -17,6 +17,18 @@ struct ProcessUsage: Identifiable {
     let value: String
 }
 
+enum MemoryPressure {
+    case low, medium, high
+
+    var title: String {
+        switch self {
+        case .low: return L("压力低")
+        case .medium: return L("压力中")
+        case .high: return L("压力高")
+        }
+    }
+}
+
 /// 芯片的占用和温度几秒内就能大幅波动，界面显示平滑后的值，走势更容易看清。
 private struct Smoother {
     private static let weight = 0.35
@@ -43,7 +55,7 @@ final class SystemMonitor: ObservableObject {
     @Published private(set) var cpuSystem = 0.0
     @Published private(set) var gpu = 0.0
     @Published private(set) var memory = 0.0
-    @Published private(set) var memoryPressure = "压力低"
+    @Published private(set) var memoryPressure = MemoryPressure.low
     @Published private(set) var swapUsed: UInt64 = 0
     @Published private(set) var downloadSpeed = 0.0
     @Published private(set) var uploadSpeed = 0.0
@@ -84,19 +96,22 @@ final class SystemMonitor: ObservableObject {
         queue.async {
             self.smc = SMC()
             self.hid = HIDSensors()
+            self.schedule()
         }
         readPower(announce: false)
         let source = IOPSNotificationCreateRunLoopSource({ _ in
             SystemMonitor.shared.readPower(announce: true)
         }, nil).takeRetainedValue()
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
-        schedule()
     }
 
+    /// mode 和采样定时器只在 queue 上访问，采样过程中不会读到另一线程正在写的值。
     func setMode(_ newMode: Mode) {
-        guard newMode != mode else { return }
-        mode = newMode
-        schedule()
+        queue.async {
+            guard newMode != self.mode else { return }
+            self.mode = newMode
+            self.schedule()
+        }
     }
 
     private func schedule() {
@@ -281,14 +296,14 @@ final class SystemMonitor: ObservableObject {
         return min(pages * Double(vm_kernel_page_size) / Double(ProcessInfo.processInfo.physicalMemory), 1)
     }
 
-    private func readPressure() -> String {
+    private func readPressure() -> MemoryPressure {
         var level: Int32 = 1
         var size = MemoryLayout<Int32>.size
         sysctlbyname("kern.memorystatus_vm_pressure_level", &level, &size, nil, 0)
         switch level {
-        case 4: return "压力高"
-        case 2: return "压力中"
-        default: return "压力低"
+        case 4: return .high
+        case 2: return .medium
+        default: return .low
         }
     }
 

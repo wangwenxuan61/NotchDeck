@@ -45,8 +45,16 @@ func formatCompactSpeed(_ bytesPerSecond: Double) -> String {
 }
 
 struct MonitorPage: View {
-    private enum ChartKind: String, CaseIterable {
-        case temperature = "温度", cpu = "CPU", memory = "内存"
+    private enum ChartKind: CaseIterable {
+        case temperature, cpu, memory
+
+        var title: String {
+            switch self {
+            case .temperature: return L("温度")
+            case .cpu: return "CPU"
+            case .memory: return L("内存")
+            }
+        }
     }
 
     @ObservedObject var model: PanelModel
@@ -100,7 +108,7 @@ struct MonitorPage: View {
 
     private func chartTab(_ kind: ChartKind) -> some View {
         Button { chartKind = kind } label: {
-            Text(L(kind.rawValue))
+            Text(kind.title)
                 .foregroundStyle(chartKind == kind ? Theme.blue : Theme.secondary)
                 .padding(.horizontal, 7)
                 .frame(height: 18)

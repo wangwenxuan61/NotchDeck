@@ -100,17 +100,33 @@ final class TodoStore: ObservableObject {
     private func persist() { Storage.save(items, to: Self.file) }
 }
 
+/// 原始值存在 note.json 里，顺序不能改。
+enum NoteColor: Int, CaseIterable {
+    case green, yellow, pink, blue
+
+    var title: String {
+        switch self {
+        case .green: return L("青绿")
+        case .yellow: return L("明黄")
+        case .pink: return L("粉红")
+        case .blue: return L("天蓝")
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .green: return Color(red: 0.76, green: 0.82, blue: 0.66)
+        case .yellow: return Color(red: 0.96, green: 0.87, blue: 0.56)
+        case .pink: return Color(red: 0.95, green: 0.75, blue: 0.76)
+        case .blue: return Color(red: 0.70, green: 0.82, blue: 0.94)
+        }
+    }
+}
+
 final class NoteStore: ObservableObject {
     static let shared = NoteStore()
 
     private struct Saved: Codable { var text: String; var color: Int }
-
-    static let palette: [(name: String, color: Color)] = [
-        ("青绿", Color(red: 0.76, green: 0.82, blue: 0.66)),
-        ("明黄", Color(red: 0.96, green: 0.87, blue: 0.56)),
-        ("粉红", Color(red: 0.95, green: 0.75, blue: 0.76)),
-        ("天蓝", Color(red: 0.70, green: 0.82, blue: 0.94)),
-    ]
 
     @Published var text: String { didSet { scheduleSave() } }
     @Published var colorIndex: Int { didSet { scheduleSave() } }
@@ -301,8 +317,12 @@ final class FocusTimer: ObservableObject {
     static let minutes = 25
 
     @Published private(set) var remaining: Int?
-    private var end: Date?
-    private var timer: Timer?
+    private let clock = CountdownClock()
+
+    private init() {
+        clock.onChange = { [weak self] in self?.remaining = $0 }
+        clock.onFinish = { [weak self] in self?.finish(completed: true) }
+    }
 
     var running: Bool { remaining != nil }
     var label: String { Self.format(remaining ?? 0) }
@@ -316,24 +336,13 @@ final class FocusTimer: ObservableObject {
     }
 
     private func start() {
-        end = Date().addingTimeInterval(TimeInterval(Self.minutes * 60))
         remaining = Self.minutes * 60
-        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.update() }
-        RunLoop.main.add(timer, forMode: .common)
-        self.timer = timer
+        clock.start(seconds: Self.minutes * 60)
         Self.runShortcut("NotchDeck 专注开始")
     }
 
-    private func update() {
-        guard let end else { return }
-        let left = Int(end.timeIntervalSinceNow.rounded(.up))
-        if left <= 0 { finish(completed: true) } else { remaining = left }
-    }
-
     private func finish(completed: Bool) {
-        timer?.invalidate()
-        timer = nil
-        end = nil
+        clock.stop()
         remaining = nil
         Self.runShortcut("NotchDeck 专注结束")
         if completed {

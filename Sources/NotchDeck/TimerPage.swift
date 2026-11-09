@@ -1,6 +1,43 @@
 import AppKit
 import SwiftUI
 
+/// 倒计时和专注共用的走时逻辑。按结束时刻计算，电脑休眠或定时器延迟都不会让剩余时间变多。
+final class CountdownClock {
+    var onChange: ((Int) -> Void)?
+    var onFinish: (() -> Void)?
+
+    private var end: Date?
+    private var timer: Timer?
+    private var reported: Int?
+
+    func start(seconds: Int) {
+        end = Date().addingTimeInterval(TimeInterval(seconds))
+        reported = seconds
+        timer?.invalidate()
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in self?.tick() }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
+    }
+
+    func stop() {
+        timer?.invalidate()
+        timer = nil
+        end = nil
+    }
+
+    private func tick() {
+        guard let end else { return }
+        let left = Int(end.timeIntervalSinceNow.rounded(.up))
+        if left <= 0 {
+            stop()
+            onFinish?()
+        } else if left != reported {
+            reported = left
+            onChange?(left)
+        }
+    }
+}
+
 final class CountdownTimer: ObservableObject {
     static let shared = CountdownTimer()
     static let presets = [1, 3, 5, 10, 15, 30]
@@ -13,11 +50,16 @@ final class CountdownTimer: ObservableObject {
         didSet { UserDefaults.standard.set(minutes, forKey: Self.minutesKey) }
     }
 
-    private var end: Date?
-    private var timer: Timer?
+    private let clock = CountdownClock()
 
     private init() {
         minutes = UserDefaults.standard.object(forKey: Self.minutesKey) as? Int ?? 5
+        clock.onChange = { [weak self] in self?.remaining = $0 }
+        clock.onFinish = { [weak self] in
+            self?.reset()
+            NSSound(named: "Glass")?.play()
+            Toasts.shared.show(L("计时结束"), icon: "timer")
+        }
     }
 
     var isActive: Bool { remaining != nil }
@@ -30,46 +72,22 @@ final class CountdownTimer: ObservableObject {
         total = seconds
         remaining = seconds
         isPaused = false
-        run(for: seconds)
-    }
-
-    private func run(for seconds: Int) {
-        end = Date().addingTimeInterval(TimeInterval(seconds))
-        timer?.invalidate()
-        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in self?.update() }
-        RunLoop.main.add(timer, forMode: .common)
-        self.timer = timer
-    }
-
-    private func update() {
-        guard let end else { return }
-        let left = Int(end.timeIntervalSinceNow.rounded(.up))
-        if left <= 0 {
-            reset()
-            NSSound(named: "Glass")?.play()
-            Toasts.shared.show(L("计时结束"), icon: "timer")
-        } else if left != remaining {
-            remaining = left
-        }
+        clock.start(seconds: seconds)
     }
 
     func togglePause() {
         guard let remaining else { return }
         if isPaused {
             isPaused = false
-            run(for: remaining)
+            clock.start(seconds: remaining)
         } else {
             isPaused = true
-            timer?.invalidate()
-            timer = nil
-            end = nil
+            clock.stop()
         }
     }
 
     func reset() {
-        timer?.invalidate()
-        timer = nil
-        end = nil
+        clock.stop()
         remaining = nil
         isPaused = false
     }

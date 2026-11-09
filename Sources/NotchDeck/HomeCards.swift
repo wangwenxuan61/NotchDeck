@@ -121,7 +121,7 @@ struct TodoCard: View {
 struct NoteCard: View {
     @ObservedObject private var store = NoteStore.shared
 
-    private var color: Color { NoteStore.palette[min(store.colorIndex, NoteStore.palette.count - 1)].color }
+    private var color: Color { (NoteColor(rawValue: store.colorIndex) ?? .green).color }
 
     var body: some View {
         Card(padding: 8) {
@@ -131,8 +131,8 @@ struct NoteCard: View {
                     Text(L("短记")).font(.system(size: 13, weight: .semibold))
                     Spacer()
                     Menu {
-                        ForEach(NoteStore.palette.indices, id: \.self) { index in
-                            Button(L(NoteStore.palette[index].name)) { store.colorIndex = index }
+                        ForEach(NoteColor.allCases, id: \.self) { option in
+                            Button(option.title) { store.colorIndex = option.rawValue }
                         }
                         Divider()
                         Button(L("清空")) { store.text = "" }
@@ -230,12 +230,12 @@ struct MonitorCard: View {
     @ObservedObject private var monitor = SystemMonitor.shared
     let onOpen: () -> Void
 
-    private func column(_ title: String, value: Double, color: Color, detail: String?) -> some View {
+    private func column(_ title: String, value: Double, color: Color, detail: String?, detailColor: Color = Theme.teal) -> some View {
         VStack(spacing: 3) {
             Ring(value: value, color: color)
             HStack(spacing: 4) {
                 Text(title).foregroundStyle(Theme.secondary)
-                if let detail { Text(detail).foregroundStyle(title == L("内存") ? Theme.secondary : Theme.teal) }
+                if let detail { Text(detail).foregroundStyle(detailColor) }
             }
             .font(.system(size: 11, weight: .medium))
             .monospacedDigit()
@@ -258,7 +258,7 @@ struct MonitorCard: View {
                     HStack(spacing: 0) {
                         column("CPU", value: monitor.cpu, color: Theme.blue, detail: formatTemperature(monitor.cpuTemp))
                         column("GPU", value: monitor.gpu, color: Theme.purple, detail: formatTemperature(monitor.gpuTemp))
-                        column(L("内存"), value: monitor.memory, color: Theme.orange, detail: L(monitor.memoryPressure))
+                        column(L("内存"), value: monitor.memory, color: Theme.orange, detail: monitor.memoryPressure.title, detailColor: Theme.secondary)
                     }
                     VStack(spacing: 3) {
                         HStack {
