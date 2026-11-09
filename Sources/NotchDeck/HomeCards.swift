@@ -166,12 +166,6 @@ struct ClockCard: View {
         return formatter
     }
 
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
-
     var body: some View {
         Button {
             NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
@@ -182,7 +176,7 @@ struct ClockCard: View {
                         Text(dateFormatter.string(from: timeline.date))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(Theme.secondary)
-                        Text(Self.timeFormatter.string(from: timeline.date))
+                        Text(formatClockTime(timeline.date))
                             .font(.system(size: 38, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                             .minimumScaleFactor(0.6)
@@ -195,6 +189,17 @@ struct ClockCard: View {
         .buttonStyle(.plain)
         .help(L("打开日历"))
     }
+}
+
+/// 文字语言跟随 App 设置，12 或 24 小时制跟随系统设置。
+func formatClockTime(_ date: Date) -> String {
+    // 小时字段 h、K 表示 12 小时制。不能靠有没有 a 判断：中文的时段字段是 B；引号里的文字也要先去掉，法语格式会写成 HH 'h'。
+    let pattern = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: .current) ?? ""
+    let uses12Hour = pattern.replacingOccurrences(of: "'[^']*'", with: "", options: .regularExpression).contains { $0 == "h" || $0 == "K" }
+    let formatter = DateFormatter()
+    formatter.locale = LanguageStore.shared.locale
+    formatter.setLocalizedDateFormatFromTemplate(uses12Hour ? "hm" : "Hm")
+    return formatter.string(from: date)
 }
 
 func formatTemperature(_ value: Double?) -> String? {

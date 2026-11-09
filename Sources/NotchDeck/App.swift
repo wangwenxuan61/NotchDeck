@@ -304,6 +304,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func openPanel(midX: CGFloat, on screen: NSScreen) {
         controller.open(midX: midX, on: screen)
+        // 用户可能刚在系统设置里授权了日历，这种情况系统不会通知 App。
+        AgendaStore.shared.refresh()
         refreshMonitorMode()
         syncButtonHighlight()
     }

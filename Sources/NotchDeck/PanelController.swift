@@ -104,8 +104,11 @@ final class PanelController {
         if !panel.isVisible { panel.alphaValue = 0 }
         panel.orderFrontRegardless()
         panel.makeKey()
-        // 窗口成为 key 后系统会自动聚焦第一个输入框，这里清掉，等用户点击时再输入。
-        DispatchQueue.main.async { [weak self] in self?.panel.makeFirstResponder(nil) }
+        // 窗口成为 key 后系统会自动聚焦第一个输入框，这里清掉，等用户点击时再输入。搜索页例外，打开就要能打字。
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.model.page != .search else { return }
+            self.panel.makeFirstResponder(nil)
+        }
         model.expanded = true
         animateAlpha(to: 1, duration: 0.16)
     }

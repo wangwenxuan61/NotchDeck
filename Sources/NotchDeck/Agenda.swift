@@ -116,13 +116,6 @@ struct AgendaCard: View {
         NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
     }
 
-    private func time(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = LanguageStore.shared.locale
-        formatter.setLocalizedDateFormatFromTemplate("jm")
-        return formatter.string(from: date)
-    }
-
     private func header(countdown: String?) -> some View {
         Button(action: openCalendar) {
             HStack(spacing: 5) {
@@ -142,7 +135,7 @@ struct AgendaCard: View {
     private func row(_ item: AgendaStore.Item) -> some View {
         HStack(spacing: 6) {
             Capsule().fill(Color(cgColor: item.color)).frame(width: 3, height: 14)
-            Text(item.isAllDay ? L("全天") : time(item.start))
+            Text(item.isAllDay ? L("全天") : formatClockTime(item.start))
                 .font(.system(size: 10))
                 .monospacedDigit()
                 .foregroundStyle(Theme.secondary)
