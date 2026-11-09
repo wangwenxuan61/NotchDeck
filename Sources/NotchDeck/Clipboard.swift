@@ -17,6 +17,9 @@ final class ClipboardStore: ObservableObject {
         let date: Date
         let sourceName: String
         var isPinned = false
+        /// 只有展示和搜索用这段，复制时始终使用完整内容。
+        private let textPreview: String
+        private static let previewLength = 20_000
 
         init(id: UUID = UUID(), content: Content, date: Date, sourceName: String, isPinned: Bool = false) {
             self.id = id
@@ -24,11 +27,16 @@ final class ClipboardStore: ObservableObject {
             self.date = date
             self.sourceName = sourceName
             self.isPinned = isPinned
+            if case .text(let text) = content {
+                textPreview = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.previewLength))
+            } else {
+                textPreview = ""
+            }
         }
 
         var preview: String {
             switch content {
-            case .text(let text): return text.trimmingCharacters(in: .whitespacesAndNewlines)
+            case .text: return textPreview
             case .image(let image, _, _): return L("图片 %d×%d", Int(image.size.width), Int(image.size.height))
             case .files(let urls):
                 let first = urls.first?.lastPathComponent ?? ""
@@ -40,7 +48,8 @@ final class ClipboardStore: ObservableObject {
     private static let maxItems = 60
     private static let maxImages = 12
     private static let maxImageBytes = 8_000_000
-    private static let maxTextLength = 20_000
+    /// 超过这个大小的文字不记录。历史里的内容必须能完整粘贴回去，所以不做截断。
+    private static let maxTextBytes = 1_000_000
     /// 密码管理器等 App 用这些类型标记不应被记录的内容。
     private static let ignoredTypes: Set<String> = [
         "org.nspasteboard.ConcealedType",
@@ -155,7 +164,7 @@ final class ClipboardStore: ObservableObject {
             return .files(urls)
         }
         if let text = pasteboard.string(forType: .string), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return text.count <= Self.maxTextLength ? .text(text) : .text(String(text.prefix(Self.maxTextLength)))
+            return text.utf8.count <= Self.maxTextBytes ? .text(text) : nil
         }
         for type in [NSPasteboard.PasteboardType.png, .tiff] {
             if let data = pasteboard.data(forType: type), data.count <= Self.maxImageBytes, let image = NSImage(data: data) {
@@ -169,16 +178,20 @@ final class ClipboardStore: ObservableObject {
     private var insertionIndex: Int { items.firstIndex { !$0.isPinned } ?? items.endIndex }
 
     private func insert(_ item: Item) {
-        if case .text(let text) = item.content {
-            func matches(_ other: Item) -> Bool {
-                if case .text(let existing) = other.content { return existing == text }
-                return false
-            }
-            guard !items.contains(where: { $0.isPinned && matches($0) }) else { return }
-            items.removeAll(where: matches)
-        }
+        func matches(_ other: Item) -> Bool { Self.isSameContent(other.content, item.content) }
+        guard !items.contains(where: { $0.isPinned && matches($0) }) else { return }
+        items.removeAll(where: matches)
         items.insert(item, at: insertionIndex)
         trim()
+    }
+
+    private static func isSameContent(_ first: Content, _ second: Content) -> Bool {
+        switch (first, second) {
+        case (.text(let a), .text(let b)): return a == b
+        case (.image(_, let a, _), .image(_, let b, _)): return a == b
+        case (.files(let a), .files(let b)): return a.map(\.path) == b.map(\.path)
+        default: return false
+        }
     }
 
     /// 数量上限只约束未置顶的内容。

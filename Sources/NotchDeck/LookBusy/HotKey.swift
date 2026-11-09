@@ -24,6 +24,20 @@ final class HotKey {
         HotKey.actions[id] = action
     }
 
+    /// RegisterEventHotKey succeeds even when another process holds the same keys,
+    /// so the enabled shortcuts in System Settings are the only conflicts that can be detected.
+    static func isUsedBySystem(keyCode: UInt32, modifiers: UInt32) -> Bool {
+        var result: Unmanaged<CFArray>?
+        guard CopySymbolicHotKeys(&result) == noErr,
+              let shortcuts = result?.takeRetainedValue() as? [[String: Any]] else { return false }
+        let mask = cmdKey | shiftKey | optionKey | controlKey
+        return shortcuts.contains {
+            $0["kHISymbolicHotKeyEnabled"] as? Bool == true
+                && $0["kHISymbolicHotKeyCode"] as? Int == Int(keyCode)
+                && ($0["kHISymbolicHotKeyModifiers"] as? Int ?? 0) & mask == Int(modifiers)
+        }
+    }
+
     deinit {
         if let ref { UnregisterEventHotKey(ref) }
     }

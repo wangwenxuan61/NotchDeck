@@ -68,12 +68,17 @@ final class TodoStore: ObservableObject {
         persist()
     }
 
-    /// 开启同步时把本地未完成的待办移交给提醒事项，反复开关也不会产生重复项。
-    func takeLocalPendingTitles() -> [String] {
-        let titles = items.filter { !$0.done }.map(\.title)
-        items.removeAll { !$0.done }
-        persist()
-        return titles
+    /// 同步开启时内存里是提醒事项的内容，所以这两个方法直接读写本地文件。
+    func localPendingItems() -> [Item] {
+        (Storage.load([Item].self, from: Self.file) ?? []).filter { !$0.done }
+    }
+
+    /// 只删除已经成功写入提醒事项的待办，反复开关同步也不会产生重复项。
+    func removeLocalItems(_ ids: Set<String>) {
+        guard !ids.isEmpty else { return }
+        var local = Storage.load([Item].self, from: Self.file) ?? []
+        local.removeAll { ids.contains($0.id) }
+        Storage.save(local, to: Self.file)
     }
 
     func showRemoteItems(_ remote: [Item]) { items = remote }

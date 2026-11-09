@@ -63,20 +63,37 @@ final class ReminderSync: ObservableObject {
 
     private func activate(movingLocalTodos: Bool) {
         store.refreshSourcesIfNecessary()
-        lists = store.calendars(for: .reminder).sorted { $0.title < $1.title }
-        if store.calendar(withIdentifier: selectedListID) == nil {
-            selectedListID = store.defaultCalendarForNewReminders()?.calendarIdentifier ?? lists.first?.calendarIdentifier ?? ""
+        // 共享或订阅的只读列表写不进去，不能作为同步目标。
+        lists = store.calendars(for: .reminder).filter(\.allowsContentModifications).sorted { $0.title < $1.title }
+        if !lists.contains(where: { $0.calendarIdentifier == selectedListID }) {
+            let defaultID = store.defaultCalendarForNewReminders()?.calendarIdentifier
+            selectedListID = (lists.first { $0.calendarIdentifier == defaultID } ?? lists.first)?.calendarIdentifier ?? ""
         }
-        guard currentList != nil else {
+        guard let list = currentList else {
             Toasts.shared.show(L("提醒事项里没有可用列表"), icon: "exclamationmark.triangle")
             return
         }
         UserDefaults.standard.set(true, forKey: Self.enabledKey)
         isActive = true
-        if movingLocalTodos {
-            TodoStore.shared.takeLocalPendingTitles().forEach(add)
-        }
+        if movingLocalTodos { moveLocalTodos(to: list) }
         reload()
+    }
+
+    /// 写入失败的待办留在本机，关闭同步后还能看到，下次开启时会再试一次。
+    private func moveLocalTodos(to list: EKCalendar) {
+        let pending = TodoStore.shared.localPendingItems()
+        let moved = pending.filter { (try? createReminder($0.title, in: list)) != nil }
+        TodoStore.shared.removeLocalItems(Set(moved.map(\.id)))
+        if moved.count < pending.count {
+            Toasts.shared.show(L("%d 条待办未能同步，已保留在本机", pending.count - moved.count), icon: "exclamationmark.triangle")
+        }
+    }
+
+    private func createReminder(_ title: String, in list: EKCalendar) throws {
+        let reminder = EKReminder(eventStore: store)
+        reminder.title = title
+        reminder.calendar = list
+        try store.save(reminder, commit: true)
     }
 
     private var currentList: EKCalendar? { store.calendar(withIdentifier: selectedListID) }
@@ -122,10 +139,7 @@ final class ReminderSync: ObservableObject {
 
     func add(_ title: String) {
         guard let list = currentList else { return }
-        let reminder = EKReminder(eventStore: store)
-        reminder.title = title
-        reminder.calendar = list
-        save { try store.save(reminder, commit: true) }
+        save { try createReminder(title, in: list) }
     }
 
     func toggle(_ id: String) {

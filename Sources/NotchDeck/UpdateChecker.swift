@@ -49,7 +49,6 @@ final class UpdateChecker: ObservableObject {
     func check(userInitiated: Bool) {
         guard !isChecking else { return }
         isChecking = true
-        lastCheck = Date()
         var request = URLRequest(url: Self.latestReleaseAPI, timeoutInterval: 15)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
@@ -62,10 +61,11 @@ final class UpdateChecker: ObservableObject {
     private func finish(tag: String?, userInitiated: Bool) {
         isChecking = false
         guard let tag else {
-            // 自动检查失败时不打扰用户，下次再试。
+            // 自动检查失败时不打扰用户。lastCheck 不更新，一小时后的定时器会再试。
             if userInitiated { Toasts.shared.show(L("检查更新失败"), icon: "exclamationmark.triangle") }
             return
         }
+        lastCheck = Date()
         let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
         guard version.compare(currentVersion, options: .numeric) == .orderedDescending else {
             latestVersion = nil

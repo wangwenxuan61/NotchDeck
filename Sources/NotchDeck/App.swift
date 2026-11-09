@@ -229,18 +229,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func registerHotKeys() {
-        panelHotKey = HotKey(keyCode: UInt32(kVK_ANSI_N), modifiers: UInt32(cmdKey | optionKey), id: 1) { [weak self] in
+        var taken: [String] = []
+        func register(_ label: String, _ keyCode: Int, _ modifiers: Int, id: UInt32, action: @escaping () -> Void) -> HotKey? {
+            let hotKey = HotKey(keyCode: UInt32(keyCode), modifiers: UInt32(modifiers), id: id, action: action)
+            if hotKey == nil || HotKey.isUsedBySystem(keyCode: UInt32(keyCode), modifiers: UInt32(modifiers)) {
+                taken.append(label)
+            }
+            return hotKey
+        }
+        panelHotKey = register("⌥⌘N", kVK_ANSI_N, cmdKey | optionKey, id: 1) { [weak self] in
             self?.toggleFromHotKey()
         }
-        busyHotKey = HotKey(keyCode: UInt32(kVK_ANSI_B), modifiers: UInt32(controlKey | optionKey), id: 2) {
+        busyHotKey = register("⌃⌥B", kVK_ANSI_B, controlKey | optionKey, id: 2) {
             LookBusyController.shared.toggle()
         }
         // 不用 ⌥⌘V：那是 Finder 移动文件的快捷键。
-        clipboardHotKey = HotKey(keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(controlKey | optionKey), id: 3) { [weak self] in
+        clipboardHotKey = register("⌃⌥V", kVK_ANSI_V, controlKey | optionKey, id: 3) { [weak self] in
             self?.togglePageFromHotKey(.clipboard)
         }
-        if busyHotKey == nil {
-            Toasts.shared.show(L("⌃⌥B 已被占用"), icon: "exclamationmark.triangle")
+        if !taken.isEmpty {
+            Toasts.shared.show(L("%@ 已被占用", taken.joined(separator: " ")), icon: "exclamationmark.triangle")
         }
     }
 
