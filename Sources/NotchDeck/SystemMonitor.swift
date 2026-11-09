@@ -17,6 +17,23 @@ struct ProcessUsage: Identifiable {
     let value: String
 }
 
+/// 芯片的占用和温度几秒内就能大幅波动，界面显示平滑后的值，走势更容易看清。
+private struct Smoother {
+    private static let weight = 0.35
+    private static let staleAfter: TimeInterval = 30
+    private var value: Double?
+    private var updated = Date.distantPast
+
+    mutating func add(_ sample: Double) -> Double {
+        let now = Date()
+        // 隔了很久没有采样（面板刚打开、电脑刚唤醒）时，旧值已经没有参考意义。
+        let next = value.map { now.timeIntervalSince(updated) < Self.staleAfter ? $0 + (sample - $0) * Self.weight : sample } ?? sample
+        value = next
+        updated = now
+        return next
+    }
+}
+
 final class SystemMonitor: ObservableObject {
     static let shared = SystemMonitor()
     enum Mode { case collapsed, expanded, detail }
@@ -57,6 +74,11 @@ final class SystemMonitor: ObservableObject {
     private var hotCount = 0
     private var lastOverheatAlert = Date.distantPast
     private var knownExternalPower: Bool?
+    private var cpuUserSmoother = Smoother()
+    private var cpuSystemSmoother = Smoother()
+    private var gpuSmoother = Smoother()
+    private var cpuTempSmoother = Smoother()
+    private var gpuTempSmoother = Smoother()
 
     func start() {
         queue.async {
@@ -89,33 +111,37 @@ final class SystemMonitor: ObservableObject {
 
     /// CPU、内存和网速在面板收起时也采样，这样打开监控页时已经有历史曲线。
     private func sample() {
+        // 第一次读取还没有差值，结果是 0，不能作为平滑的起点。
+        let hasBaseline = lastTicks != nil
         let load = readCPU()
+        let user = hasBaseline ? cpuUserSmoother.add(load.user) : 0
+        let system = hasBaseline ? cpuSystemSmoother.add(load.system) : 0
         let memoryValue = readMemory()
         let swap = readSwap()
         let network = readNetwork()
         DispatchQueue.main.async {
-            self.cpu = load.user + load.system
-            self.cpuUser = load.user
-            self.cpuSystem = load.system
+            self.cpu = user + system
+            self.cpuUser = user
+            self.cpuSystem = system
             self.memory = memoryValue
             self.swapUsed = swap
             self.downloadSpeed = network.download
             self.uploadSpeed = network.upload
         }
-        sampleTemperature(cpuLoad: (load.user + load.system) * 100, memory: memoryValue * 100)
+        sampleTemperature(cpuLoad: (user + system) * 100, memory: memoryValue * 100)
         guard mode != .collapsed else { return }
         sampleLoads()
         if mode == .detail { sampleDetail() }
     }
 
     private func sampleTemperature(cpuLoad: Double, memory: Double) {
-        var cpuValue: Double?
-        var gpuValue: Double?
-        if let smc {
-            cpuValue = smc.maxTemperature(smc.cpuKeys)
-            gpuValue = smc.maxTemperature(smc.gpuKeys)
-        }
-        if cpuValue == nil { cpuValue = hid?.maxTemperature { $0.hasPrefix("PMU") && $0.contains("tdie") } }
+        let cpuReadings = smc.map { $0.temperatures($0.cpuKeys) } ?? []
+        let gpuReadings = smc.map { $0.temperatures($0.gpuKeys) } ?? []
+        let fallback = cpuReadings.isEmpty ? hid?.maxTemperature { $0.hasPrefix("PMU") && $0.contains("tdie") } : nil
+        // 过热提醒看最热的传感器原始值，短暂的尖峰不会被平滑掉；界面显示各传感器的平均值。
+        let hottest = cpuReadings.max() ?? fallback
+        let cpuValue = (Self.average(cpuReadings) ?? fallback).map { cpuTempSmoother.add($0) }
+        let gpuValue = Self.average(gpuReadings).map { gpuTempSmoother.add($0) }
         let battery = hid?.maxTemperature { $0 == "gas gauge battery" }
         let ssd = hid?.maxTemperature { $0.hasPrefix("NAND") }
         let watt = smc?.systemPower
@@ -131,8 +157,12 @@ final class SystemMonitor: ObservableObject {
             let now = Date()
             self.history.append(TempSample(time: now, cpu: cpuValue, gpu: gpuValue, cpuLoad: cpuLoad, memory: memory))
             self.history.removeAll { now.timeIntervalSince($0.time) > 600 }
-            self.checkOverheat(cpuValue)
+            self.checkOverheat(hottest)
         }
+    }
+
+    private static func average(_ values: [Double]) -> Double? {
+        values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
     }
 
     private func checkOverheat(_ value: Double?) {
@@ -144,7 +174,7 @@ final class SystemMonitor: ObservableObject {
     }
 
     private func sampleLoads() {
-        let gpuValue = readGPU()
+        let gpuValue = gpuSmoother.add(readGPU())
         let pressure = readPressure()
         let disk = readDisk()
         DispatchQueue.main.async {

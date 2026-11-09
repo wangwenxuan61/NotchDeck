@@ -93,7 +93,7 @@ final class SMC {
         return value
     }
 
-    func maxTemperature(_ keys: [UInt32]) -> Double? { keys.compactMap(temperature).max() }
+    func temperatures(_ keys: [UInt32]) -> [Double] { keys.compactMap(temperature) }
     var systemPower: Double? { float(Self.code("PSTR")).flatMap { $0 > 0 ? $0 : nil } }
     func fanSpeed(_ index: Int) -> Double? { float(Self.code("F\(index)Ac")) }
 }
