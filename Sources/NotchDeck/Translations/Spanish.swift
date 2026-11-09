@@ -117,6 +117,8 @@ let spanishStrings: [String: String] = [
     "提醒事项里没有可用列表": "No hay listas en Recordatorios",
     "%d 条待办未能同步，已保留在本机": "%d tareas sin sincronizar, guardadas en este Mac",
     "同步失败": "Error de sincronización",
+    "音频输出": "Salida de audio",
+    "倒计时": "Cuenta atrás",
     "今日日程": "Hoy",
     "连接日历": "Conectar calendario",
     "今天没有更多日程": "Nada más por hoy",

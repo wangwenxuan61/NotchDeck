@@ -117,6 +117,8 @@ let frenchStrings: [String: String] = [
     "提醒事项里没有可用列表": "Aucune liste dans Rappels",
     "%d 条待办未能同步，已保留在本机": "%d tâches non synchronisées, conservées sur ce Mac",
     "同步失败": "Échec de la synchronisation",
+    "音频输出": "Sortie audio",
+    "倒计时": "Compte à rebours",
     "今日日程": "Aujourd'hui",
     "连接日历": "Connecter le calendrier",
     "今天没有更多日程": "Rien d'autre aujourd'hui",

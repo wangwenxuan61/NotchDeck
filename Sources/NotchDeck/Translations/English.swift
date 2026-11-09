@@ -117,6 +117,8 @@ let englishStrings: [String: String] = [
     "提醒事项里没有可用列表": "No lists found in Reminders",
     "%d 条待办未能同步，已保留在本机": "%d to-dos couldn't sync and stay on this Mac",
     "同步失败": "Sync failed",
+    "音频输出": "Audio Output",
+    "倒计时": "Countdown",
     "今日日程": "Today",
     "连接日历": "Connect Calendar",
     "今天没有更多日程": "Nothing else today",

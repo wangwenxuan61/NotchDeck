@@ -1,6 +1,7 @@
 import AppKit
 import Carbon
 import Combine
+import CoreAudio
 
 @main
 enum Entry {
@@ -83,6 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         button.target = self
         button.action = #selector(statusItemClicked)
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
 
         // @Published 在值改变前发出通知，切到下一轮主循环才能读到新值。
         statusSubscription = Publishers.MergeMany([
@@ -137,7 +139,98 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return parts
     }
 
+    private func showStatusMenu() {
+        closePanel()
+        let updates = UpdateChecker.shared
+        let updateItem = updates.latestVersion.map { menuItem(L("更新到 %@", $0), #selector(openUpdatePage)) }
+            ?? menuItem(updates.isChecking ? L("检查中…") : L("检查更新"), #selector(checkForUpdates), enabled: !updates.isChecking)
+        let sections: [[NSMenuItem]] = [
+            [
+                menuItem(L("搜索"), #selector(openSearch)),
+                menuItem(L("剪贴板"), #selector(openClipboard)),
+                menuItem(L("系统监控"), #selector(openMonitor)),
+            ],
+            audioOutputMenu() + [
+                submenu(L("倒计时"), countdownItems()),
+                menuItem(L("防止休眠"), #selector(toggleKeepAwake), checked: QuickControls.shared.keepAwake),
+                menuItem(L("装忙"), #selector(startLookBusy)),
+            ],
+            [
+                menuItem(L("息屏"), #selector(sleepDisplay)),
+                menuItem(L("锁屏"), #selector(lockScreen)),
+            ],
+            [
+                updateItem,
+                menuItem(L("设置"), #selector(openSettings)),
+                menuItem(L("退出 NotchDeck"), #selector(quit)),
+            ],
+        ]
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        for (index, section) in sections.enumerated() {
+            if index > 0 { menu.addItem(.separator()) }
+            section.forEach(menu.addItem)
+        }
+        // 菜单只在右键时临时挂上，否则左键也会弹菜单，打不开面板。
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    private func menuItem(_ title: String, _ action: Selector, tag: Int = 0, enabled: Bool = true, checked: Bool = false) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+        item.target = self
+        item.tag = tag
+        item.isEnabled = enabled
+        item.state = checked ? .on : .off
+        return item
+    }
+
+    private func submenu(_ title: String, _ items: [NSMenuItem]) -> NSMenuItem {
+        let parent = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.items = items
+        parent.submenu = menu
+        return parent
+    }
+
+    /// 只有一个输出设备时没有可选的，不显示这一项。
+    private func audioOutputMenu() -> [NSMenuItem] {
+        let outputs = SystemVolume.outputDevices()
+        guard outputs.count > 1 else { return [] }
+        let current = SystemVolume.outputDevice()
+        let items = outputs.map { menuItem($0.name, #selector(selectOutput(_:)), tag: Int($0.id), checked: $0.id == current) }
+        return [submenu(L("音频输出"), items)]
+    }
+
+    private func countdownItems() -> [NSMenuItem] {
+        guard CountdownTimer.shared.remaining == nil else {
+            return [menuItem(L("取消"), #selector(cancelCountdown))]
+        }
+        return [5, 10, 25].map { menuItem(L("%d 分", $0), #selector(startCountdown(_:)), tag: $0) }
+    }
+
+    @objc private func openSearch() { togglePageFromHotKey(.search) }
+    @objc private func openClipboard() { togglePageFromHotKey(.clipboard) }
+    @objc private func openMonitor() { togglePageFromHotKey(.monitor) }
+    @objc private func openSettings() { togglePageFromHotKey(.settings) }
+    @objc private func selectOutput(_ sender: NSMenuItem) { SystemVolume.setOutputDevice(AudioObjectID(sender.tag)) }
+    @objc private func startCountdown(_ sender: NSMenuItem) { CountdownTimer.shared.start(seconds: sender.tag * 60) }
+    @objc private func cancelCountdown() { CountdownTimer.shared.reset() }
+    @objc private func toggleKeepAwake() { QuickControls.shared.toggleKeepAwake() }
+    @objc private func startLookBusy() { LookBusyController.shared.show() }
+    @objc private func sleepDisplay() { QuickControls.shared.sleepDisplay() }
+    @objc private func lockScreen() { QuickControls.shared.lockScreen() }
+    @objc private func checkForUpdates() { UpdateChecker.shared.check(userInitiated: true) }
+    @objc private func openUpdatePage() { UpdateChecker.shared.openDownloadPage() }
+    @objc private func quit() { NSApp.terminate(nil) }
+
     @objc private func statusItemClicked() {
+        if let event = NSApp.currentEvent, event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
+            showStatusMenu()
+            return
+        }
         if controller.model.expanded {
             closePanel()
             return
