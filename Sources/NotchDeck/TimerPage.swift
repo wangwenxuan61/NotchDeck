@@ -117,6 +117,7 @@ struct PillButton: View {
     var symbol: String?
     var prominent = false
     var width: CGFloat?
+    var horizontalPadding: CGFloat = 10
     let action: () -> Void
 
     var body: some View {
@@ -127,7 +128,7 @@ struct PillButton: View {
             }
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(prominent ? Color.white : Theme.primary)
-            .padding(.horizontal, 10)
+            .padding(.horizontal, horizontalPadding)
             .frame(width: width, height: 26)
             .background(Capsule().fill(prominent ? Theme.blue : Theme.control))
             .contentShape(Capsule())
@@ -327,14 +328,15 @@ struct TimerCard: View {
                         .frame(maxWidth: .infinity)
                     Spacer(minLength: 0)
                     HStack(spacing: 6) {
-                        PillButton(title: countdown.isPaused ? L("继续") : L("暂停"), prominent: true) { countdown.togglePause() }
-                        PillButton(title: L("取消")) { countdown.reset() }
+                        PillButton(title: countdown.isPaused ? L("继续") : L("暂停"), prominent: true, horizontalPadding: 6) { countdown.togglePause() }
+                        PillButton(title: L("取消"), horizontalPadding: 6) { countdown.reset() }
                     }
                     .frame(maxWidth: .infinity)
                 } else {
-                    HStack(spacing: 6) {
+                    // 这张卡片和其他四张同页时很窄，内边距要收紧，否则分钟数显示不全。
+                    HStack(spacing: 4) {
                         ForEach([5, 10, 25], id: \.self) { value in
-                            PillButton(title: L("%d 分", value)) { countdown.start(seconds: value * 60) }
+                            PillButton(title: L("%d 分", value), horizontalPadding: 4) { countdown.start(seconds: value * 60) }
                         }
                     }
                     .frame(maxWidth: .infinity)

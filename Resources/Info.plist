@@ -16,6 +16,8 @@
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSBluetoothAlwaysUsageDescription</key><string>NotchDeck 需要读取和切换蓝牙开关。</string>
+    <key>NSCalendarsUsageDescription</key><string>NotchDeck 需要在今日日程卡片里显示你今天的日程。</string>
+    <key>NSCalendarsFullAccessUsageDescription</key><string>NotchDeck 需要在今日日程卡片里显示你今天的日程。</string>
     <key>NSRemindersUsageDescription</key><string>NotchDeck 需要在待办卡片里显示和修改你的提醒事项。</string>
     <key>NSRemindersFullAccessUsageDescription</key><string>NotchDeck 需要在待办卡片里显示和修改你的提醒事项。</string>
 </dict>

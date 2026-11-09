@@ -3,8 +3,51 @@ import AudioToolbox
 import CoreAudio
 import SwiftUI
 
+struct AudioOutput: Identifiable, Equatable {
+    let id: AudioObjectID
+    let name: String
+}
+
 enum SystemVolume {
-    private static func outputDevice() -> AudioObjectID? {
+    private static func globalAddress(_ selector: AudioObjectPropertySelector) -> AudioObjectPropertyAddress {
+        AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+    }
+
+    private static func text(_ selector: AudioObjectPropertySelector, of device: AudioObjectID) -> String? {
+        var address = globalAddress(selector)
+        var value: Unmanaged<CFString>?
+        var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
+        guard AudioObjectGetPropertyData(device, &address, 0, nil, &size, &value) == noErr else { return nil }
+        return value?.takeRetainedValue() as String?
+    }
+
+    private static func hasOutputStreams(_ device: AudioObjectID) -> Bool {
+        var address = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyStreams, mScope: kAudioDevicePropertyScopeOutput, mElement: kAudioObjectPropertyElementMain)
+        var size: UInt32 = 0
+        return AudioObjectGetPropertyDataSize(device, &address, 0, nil, &size) == noErr && size > 0
+    }
+
+    static func outputDevices() -> [AudioOutput] {
+        let system = AudioObjectID(kAudioObjectSystemObject)
+        var address = globalAddress(kAudioHardwarePropertyDevices)
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(system, &address, 0, nil, &size) == noErr else { return [] }
+        var devices = [AudioObjectID](repeating: 0, count: Int(size) / MemoryLayout<AudioObjectID>.size)
+        guard AudioObjectGetPropertyData(system, &address, 0, nil, &size, &devices) == noErr else { return [] }
+        return devices
+            // 系统自动生成的聚合设备不是用户能选的输出。
+            .filter { hasOutputStreams($0) && text(kAudioDevicePropertyDeviceUID, of: $0)?.hasPrefix("CADefaultDeviceAggregate") != true }
+            .compactMap { device in text(kAudioObjectPropertyName, of: device).map { AudioOutput(id: device, name: $0) } }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    static func setOutputDevice(_ device: AudioObjectID) {
+        var address = globalAddress(kAudioHardwarePropertyDefaultOutputDevice)
+        var value = device
+        AudioObjectSetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, UInt32(MemoryLayout<AudioObjectID>.size), &value)
+    }
+
+    static func outputDevice() -> AudioObjectID? {
         var device = AudioObjectID(kAudioObjectUnknown)
         var size = UInt32(MemoryLayout<AudioObjectID>.size)
         var address = AudioObjectPropertyAddress(

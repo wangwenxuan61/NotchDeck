@@ -31,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MediaController.shared.start()
         ClipboardStore.shared.start()
         ReminderSync.shared.restore()
+        AgendaStore.shared.refresh()
         UpdateChecker.shared.start()
         setUpStatusItem()
         refreshMonitorMode()
@@ -89,7 +90,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             FocusTimer.shared.$remaining.map { _ in () }.eraseToAnyPublisher(),
             CountdownTimer.shared.$remaining.map { _ in () }.eraseToAnyPublisher(),
             SystemMonitor.shared.$cpuTemp.map { _ in () }.eraseToAnyPublisher(),
+            SystemMonitor.shared.$cpu.map { _ in () }.eraseToAnyPublisher(),
+            SystemMonitor.shared.$downloadSpeed.map { _ in () }.eraseToAnyPublisher(),
+            SystemMonitor.shared.$batteryPercent.map { _ in () }.eraseToAnyPublisher(),
+            SystemMonitor.shared.$isCharging.map { _ in () }.eraseToAnyPublisher(),
             AppSettings.shared.$showMenuBarTemperature.map { _ in () }.eraseToAnyPublisher(),
+            AppSettings.shared.$showMenuBarCPU.map { _ in () }.eraseToAnyPublisher(),
+            AppSettings.shared.$showMenuBarNetwork.map { _ in () }.eraseToAnyPublisher(),
+            AppSettings.shared.$showMenuBarBattery.map { _ in () }.eraseToAnyPublisher(),
             UpdateChecker.shared.$latestVersion.map { _ in () }.eraseToAnyPublisher(),
         ])
         .receive(on: DispatchQueue.main)
@@ -103,15 +111,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let toast = Toasts.shared.current, !controller.model.expanded {
             text = toast.text
         } else {
-            let temperature = AppSettings.shared.showMenuBarTemperature ? formatTemperature(SystemMonitor.shared.cpuTemp) : nil
             let timer = (FocusTimer.shared.remaining ?? CountdownTimer.shared.remaining).map(FocusTimer.format)
-            let update = UpdateChecker.shared.latestVersion == nil ? nil : "↑"
-            text = [temperature, timer, update].compactMap { $0 }.joined(separator: "  ")
+            // 用粗箭头表示有更新，避免和网速的上传箭头混淆。
+            let update = UpdateChecker.shared.latestVersion == nil ? nil : "⬆︎"
+            text = (monitorStatusParts + [timer, update].compactMap { $0 }).joined(separator: "  ")
         }
         if !text.isEmpty { text = " \(text)" }
         guard button.title != text else { return }
         button.title = text
         button.imagePosition = text.isEmpty ? .imageOnly : .imageLeading
+    }
+
+    private var monitorStatusParts: [String] {
+        let settings = AppSettings.shared
+        let monitor = SystemMonitor.shared
+        var parts: [String] = []
+        if settings.showMenuBarTemperature, let temperature = formatTemperature(monitor.cpuTemp) { parts.append(temperature) }
+        if settings.showMenuBarCPU { parts.append("CPU \(Int((monitor.cpu * 100).rounded()))%") }
+        if settings.showMenuBarNetwork {
+            parts.append("↓\(formatCompactSpeed(monitor.downloadSpeed)) ↑\(formatCompactSpeed(monitor.uploadSpeed))")
+        }
+        if settings.showMenuBarBattery, let percent = monitor.batteryPercent {
+            parts.append((monitor.isCharging ? "⚡︎" : "") + "\(percent)%")
+        }
+        return parts
     }
 
     @objc private func statusItemClicked() {

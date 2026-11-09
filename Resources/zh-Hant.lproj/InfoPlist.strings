@@ -1,3 +1,5 @@
 "NSBluetoothAlwaysUsageDescription" = "NotchDeck 需要讀取和切換藍牙開關，並讀取裝置電量。";
 "NSRemindersUsageDescription" = "NotchDeck 需要在待辦卡片裡顯示和修改你的提醒事項。";
 "NSRemindersFullAccessUsageDescription" = "NotchDeck 需要在待辦卡片裡顯示和修改你的提醒事項。";
+"NSCalendarsUsageDescription" = "NotchDeck 需要在今日行程卡片裡顯示你今天的行程。";
+"NSCalendarsFullAccessUsageDescription" = "NotchDeck 需要在今日行程卡片裡顯示你今天的行程。";

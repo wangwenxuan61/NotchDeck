@@ -1,4 +1,5 @@
 import AppKit
+import CoreAudio
 import CoreBluetooth
 import CoreWLAN
 import IOKit.pwr_mgt
@@ -35,6 +36,8 @@ final class QuickControls: ObservableObject {
     @Published var volume: Float?
     @Published var brightness: Float?
     @Published private(set) var bluetoothDevices: [BluetoothDeviceInfo] = []
+    @Published private(set) var outputs: [AudioOutput] = []
+    @Published private(set) var currentOutput: AudioObjectID?
 
     private var lastDeviceRefresh = Date.distantPast
     private var bluetoothRequester: CBCentralManager?
@@ -73,6 +76,11 @@ final class QuickControls: ObservableObject {
         nightShift = readNightShift()
         muted = SystemVolume.isMuted()
         volume = SystemVolume.get()
+        // 列表没变时不重新赋值，避免下拉菜单展开时被刷新。
+        let devices = SystemVolume.outputDevices()
+        if devices != outputs { outputs = devices }
+        let current = SystemVolume.outputDevice()
+        if current != currentOutput { currentOutput = current }
 
         if let display = builtInDisplay, let get = systemFunction(displayServicesPath, "DisplayServicesGetBrightness", as: GetBrightness.self) {
             var value: Float = 0
@@ -205,6 +213,11 @@ final class QuickControls: ObservableObject {
             )
             keepAwake = status == kIOReturnSuccess
         }
+    }
+
+    func setOutput(_ device: AudioObjectID) {
+        SystemVolume.setOutputDevice(device)
+        refreshSoon()
     }
 
     func toggleMute() {
@@ -356,6 +369,20 @@ struct QuickControlsPage: View {
         }
     }
 
+    @ViewBuilder private var outputPicker: some View {
+        if let current = controls.currentOutput, !controls.outputs.isEmpty {
+            HStack(spacing: 4) {
+                Image(systemName: "speaker.wave.2").font(.system(size: 11)).foregroundStyle(Theme.secondary)
+                Picker("", selection: Binding(get: { current }, set: { controls.setOutput($0) })) {
+                    ForEach(controls.outputs) { Text($0.name).tag($0.id) }
+                }
+                .labelsHidden()
+                .controlSize(.small)
+                .fixedSize()
+            }
+        }
+    }
+
     private var tiles: some View {
         Grid(horizontalSpacing: 8, verticalSpacing: 8) {
             GridRow {
@@ -373,7 +400,7 @@ struct QuickControlsPage: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            PageHeader(title: L("快捷开关"), model: model)
+            PageHeader(title: L("快捷开关"), model: model) { outputPicker }
             HStack(spacing: 8) {
                 tiles.frame(maxWidth: .infinity)
                 Card {

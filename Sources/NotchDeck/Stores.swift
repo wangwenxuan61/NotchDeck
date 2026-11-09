@@ -263,11 +263,23 @@ final class AppSettings: ObservableObject {
     @Published var showMenuBarTemperature: Bool {
         didSet { defaults.set(showMenuBarTemperature, forKey: "showMenuBarTemperature") }
     }
+    @Published var showMenuBarCPU: Bool {
+        didSet { defaults.set(showMenuBarCPU, forKey: "showMenuBarCPU") }
+    }
+    @Published var showMenuBarNetwork: Bool {
+        didSet { defaults.set(showMenuBarNetwork, forKey: "showMenuBarNetwork") }
+    }
+    @Published var showMenuBarBattery: Bool {
+        didSet { defaults.set(showMenuBarBattery, forKey: "showMenuBarBattery") }
+    }
     @Published var launchError: String?
 
     private init() {
         overheatThreshold = defaults.object(forKey: "overheatThreshold") as? Double ?? 90
         showMenuBarTemperature = defaults.object(forKey: "showMenuBarTemperature") as? Bool ?? true
+        showMenuBarCPU = defaults.bool(forKey: "showMenuBarCPU")
+        showMenuBarNetwork = defaults.bool(forKey: "showMenuBarNetwork")
+        showMenuBarBattery = defaults.bool(forKey: "showMenuBarBattery")
         appearance = defaults.string(forKey: "appAppearance").flatMap(AppearanceMode.init(rawValue:)) ?? .light
     }
 

@@ -382,7 +382,7 @@ struct ClipboardCard: View {
                 Button { model.page = .clipboard } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "doc.on.clipboard").foregroundStyle(Theme.blue)
-                        Text(L("剪贴板")).font(.system(size: 13, weight: .semibold))
+                        Text(L("剪贴板")).font(.system(size: 13, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
                         Spacer()
                         Image(systemName: "chevron.right").font(.system(size: 10)).foregroundStyle(Theme.tertiary)
                     }

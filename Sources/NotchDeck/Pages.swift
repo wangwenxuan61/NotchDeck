@@ -37,6 +37,13 @@ func formatSpeed(_ bytesPerSecond: Double) -> String {
         : String(format: "%.0f KB/s", bytesPerSecond / 1_000)
 }
 
+/// 菜单栏空间有限，只保留数字和单位首字母。
+func formatCompactSpeed(_ bytesPerSecond: Double) -> String {
+    bytesPerSecond >= 1_000_000
+        ? String(format: "%.1fM", bytesPerSecond / 1_000_000)
+        : String(format: "%.0fK", bytesPerSecond / 1_000)
+}
+
 struct MonitorPage: View {
     private enum ChartKind: String, CaseIterable {
         case temperature = "温度", cpu = "CPU", memory = "内存"
@@ -340,6 +347,20 @@ struct SettingsPage: View {
         Toggle("", isOn: isOn).labelsHidden().toggleStyle(.switch).controlSize(.small)
     }
 
+    private func menuBarChip(_ title: String, _ isOn: Binding<Bool>) -> some View {
+        Button { isOn.wrappedValue.toggle() } label: {
+            Text(title)
+                .font(.system(size: 11, weight: .medium))
+                .lineLimit(1)
+                .foregroundStyle(isOn.wrappedValue ? Color.white : Theme.primary)
+                .padding(.horizontal, 8)
+                .frame(height: 20)
+                .background(Capsule().fill(isOn.wrappedValue ? Theme.blue : Theme.control))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
     private var generalColumn: some View {
         VStack(spacing: 8) {
             row(L("语言")) {
@@ -368,8 +389,13 @@ struct SettingsPage: View {
             if let error = settings.launchError {
                 Text(error).font(.system(size: 11)).foregroundStyle(Theme.coral).frame(maxWidth: .infinity, alignment: .leading)
             }
-            row(L("菜单栏显示 CPU 温度")) {
-                toggle($settings.showMenuBarTemperature)
+            row(L("菜单栏显示")) {
+                HStack(spacing: 4) {
+                    menuBarChip(L("温度"), $settings.showMenuBarTemperature)
+                    menuBarChip("CPU", $settings.showMenuBarCPU)
+                    menuBarChip(L("网速"), $settings.showMenuBarNetwork)
+                    menuBarChip(L("电池"), $settings.showMenuBarBattery)
+                }
             }
         }
     }

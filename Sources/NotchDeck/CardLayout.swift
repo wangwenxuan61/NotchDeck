@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 enum CardKind: String, Codable, CaseIterable, Identifiable {
-    case todo, note, clock, monitor, music, clipboard, timer, calendar, lookBusy
+    case todo, note, clock, monitor, music, clipboard, timer, calendar, lookBusy, agenda
 
     var id: String { rawValue }
 
@@ -17,6 +17,7 @@ enum CardKind: String, Codable, CaseIterable, Identifiable {
         case .timer: return L("计时器")
         case .calendar: return L("月历")
         case .lookBusy: return L("装忙")
+        case .agenda: return L("今日日程")
         }
     }
 
@@ -31,6 +32,7 @@ enum CardKind: String, Codable, CaseIterable, Identifiable {
         case .timer: return "timer"
         case .calendar: return "calendar"
         case .lookBusy: return "briefcase"
+        case .agenda: return "list.bullet.below.rectangle"
         }
     }
 
@@ -41,6 +43,7 @@ enum CardKind: String, Codable, CaseIterable, Identifiable {
         case .clock, .music, .timer: return 0.95
         case .monitor: return 1.75
         case .clipboard, .calendar, .lookBusy: return 1.1
+        case .agenda: return 1.35
         }
     }
 }
@@ -54,9 +57,10 @@ final class CardLayoutStore: ObservableObject {
     private static let file = "cards.json"
     private static let defaultPages: [[CardKind]] = [
         [.todo, .note, .clock, .monitor, .music],
-        [.clipboard, .timer, .calendar, .lookBusy],
+        [.agenda, .clipboard, .timer, .calendar, .lookBusy],
     ]
     private static let lookBusyAddedKey = "cardsAddedLookBusy"
+    private static let agendaAddedKey = "cardsAddedAgenda"
 
     @Published private(set) var pages: [[CardKind]]
 
@@ -71,6 +75,10 @@ final class CardLayoutStore: ObservableObject {
         if !UserDefaults.standard.bool(forKey: Self.lookBusyAddedKey) {
             UserDefaults.standard.set(true, forKey: Self.lookBusyAddedKey)
             if !seen.contains(.lookBusy), cleaned[1].count < Self.maxPerPage { cleaned[1].append(.lookBusy) }
+        }
+        if !UserDefaults.standard.bool(forKey: Self.agendaAddedKey) {
+            UserDefaults.standard.set(true, forKey: Self.agendaAddedKey)
+            if !seen.contains(.agenda), cleaned[1].count < Self.maxPerPage { cleaned[1].insert(.agenda, at: 0) }
         }
         pages = cleaned
     }

@@ -1,3 +1,5 @@
 "NSBluetoothAlwaysUsageDescription" = "NotchDeck usa Bluetooth para mostrar y cambiar su estado y leer la batería de los dispositivos.";
 "NSRemindersUsageDescription" = "NotchDeck muestra y edita tus recordatorios en su tarjeta de tareas.";
 "NSRemindersFullAccessUsageDescription" = "NotchDeck muestra y edita tus recordatorios en su tarjeta de tareas.";
+"NSCalendarsUsageDescription" = "NotchDeck muestra los eventos de hoy en su tarjeta Hoy.";
+"NSCalendarsFullAccessUsageDescription" = "NotchDeck muestra los eventos de hoy en su tarjeta Hoy.";
