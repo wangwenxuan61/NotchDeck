@@ -11,8 +11,8 @@ English · [简体中文](README.zh-CN.md)
 </div>
 
 NotchDeck is a small native macOS menu bar app written in Swift and SwiftUI. Click its menu bar icon, or press
-**⌥⌘N**, and a panel opens with your todos, system stats, clipboard history, timers, music controls and quick
-system toggles. It has no Dock icon and needs no account.
+**⌥⌘N**, and a panel opens with your todos, today's agenda, system stats, clipboard history, timers, music controls
+and quick system toggles. It has no Dock icon and needs no account.
 
 ![NotchDeck home page](docs/media/home.png)
 
@@ -32,21 +32,30 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 
 ## Features
 
-- **Home cards**: todos, sticky note, clock, system monitor, music, clipboard, timer, month calendar and Look Busy.
-  Reorder, hide or move them across two pages.
+- **Home cards**: todos, today's agenda, sticky note, clock, system monitor, music, clipboard, timer, month calendar
+  and Look Busy. Reorder, hide or move them across two pages.
+- **Today's agenda**: upcoming events from the system Calendar, a countdown to the next one, and a join button for
+  Zoom, Google Meet, Teams, Webex, Tencent Meeting, Feishu and DingTalk links.
 - **System monitor**: CPU, GPU, battery and SSD temperatures, power draw, memory pressure, swap, disk usage, upload
-  and download speed, top processes, and 10-minute history charts. The CPU temperature can also be shown in the menu
-  bar.
+  and download speed, top processes, and 10-minute history charts. CPU, GPU and temperature readings are smoothed so
+  they are easier to read.
+- **Menu bar**: show any mix of temperature, CPU load, network speed and battery next to the icon. Right-click the
+  icon for search, clipboard, the monitor, audio output, a quick countdown, keep awake, Look Busy, display sleep, screen
+  lock and update checks.
 - **Clipboard history**: text, images and files, with search and pinning. Items marked as sensitive by password
-  managers are skipped. History stays in memory unless you turn on saving; images are never written to disk.
+  managers are skipped. Text over about 1 MB is not recorded. History stays in memory unless you turn on saving;
+  images are never written to disk.
 - **Timers**: countdown, stopwatch with laps, and a 25-minute focus timer.
 - **Music**: now-playing title, artwork, progress, playback controls and system volume.
 - **Search**: apps, files (through Spotlight), todos, notes and clipboard history, with a web search fallback.
-- **Quick controls**: Wi-Fi, Bluetooth, dark mode, Night Shift, keep awake, mute, volume, brightness, screenshot, display
-  sleep and lock screen, plus battery levels for connected Bluetooth devices.
+- **Quick controls**: Wi-Fi, Bluetooth, dark mode, Night Shift, keep awake, mute, audio output, volume, built-in display
+  brightness, screenshot, display sleep and lock screen, plus battery levels for connected Bluetooth devices.
 - **Reminders sync** (optional): use a list from the system Reminders app as your todo card.
 - **Look Busy**: four convincing full-screen work scenes for demos and screenshots. Nothing they show is real.
+- **Appearance**: light, dark or follow the system.
 - **Languages**: Simplified and Traditional Chinese, English, Japanese, Korean, French, German and Spanish. Switch in Settings without restarting.
+- **Update reminders**: checks GitHub for a new release once a day and tells you when one is available. It only reads
+  the version number, and you can turn it off in Settings.
 
 ## Keyboard shortcuts
 
@@ -56,6 +65,8 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 | ⌃⌥V | Open or close the clipboard page |
 | ⌃⌥B | Start or stop Look Busy |
 | Esc | Close the panel or leave Look Busy |
+
+Right-click or Control-click the menu bar icon to open the shortcut menu.
 
 ## Install
 
@@ -88,8 +99,9 @@ NotchDeck only asks when you turn on a feature that needs it:
 
 - **Bluetooth**: for the Bluetooth toggle and device battery levels.
 - **Reminders**: for Reminders sync. Turning sync on moves your unfinished local todos into the selected list.
+- **Calendar**: for the agenda card. NotchDeck only reads your events.
 
-The app is ad-hoc signed, so macOS may ask for these permissions again after you rebuild it.
+The app is ad-hoc signed, so macOS may ask for these permissions again after an update or rebuild.
 
 Do Not Disturb has no public API. To link it with the focus timer, create two Shortcuts named `NotchDeck 专注开始` and
 `NotchDeck 专注结束`, and NotchDeck will run them when a focus session starts and ends.
@@ -99,6 +111,7 @@ Do Not Disturb has no public API. To link it with the focus timer, create two Sh
 - Temperatures, now-playing data, dark mode, Night Shift, brightness, Bluetooth power and screen lock rely on private
   macOS interfaces. They can stop working after a system update, and the app cannot be distributed through the Mac App
   Store.
+- The brightness slider only controls the built-in display.
 - So far it has only been run on an Apple silicon Mac with macOS 27. Sensor names can differ on other models.
 
 ## License
