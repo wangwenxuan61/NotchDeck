@@ -56,8 +56,6 @@ let germanStrings: [String: String] = [
     "压力高": "Hoch",
     "未在播放": "Keine Wiedergabe",
     "开始专注": "Fokus starten",
-    "结束专注": "Fokus beenden",
-    "开始 %d 分钟专注": "%d-Minuten-Fokus starten",
     "专注结束": "Fokus beendet",
     "全屏装忙（⌃⌥B）": "Busy-Modus im Vollbild (⌃⌥B)",
     "从快捷栏移除": "Aus Schnellleiste entfernen",

@@ -339,30 +339,10 @@ struct MusicCard: View {
 struct DockRow: View {
     @ObservedObject var model: PanelModel
     @ObservedObject private var store = DockStore.shared
-    @ObservedObject private var focus = FocusTimer.shared
     @State private var dragging: String?
 
     private func collapse() {
         AppDelegate.shared.closePanel()
-    }
-
-    private var focusButton: some View {
-        Button { focus.toggle() } label: {
-            HStack(spacing: 6) {
-                Image(systemName: focus.running ? "stop.fill" : "play.fill").foregroundStyle(focus.running ? Theme.coral : Theme.teal)
-                Text(focus.running ? focus.label : L("开始专注"))
-                    .font(.system(size: 13, weight: .medium))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .fixedSize()
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 36)
-            .background(Capsule().fill(Theme.control))
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .help(focus.running ? L("结束专注") : L("开始 %d 分钟专注", FocusTimer.minutes))
     }
 
     private var busyButton: some View {
@@ -386,10 +366,7 @@ struct DockRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            HStack(spacing: 8) {
-                focusButton
-                busyButton
-            }
+            busyButton
             divider
             HStack(spacing: 0) {
                 ForEach(store.items.prefix(DockStore.visibleCount)) { app in

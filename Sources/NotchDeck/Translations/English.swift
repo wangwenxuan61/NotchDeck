@@ -56,8 +56,6 @@ let englishStrings: [String: String] = [
     "压力高": "High",
     "未在播放": "Not Playing",
     "开始专注": "Start Focus",
-    "结束专注": "End Focus",
-    "开始 %d 分钟专注": "Start a %d-minute focus session",
     "专注结束": "Focus session ended",
     "全屏装忙（⌃⌥B）": "Look busy in full screen (⌃⌥B)",
     "从快捷栏移除": "Remove from Quick Bar",

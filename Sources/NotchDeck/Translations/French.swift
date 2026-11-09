@@ -56,8 +56,6 @@ let frenchStrings: [String: String] = [
     "压力高": "Élevée",
     "未在播放": "Aucune lecture",
     "开始专注": "Se concentrer",
-    "结束专注": "Arrêter la session",
-    "开始 %d 分钟专注": "Démarrer une session de %d minutes",
     "专注结束": "Session terminée",
     "全屏装忙（⌃⌥B）": "Air occupé en plein écran (⌃⌥B)",
     "从快捷栏移除": "Retirer de la barre rapide",

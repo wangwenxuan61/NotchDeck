@@ -56,8 +56,6 @@ let spanishStrings: [String: String] = [
     "压力高": "Alta",
     "未在播放": "Sin reproducción",
     "开始专注": "Iniciar enfoque",
-    "结束专注": "Terminar enfoque",
-    "开始 %d 分钟专注": "Iniciar enfoque de %d minutos",
     "专注结束": "Enfoque terminado",
     "全屏装忙（⌃⌥B）": "Parecer ocupado a pantalla completa (⌃⌥B)",
     "从快捷栏移除": "Quitar de la barra rápida",
