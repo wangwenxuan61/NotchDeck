@@ -12,7 +12,7 @@ import re
 import sys
 
 root = pathlib.Path(__file__).resolve().parent.parent
-sources = root / 'Sources' / 'NotchDeck'
+sources = root / 'Sources' / 'NotchDeckKit'
 dictionaries = sources / 'Translations'
 problems = []
 

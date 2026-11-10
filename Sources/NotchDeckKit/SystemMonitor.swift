@@ -35,14 +35,13 @@ enum MemoryPressure {
 }
 
 /// 芯片的占用和温度几秒内就能大幅波动，界面显示平滑后的值，走势更容易看清。
-private struct Smoother {
+struct Smoother {
     private static let weight = 0.35
     private static let staleAfter: TimeInterval = 30
     private var value: Double?
     private var updated = Date.distantPast
 
-    mutating func add(_ sample: Double) -> Double {
-        let now = Date()
+    mutating func add(_ sample: Double, at now: Date = Date()) -> Double {
         // 隔了很久没有采样（面板刚打开、电脑刚唤醒）时，旧值已经没有参考意义。
         let next = value.map { now.timeIntervalSince(updated) < Self.staleAfter ? $0 + (sample - $0) * Self.weight : sample } ?? sample
         value = next

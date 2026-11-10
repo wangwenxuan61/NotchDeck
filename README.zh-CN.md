@@ -86,7 +86,7 @@ open build/NotchDeck.app
 
 如果要长期使用，或者打开“开机自动启动”，请先把 `build/NotchDeck.app` 移到“应用程序”文件夹。
 
-改动界面文字后，运行 `python3 scripts/check-translations.py`，确认每种语言都有对应翻译。
+提交前请运行检查：`swift run NotchDeckChecks` 检查不涉及界面和系统权限的逻辑，`python3 scripts/check-translations.py` 确认每种语言都有对应翻译。GitHub 每次推送都会自动运行这两项。
 
 ## 权限
 

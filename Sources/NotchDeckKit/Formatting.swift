@@ -10,10 +10,13 @@ func localizedDateFormatter(_ template: String? = nil) -> DateFormatter {
 
 /// 文字语言跟随 App 设置，12 或 24 小时制跟随系统设置。
 func formatClockTime(_ date: Date) -> String {
-    // 小时字段 h、K 表示 12 小时制。不能靠有没有 a 判断：中文的时段字段是 B；引号里的文字也要先去掉，法语格式会写成 HH 'h'。
     let pattern = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: .current) ?? ""
-    let uses12Hour = pattern.replacingOccurrences(of: "'[^']*'", with: "", options: .regularExpression).contains { $0 == "h" || $0 == "K" }
-    return localizedDateFormatter(uses12Hour ? "hm" : "Hm").string(from: date)
+    return localizedDateFormatter(isTwelveHourPattern(pattern) ? "hm" : "Hm").string(from: date)
+}
+
+/// 小时字段 h、K 表示 12 小时制。不能靠有没有 a 判断：中文的时段字段是 B；引号里的文字也要先去掉，法语格式会写成 HH 'h'。
+func isTwelveHourPattern(_ pattern: String) -> Bool {
+    pattern.replacingOccurrences(of: "'[^']*'", with: "", options: .regularExpression).contains { $0 == "h" || $0 == "K" }
 }
 
 func formatTemperature(_ value: Double?) -> String? {

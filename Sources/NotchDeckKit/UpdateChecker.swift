@@ -66,8 +66,7 @@ final class UpdateChecker: ObservableObject {
             return
         }
         lastCheck = Date()
-        let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
-        guard version.compare(currentVersion, options: .numeric) == .orderedDescending else {
+        guard let version = Self.newerVersion(tag: tag, than: currentVersion) else {
             latestVersion = nil
             if userInitiated { Toasts.shared.show(L("已是最新版本"), icon: "checkmark.circle") }
             return
@@ -78,6 +77,12 @@ final class UpdateChecker: ObservableObject {
             defaults.set(version, forKey: Self.notifiedVersionKey)
             Toasts.shared.show(L("发现新版本 %@", version), icon: "arrow.up.circle")
         }
+    }
+
+    /// 发布标签形如 v0.1.5。按数字逐段比较，0.1.10 比 0.1.9 新；不比当前版本新时返回 nil。
+    static func newerVersion(tag: String, than current: String) -> String? {
+        let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
+        return version.compare(current, options: .numeric) == .orderedDescending ? version : nil
     }
 
     func openDownloadPage() {

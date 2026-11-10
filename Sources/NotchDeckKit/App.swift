@@ -1,15 +1,14 @@
 import AppKit
 import Carbon
 
-@main
-enum Entry {
-    static func main() {
-        Storage.migrateLegacySettings()
-        let app = NSApplication.shared
-        app.delegate = AppDelegate.shared
-        app.setActivationPolicy(.accessory)
-        app.run()
-    }
+/// App 的入口。代码都在 NotchDeckKit 库里，启动程序只调用这一个函数，这样检查程序也能直接引用库里的逻辑。
+public func runNotchDeck() -> Never {
+    Storage.migrateLegacySettings()
+    let app = NSApplication.shared
+    app.delegate = AppDelegate.shared
+    app.setActivationPolicy(.accessory)
+    app.run()
+    exit(0)
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {

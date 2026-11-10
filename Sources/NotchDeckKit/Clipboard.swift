@@ -186,7 +186,7 @@ final class ClipboardStore: ObservableObject {
         trim()
     }
 
-    private static func isSameContent(_ first: Content, _ second: Content) -> Bool {
+    static func isSameContent(_ first: Content, _ second: Content) -> Bool {
         switch (first, second) {
         case (.text(let a), .text(let b)): return a == b
         case (.image(_, let a, _), .image(_, let b, _)): return a == b

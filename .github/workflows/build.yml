@@ -12,5 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check translations
         run: python3 scripts/check-translations.py
+      - name: Run logic checks
+        run: swift run NotchDeckChecks
       - name: Build
-        run: swift build -c release
+        run: swift build -c release --product NotchDeck

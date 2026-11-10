@@ -93,7 +93,7 @@ open build/NotchDeck.app
 
 To keep it around, and before you enable *Launch at login*, move `build/NotchDeck.app` to your Applications folder.
 
-After changing any text, run `python3 scripts/check-translations.py` to make sure every language has it.
+Before committing, run the checks. `swift run NotchDeckChecks` covers the logic that needs no UI or permissions, and `python3 scripts/check-translations.py` makes sure every language has every string. GitHub runs both on each push.
 
 ## Permissions
 

@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-swift build -c release
+swift build -c release --product NotchDeck
 
 APP="build/NotchDeck.app"
 rm -rf "$APP"

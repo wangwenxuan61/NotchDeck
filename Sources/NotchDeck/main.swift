@@ -1,0 +1,3 @@
+import NotchDeckKit
+
+runNotchDeck()
