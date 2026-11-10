@@ -48,7 +48,7 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 - **Timers**: countdown, stopwatch with laps, and a 25-minute focus timer.
 - **Music**: now-playing title, artwork, progress, playback controls and system volume.
 - **Search**: apps, files (through Spotlight), todos, notes and clipboard history, with a web search fallback.
-- **Quick controls**: Wi-Fi, Bluetooth, dark mode, Night Shift, keep awake, mute, audio output, volume, built-in display
+- **Quick controls**: Wi-Fi, Bluetooth, dark mode, Night Shift, keep awake (indefinitely or for 15 minutes to 12 hours), mute, audio output, volume, built-in display
   brightness, screenshot, display sleep and lock screen, plus battery levels for connected Bluetooth devices.
 - **Reminders sync** (optional): use a list from the system Reminders app as your todo card.
 - **Look Busy**: four convincing full-screen work scenes for demos and screenshots. Nothing they show is real.

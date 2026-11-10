@@ -10,6 +10,17 @@ private let skyLightPath = "/System/Library/PrivateFrameworks/SkyLight.framework
 private let displayServicesPath = "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices"
 private let loginPath = "/System/Library/PrivateFrameworks/login.framework/login"
 
+func formatDuration(minutes: Int) -> String {
+    if minutes < 60 { return L("%d 分钟", minutes) }
+    return minutes % 60 == 0 ? L("%d 小时", minutes / 60) : L("%d 小时 %d 分钟", minutes / 60, minutes % 60)
+}
+
+/// 菜单栏空间有限，用 42m、3h12m 这样的短格式。
+func formatCompactDuration(minutes: Int) -> String {
+    if minutes < 60 { return "\(minutes)m" }
+    return minutes % 60 == 0 ? "\(minutes / 60)h" : "\(minutes / 60)h\(minutes % 60)m"
+}
+
 struct BluetoothDeviceInfo: Identifiable {
     var id: String { name }
     let name: String
@@ -26,6 +37,13 @@ final class QuickControls: ObservableObject {
     @Published private(set) var darkMode: Bool?
     @Published private(set) var nightShift: Bool?
     @Published private(set) var keepAwake = false
+    /// 定时防止休眠选的时长（分钟），一直开着时为 nil。
+    @Published private(set) var keepAwakeDuration: Int?
+    /// 剩余分钟数，向上取整；一直开着或已关闭时为 nil。
+    @Published private(set) var keepAwakeMinutesLeft: Int?
+    static let keepAwakeDurations = [15, 30, 45, 60, 240, 480, 720]
+    private var keepAwakeEnd: Date?
+    private var keepAwakeTimer: Timer?
     @Published private(set) var muted: Bool?
     @Published var volume: Float?
     @Published var brightness: Float?
@@ -183,18 +201,57 @@ final class QuickControls: ObservableObject {
     }
 
     func toggleKeepAwake() {
-        if keepAwake {
-            IOPMAssertionRelease(awakeAssertion)
-            keepAwake = false
-        } else {
+        keepAwake ? stopKeepAwake() : startKeepAwake(minutes: nil)
+    }
+
+    /// minutes 为 nil 表示一直开着，直到手动关闭或退出 App。已经开着时只改时长。
+    func startKeepAwake(minutes: Int?) {
+        if !keepAwake {
             let status = IOPMAssertionCreateWithName(
                 kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
                 IOPMAssertionLevel(kIOPMAssertionLevelOn),
-                "NotchDeck 防止休眠" as CFString,
+                "NotchDeck Keep Awake" as CFString,
                 &awakeAssertion
             )
-            keepAwake = status == kIOReturnSuccess
+            guard status == kIOReturnSuccess else { return }
+            keepAwake = true
         }
+        keepAwakeDuration = minutes
+        keepAwakeTimer?.invalidate()
+        keepAwakeTimer = nil
+        keepAwakeEnd = minutes.map { Date().addingTimeInterval(TimeInterval($0 * 60)) }
+        guard keepAwakeEnd != nil else {
+            keepAwakeMinutesLeft = nil
+            return
+        }
+        updateKeepAwakeTime()
+        // 每 5 秒检查一次：既用来刷新剩余时间，也负责到点关闭，电脑休眠醒来后会立即补上。
+        let timer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in self?.updateKeepAwakeTime() }
+        RunLoop.main.add(timer, forMode: .common)
+        keepAwakeTimer = timer
+    }
+
+    func stopKeepAwake() {
+        keepAwakeTimer?.invalidate()
+        keepAwakeTimer = nil
+        keepAwakeEnd = nil
+        keepAwakeDuration = nil
+        keepAwakeMinutesLeft = nil
+        guard keepAwake else { return }
+        IOPMAssertionRelease(awakeAssertion)
+        keepAwake = false
+    }
+
+    private func updateKeepAwakeTime() {
+        guard let end = keepAwakeEnd else { return }
+        let left = end.timeIntervalSinceNow
+        guard left > 0 else {
+            stopKeepAwake()
+            Toasts.shared.show(L("防止休眠已结束"), icon: "cup.and.saucer")
+            return
+        }
+        let minutes = Int((left / 60).rounded(.up))
+        if minutes != keepAwakeMinutesLeft { keepAwakeMinutesLeft = minutes }
     }
 
     func setOutput(_ device: AudioObjectID) {
@@ -273,6 +330,7 @@ struct ToggleTile: View {
 struct QuickControlsPage: View {
     @ObservedObject var model: PanelModel
     @ObservedObject private var controls = QuickControls.shared
+    @State private var showingKeepAwake = false
 
     private let refreshTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
@@ -362,6 +420,25 @@ struct QuickControlsPage: View {
         }
     }
 
+    private var keepAwakeSubtitle: String {
+        guard controls.keepAwake else { return L("已关闭") }
+        return controls.keepAwakeMinutesLeft.map { L("剩余 %@", formatDuration(minutes: $0)) } ?? L("已开启")
+    }
+
+    /// 点磁贴是一直开着；右边的按钮打开和首页相同的时长面板，到时间自动关闭。
+    private var keepAwakeMenu: some View {
+        Button { showingKeepAwake.toggle() } label: {
+            Image(systemName: "timer")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.secondary)
+                .frame(width: 26, height: 26)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showingKeepAwake, arrowEdge: .bottom) { KeepAwakePanel() }
+        .help(L("选择时长"))
+    }
+
     private var tiles: some View {
         Grid(horizontalSpacing: 8, verticalSpacing: 8) {
             GridRow {
@@ -371,7 +448,8 @@ struct QuickControlsPage: View {
             }
             GridRow {
                 ToggleTile(title: L("夜览"), symbol: "sun.max", isOn: controls.nightShift == true, subtitle: state(controls.nightShift), enabled: controls.nightShift != nil) { controls.toggleNightShift() }
-                ToggleTile(title: L("防止休眠"), symbol: "cup.and.saucer", isOn: controls.keepAwake, subtitle: state(controls.keepAwake)) { controls.toggleKeepAwake() }
+                ToggleTile(title: L("防止休眠"), symbol: "cup.and.saucer", isOn: controls.keepAwake, subtitle: keepAwakeSubtitle) { controls.toggleKeepAwake() }
+                    .overlay(alignment: .trailing) { keepAwakeMenu.padding(.trailing, 10) }
                 ToggleTile(title: L("静音"), symbol: "speaker.slash", isOn: controls.muted == true, subtitle: state(controls.muted), enabled: controls.muted != nil) { controls.toggleMute() }
             }
         }

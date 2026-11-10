@@ -107,7 +107,10 @@ struct DockRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            busyButton
+            HStack(spacing: 8) {
+                busyButton
+                KeepAwakeButton()
+            }
             divider
             HStack(spacing: 0) {
                 ForEach(store.items.prefix(DockStore.visibleCount)) { app in

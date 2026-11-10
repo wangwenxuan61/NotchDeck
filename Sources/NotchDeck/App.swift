@@ -106,6 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             changes(AppSettings.shared.$showMenuBarBattery),
             changes(UpdateChecker.shared.$latestVersion),
             changes(QuickControls.shared.$keepAwake),
+            changes(QuickControls.shared.$keepAwakeMinutesLeft),
         ])
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in self?.refreshStatusText() }
@@ -122,7 +123,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // 用粗箭头表示有更新，避免和网速的上传箭头混淆。
             let update = UpdateChecker.shared.latestVersion == nil ? nil : "⬆︎"
             // 防止休眠开着时放一个标记，免得忘了关、一直耗电。
-            let awake = QuickControls.shared.keepAwake ? "☕︎" : nil
+            let controls = QuickControls.shared
+            let awake = controls.keepAwake ? (["☕︎"] + [controls.keepAwakeMinutesLeft.map { formatCompactDuration(minutes: $0) }].compactMap { $0 }).joined(separator: " ") : nil
             text = ([awake].compactMap { $0 } + monitorStatusParts + [timer, update].compactMap { $0 }).joined(separator: "  ")
         }
         if !text.isEmpty { text = " \(text)" }
@@ -159,7 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ],
             audioOutputMenu() + [
                 submenu(L("倒计时"), countdownItems()),
-                menuItem(L("防止休眠"), #selector(toggleKeepAwake), checked: QuickControls.shared.keepAwake),
+                keepAwakeMenu(),
                 menuItem(L("装忙"), #selector(startLookBusy)),
             ],
             [
@@ -211,6 +213,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return [submenu(L("音频输出"), items)]
     }
 
+    /// 标签 0 表示一直开着，-1 表示关闭，其余是分钟数。
+    private func keepAwakeMenu() -> NSMenuItem {
+        let controls = QuickControls.shared
+        func option(_ title: String, _ tag: Int) -> NSMenuItem {
+            menuItem(title, #selector(setKeepAwake(_:)), tag: tag, checked: controls.keepAwake && (controls.keepAwakeDuration ?? 0) == tag)
+        }
+        var items = [option(L("一直"), 0)] + QuickControls.keepAwakeDurations.map { option(formatDuration(minutes: $0), $0) }
+        if controls.keepAwake {
+            items += [.separator(), menuItem(L("关闭"), #selector(setKeepAwake(_:)), tag: -1)]
+        }
+        let parent = submenu(L("防止休眠"), items)
+        parent.state = controls.keepAwake ? .on : .off
+        return parent
+    }
+
     private func countdownItems() -> [NSMenuItem] {
         guard CountdownTimer.shared.remaining == nil else {
             return [menuItem(L("取消"), #selector(cancelCountdown))]
@@ -225,7 +242,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func selectOutput(_ sender: NSMenuItem) { SystemVolume.setOutputDevice(AudioObjectID(sender.tag)) }
     @objc private func startCountdown(_ sender: NSMenuItem) { CountdownTimer.shared.start(seconds: sender.tag * 60) }
     @objc private func cancelCountdown() { CountdownTimer.shared.reset() }
-    @objc private func toggleKeepAwake() { QuickControls.shared.toggleKeepAwake() }
+    @objc private func setKeepAwake(_ sender: NSMenuItem) {
+        switch sender.tag {
+        case -1: QuickControls.shared.stopKeepAwake()
+        case 0: QuickControls.shared.startKeepAwake(minutes: nil)
+        default: QuickControls.shared.startKeepAwake(minutes: sender.tag)
+        }
+    }
     @objc private func startLookBusy() { LookBusyController.shared.show() }
     @objc private func sleepDisplay() { QuickControls.shared.sleepDisplay() }
     @objc private func lockScreen() { QuickControls.shared.lockScreen() }
