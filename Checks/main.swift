@@ -140,6 +140,41 @@ section("图片识字") {
     let thumbnail = ClipboardStore.thumbnail(of: png)
     let pixels = ClipboardStore.downsample(png, maxPixels: 128).map { max($0.width, $0.height) } ?? 0
     check("列表只解码小缩略图，但记下原图尺寸", pixels > 0 && pixels <= 128 && thumbnail.map { Int($0.1.width) } == NSBitmapImageRep(data: png)?.pixelsWide)
+    let subject = NSImage(size: NSSize(width: 600, height: 400))
+    subject.lockFocus()
+    NSColor.white.setFill()
+    NSRect(x: 0, y: 0, width: 600, height: 400).fill()
+    NSColor.systemOrange.setFill()
+    NSBezierPath(ovalIn: NSRect(x: 200, y: 100, width: 200, height: 200)).fill()
+    subject.unlockFocus()
+    let cut = subject.cgImage(forProposedRect: nil, context: nil, hints: nil).flatMap(ClipboardStore.liftSubject).flatMap(ClipboardStore.fullImage)
+    check("抠出主体是透明背景、只剩主体大小", cut.map { $0.alphaInfo != .none && $0.alphaInfo != .noneSkipLast && $0.width < 600 } == true)
+
+    let store = ClipboardStore.shared
+    let item = ClipboardStore.Item(content: ClipboardStore.imageContent(png, type: .png)!, date: Date(), sourceName: "")
+    store.insert(item)
+    var waited = 0.0
+    while store.imageText[item.id] == nil && waited < 60 { pump(0.5); waited += 0.5 }
+    check("图片进来后在后台识别，可以按图里的文字搜索", store.imageText[item.id]?.contains("NotchDeck") == true)
+    store.remove(item)
+    check("删掉图片后识别结果也清掉", store.imageText[item.id] == nil)
+
+    let previousBoard = store.pasteboard
+    let board = NSPasteboard(name: NSPasteboard.Name("NotchDeckChecks-subject-\(getpid())"))
+    store.pasteboard = board
+    let photoData = subject.tiffRepresentation.flatMap { NSBitmapImageRep(data: $0)?.representation(using: .png, properties: [:]) } ?? Data()
+    let photo = ClipboardStore.Item(content: ClipboardStore.imageContent(photoData, type: .png)!, date: Date(), sourceName: "")
+    store.insert(photo)
+    store.copySubject(of: photo)
+    waited = 0
+    while board.data(forType: .png) == nil && waited < 30 { pump(0.5); waited += 0.5 }
+    let cutItem = store.items.first { !$0.isPinned }
+    check("抠出的主体复制下来并作为新的一条，原图保留", board.data(forType: .png) != nil && cutItem?.id != photo.id
+          && store.items.contains { $0.id == photo.id })
+    if let cutItem { store.remove(cutItem) }
+    store.remove(photo)
+    board.releaseGlobally()
+    store.pasteboard = previousBoard
 }
 
 section("计时") {
