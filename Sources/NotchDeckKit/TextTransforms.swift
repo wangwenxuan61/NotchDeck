@@ -19,7 +19,7 @@ enum TextTransforms {
         let time = timestamp(text)
         let candidates: [(String, String, String?)] = [
             ("time", L("转成时间 %@", time ?? ""), time),
-            ("json", L("格式化 JSON"), json(text, pretty: true)),
+            ("json", L("格式化 JSON"), json(text, pretty: true).flatMap { $0.components(separatedBy: "\n").count > lines.count * 2 ? $0 : nil }),
             ("json-min", L("压缩 JSON 成一行"), lines.count > 1 ? json(text, pretty: false) : nil),
             ("xml", L("格式化 XML"), xml(text)),
             ("markdown-table", L("转成 Markdown 表格"), table(text, as: .markdown)),
@@ -123,9 +123,11 @@ enum TextTransforms {
         }
     }
 
+    private static let escapePattern = #"\\([ntr"\\/]|u[0-9a-fA-F]{4})"#
+
     /// 把 \n、\t、\"、\\、\uXXXX 还原成真正的字符，常见于日志和 JSON 字符串。
     static func unescape(_ text: String) -> String? {
-        guard text.range(of: #"\\([ntr"\\/]|u[0-9a-fA-F]{4})"#, options: .regularExpression) != nil else { return nil }
+        guard text.range(of: escapePattern, options: .regularExpression) != nil else { return nil }
         let mapped: [Character: Character] = ["n": "\n", "t": "\t", "r": "\r", "\"": "\"", "\\": "\\", "/": "/"]
         var output = "", units: [UInt16] = []
         var index = text.startIndex
@@ -226,7 +228,8 @@ enum TextTransforms {
     /// 每行开头是连续递增的数字，比如从网页或 PDF 复制的代码。
     static func removeLineNumbers(_ lines: [String]) -> String? {
         let content = lines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        let pattern = #"^\s*(\d+)[\s:.|)]\s?"#
+        // “1.”“1)”是列表编号，留给 removeListMarkers。
+        let pattern = #"^\s*(\d+)[\s:|]\s?"#
         let numbers = content.compactMap { line in line.range(of: pattern, options: .regularExpression).flatMap { Int(line[$0].filter(\.isNumber)) } }
         guard content.count >= 3, numbers.count == content.count, zip(numbers, numbers.dropFirst()).allSatisfy({ $1 == $0 + 1 }) else { return nil }
         return content.map { $0.replacingOccurrences(of: pattern, with: "", options: .regularExpression) }.joined(separator: "\n")
@@ -255,6 +258,8 @@ enum TextTransforms {
     // MARK: - 中英文
 
     static func spaceCJK(_ text: String) -> String? {
+        // 转义文字里的 \t、\n 会被误当成英文字母。
+        guard text.range(of: escapePattern, options: .regularExpression) == nil else { return nil }
         let spaced = text
             .replacingOccurrences(of: #"(\p{Han})([A-Za-z0-9])"#, with: "$1 $2", options: .regularExpression)
             .replacingOccurrences(of: #"([A-Za-z0-9])(\p{Han})"#, with: "$1 $2", options: .regularExpression)
@@ -302,7 +307,9 @@ enum TextTransforms {
     static func titleCase(_ text: String) -> String? {
         let line = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let words = line.split(separator: " ").map(String.init)
+        // 只认普通英文句子，JSON、代码、网址这类带符号的不算。
         guard !line.contains("\n"), (2...25).contains(words.count), !".。".contains(line.last ?? " "),
+              line.first?.isLetter == true, !line.contains(where: { "{}[]<>=/\\\"|_@#$%^*".contains($0) }),
               line.filter({ $0.isLetter }).allSatisfy(\.isASCII) else { return nil }
         let shouting = line == line.uppercased()
         let titled = words.enumerated().map { index, original -> String in

@@ -515,6 +515,9 @@ section("剪贴板智能整理") {
           == "A Novel Method for Image Segmentation with U-Net and iPhone Data" && T.titleCase("A NOVEL METHOD") == "A Novel Method")
     check("句子和已是标题的不推荐标题大小写", T.titleCase("This is a sentence.") == nil && T.titleCase("A Novel Method") == nil)
 
+    check("JSON 和带符号的文字不推荐标题大小写", T.titleCase(#"{"name":"NotchDeck","tags":{}}"#) == nil && T.titleCase("see https://example.com now") == nil)
+    check("转义文字不推荐中英文加空格", T.spaceCJK(#"第一行\t缩进"#) == nil)
+    check("编号列表推荐去编号而不是去行号", ids("1. 整理数据\n2. 跑实验\n3. 写讨论") == ["list-markers"])
     check("普通聊天内容没有任何推荐", ids("明天下午三点开会，记得带电脑。").isEmpty && ids("ok").isEmpty)
     check("结果相同的推荐只留一个", Set(ids("1. a\n2. b\n3. c")).count == ids("1. a\n2. b\n3. c").count)
 }
