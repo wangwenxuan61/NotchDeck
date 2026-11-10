@@ -82,6 +82,8 @@ struct TodoCard: View {
     @State private var draft = ""
     @FocusState private var focused: Bool
     @State private var hoveringInput = false
+    /// 鼠标所在的那一条，右边显示删除按钮。
+    @State private var hoveredID: String?
     @State private var editingID: String?
     @State private var editText = ""
     @FocusState private var editing: Bool
@@ -108,7 +110,19 @@ struct TodoCard: View {
                         Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 10)).foregroundStyle(Theme.secondary)
                     }
                 } trailing: {
-                    Text("\(store.pendingCount)").font(.system(size: 13)).foregroundStyle(Theme.secondary)
+                    HStack(spacing: 8) {
+                        // 有打勾的才显示，一次清掉所有已完成的。
+                        if store.items.contains(where: \.done) {
+                            Button { store.clearDone() } label: {
+                                Image(systemName: "checkmark.circle.badge.xmark")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Theme.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .help(L("清除已完成"))
+                        }
+                        Text("\(store.pendingCount)").font(.system(size: 13)).foregroundStyle(Theme.secondary)
+                    }
                 }
                 ScrollView(.vertical) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -151,6 +165,12 @@ struct TodoCard: View {
         DispatchQueue.main.async { focused = true }
     }
 
+    private func delete(_ item: TodoStore.Item) {
+        // 同步时会直接删掉系统“提醒事项”里的记录，没有撤销，先确认。
+        guard !reminders.isActive || AppDelegate.shared.confirm(L("删除这条待办？"), message: L("它也会从系统“提醒事项”里删除。"), action: L("删除")) else { return }
+        store.remove(item.id)
+    }
+
     private func row(_ item: TodoStore.Item) -> some View {
         HStack(spacing: 5) {
             Button { store.toggle(item.id) } label: {
@@ -173,18 +193,28 @@ struct TodoCard: View {
                     .foregroundStyle(item.done ? Theme.tertiary : Theme.primary)
                     .onTapGesture(count: 2) { beginEdit(item) }
                     .help(L("双击编辑"))
+                Spacer(minLength: 4)
+                if hoveredID == item.id {
+                    Button { delete(item) } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(L("删除"))
+                }
             }
+        }
+        .contentShape(Rectangle())
+        .onHover { inside in
+            if inside { hoveredID = item.id } else if hoveredID == item.id { hoveredID = nil }
         }
         .onChange(of: editing) { _, isEditing in
             if !isEditing { commitEdit() }
         }
         .contextMenu {
             Button(L("编辑")) { beginEdit(item) }
-            Button(L("删除")) {
-                // 同步时会直接删掉系统“提醒事项”里的记录，没有撤销，先确认。
-                guard !reminders.isActive || AppDelegate.shared.confirm(L("删除这条待办？"), message: L("它也会从系统“提醒事项”里删除。"), action: L("删除")) else { return }
-                store.remove(item.id)
-            }
+            Button(L("删除")) { delete(item) }
             Button(L("清除已完成")) { store.clearDone() }
         }
     }
