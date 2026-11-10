@@ -4,7 +4,7 @@ import ImageIO
 import SwiftUI
 import Vision
 
-/// 置顶的文字和文件路径总是保存；其余历史默认只在内存里，打开“保存历史”后才写入磁盘。图片始终不落盘。
+/// 历史默认保存到本机，重启后还在；关掉“保存历史”后只保存置顶的内容。图片存成单独的文件。
 final class ClipboardStore: ObservableObject {
     static let shared = ClipboardStore()
 
@@ -86,18 +86,23 @@ final class ClipboardStore: ObservableObject {
         let date: Date
         let sourceName: String
         let isPinned: Bool
-        /// 旧版本保存的文件里没有这两项，读出来是 nil。
+        /// 旧版本保存的文件里没有这几项，读出来是 nil。
         var rtf: Data?
         var html: Data?
+        /// 图片存在 imageFolder 里，这里只记文件名和类型。
+        var image: String?
+        var imageType: String?
 
-        init?(_ item: Item) {
+        init(_ item: Item) {
             switch item.content {
             case .text(let value):
                 text = value
                 rtf = item.rich?.rtf
                 html = item.rich?.html
             case .files(let urls): paths = urls.map(\.path)
-            case .image: return nil
+            case .image(_, _, let type, _):
+                image = item.id.uuidString
+                imageType = type.rawValue
             }
             id = item.id
             date = item.date
@@ -111,6 +116,9 @@ final class ClipboardStore: ObservableObject {
                 content = .text(text)
             } else if let paths {
                 content = .files(paths.map { URL(fileURLWithPath: $0) })
+            } else if let image, let imageType, let data = try? Data(contentsOf: ClipboardStore.imageFolder.appendingPathComponent(image)),
+                      let loaded = ClipboardStore.imageContent(data, type: NSPasteboard.PasteboardType(imageType)) {
+                content = loaded
             } else {
                 return nil
             }
@@ -158,11 +166,13 @@ final class ClipboardStore: ObservableObject {
 
     private init() {
         lastChange = NSPasteboard.general.changeCount
-        saveHistory = UserDefaults.standard.bool(forKey: Self.saveHistoryKey)
+        // 没设置过时默认保存，重启后历史还在。
+        saveHistory = UserDefaults.standard.object(forKey: Self.saveHistoryKey) as? Bool ?? true
         copiesPlainByDefault = UserDefaults.standard.bool(forKey: Self.copyPlainKey)
         if let data = try? Data(contentsOf: fileURL), let saved = try? JSONDecoder().decode([SavedItem].self, from: data) {
             items = saved.compactMap(\.item)
             prepareSuggestions(for: items)
+            items.forEach(analyze)
         }
         if UserDefaults.standard.bool(forKey: Self.keptForRestartKey) {
             UserDefaults.standard.removeObject(forKey: Self.keptForRestartKey)
@@ -183,8 +193,8 @@ final class ClipboardStore: ObservableObject {
         persistWork?.cancel()
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
-            let saved = self.itemsToSave, url = self.fileURL
-            self.saveQueue.async { Self.write(saved, to: url) }
+            let snapshot = self.snapshot, url = self.fileURL
+            self.saveQueue.async { Self.write(snapshot, to: url) }
         }
         persistWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
@@ -194,20 +204,45 @@ final class ClipboardStore: ObservableObject {
     func persistNow() {
         persistWork?.cancel()
         persistWork = nil
-        let saved = itemsToSave, url = fileURL
-        saveQueue.sync { Self.write(saved, to: url) }
+        let snapshot = snapshot, url = fileURL
+        saveQueue.sync { Self.write(snapshot, to: url) }
     }
 
-    private var itemsToSave: [SavedItem] {
-        items.filter { saveHistory || keepAllForRestart || $0.isPinned }.compactMap(SavedItem.init)
+    private struct Snapshot {
+        var items: [SavedItem] = []
+        var images: [String: Data] = [:]
     }
 
-    private static func write(_ saved: [SavedItem], to url: URL) {
-        guard !saved.isEmpty else {
-            try? FileManager.default.removeItem(at: url)
+    private static let imageFolder = Storage.folder.appendingPathComponent("ClipboardImages", isDirectory: true)
+
+    private var snapshot: Snapshot {
+        var result = Snapshot()
+        for item in items where saveHistory || keepAllForRestart || item.isPinned {
+            let saved = SavedItem(item)
+            result.items.append(saved)
+            if case .image(_, let data, _, _) = item.content, let name = saved.image { result.images[name] = data }
+        }
+        return result
+    }
+
+    private static func write(_ snapshot: Snapshot, to url: URL) {
+        let manager = FileManager.default
+        // 图片的内容不会变，已经存过的不再重写；不在历史里的删掉。
+        let existing = Set((try? manager.contentsOfDirectory(atPath: imageFolder.path)) ?? [])
+        for name in existing.subtracting(snapshot.images.keys) { try? manager.removeItem(at: imageFolder.appendingPathComponent(name)) }
+        if !snapshot.images.isEmpty {
+            try? manager.createDirectory(at: imageFolder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        }
+        for (name, data) in snapshot.images where !existing.contains(name) {
+            let file = imageFolder.appendingPathComponent(name)
+            try? data.write(to: file, options: .atomic)
+            try? manager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+        }
+        guard !snapshot.items.isEmpty else {
+            try? manager.removeItem(at: url)
             return
         }
-        guard let data = try? JSONEncoder().encode(saved) else { return }
+        guard let data = try? JSONEncoder().encode(snapshot.items) else { return }
         try? data.write(to: url, options: .atomic)
         // 复制的内容可能敏感，文件只允许当前用户读写。
         try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
@@ -643,7 +678,7 @@ struct ClipboardPage: View {
                     headerButton(L("保存历史"), store.saveHistory ? "checkmark.circle.fill" : "circle") {
                         store.saveHistory.toggle()
                     }
-                    .help(L("把文字和文件路径保存到本机，重启后还在；图片不保存"))
+                    .help(L("把剪贴板历史（包括图片）保存到本机，重启后还在；关掉后只保存置顶的内容"))
                     headerButton(L("清空"), "trash") { store.clear() }
                         .help(L("置顶内容不会被清空"))
                 }

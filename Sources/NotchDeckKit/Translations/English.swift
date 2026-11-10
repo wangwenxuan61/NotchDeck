@@ -77,7 +77,7 @@ let englishStrings: [String: String] = [
     "继续记录": "Resume",
     "暂停记录": "Pause",
     "保存历史": "Save History",
-    "把文字和文件路径保存到本机，重启后还在；图片不保存": "Saves text and file paths on this Mac so they survive a restart. Images are not saved.",
+    "把剪贴板历史（包括图片）保存到本机，重启后还在；关掉后只保存置顶的内容": "Saves clipboard history, including images, on this Mac so it is still there after a restart. When off, only pinned items are saved.",
     "置顶内容不会被清空": "Pinned items are kept",
     "已暂停记录": "Recording paused",
     "复制的内容会出现在这里，点一下即可重新复制": "Copied items appear here. Click one to copy it again.",

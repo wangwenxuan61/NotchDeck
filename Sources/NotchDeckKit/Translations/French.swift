@@ -77,7 +77,7 @@ let frenchStrings: [String: String] = [
     "继续记录": "Reprendre",
     "暂停记录": "Suspendre",
     "保存历史": "Enregistrer l’historique",
-    "把文字和文件路径保存到本机，重启后还在；图片不保存": "Enregistre le texte et les chemins de fichiers sur ce Mac après un redémarrage. Les images ne sont pas enregistrées.",
+    "把剪贴板历史（包括图片）保存到本机，重启后还在；关掉后只保存置顶的内容": "Enregistre l’historique du presse-papiers, images comprises, sur ce Mac pour le retrouver après un redémarrage. Désactivé, seuls les éléments épinglés sont enregistrés.",
     "置顶内容不会被清空": "Les éléments épinglés sont conservés",
     "已暂停记录": "Enregistrement suspendu",
     "复制的内容会出现在这里，点一下即可重新复制": "Les éléments copiés apparaissent ici. Cliquez pour les copier à nouveau.",

@@ -52,8 +52,8 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
   lock and update checks. A cup appears next to the icon while keep awake is on.
 - **AI token usage** (optional, off by default): token counts per model for Claude Code and Codex, for today, 7 days or 30 days, split into input, cache reads, cache writes and output, with the cost in US dollars estimated at official API prices. NotchDeck reads only the usage fields of their local records on your Mac, never your conversations.
 - **Clipboard history**: text, images and files, with search and pinning. Items marked as sensitive by password
-  managers are skipped. Right-click an item and choose View to read long text in full, or to see an image large next to the text recognized in it on your Mac. Search also finds images by the text in them. Right-click an image for Copy Text from Image, or Copy Subject to copy the person, pet or object in it with a transparent background. Text over about 1 MB is not recorded. History stays in memory unless you turn on saving;
-  images are never written to disk.
+  managers are skipped. Right-click an item and choose View to read long text in full, or to see an image large next to the text recognized in it on your Mac. Search also finds images by the text in them. Right-click an image for Copy Text from Image, or Copy Subject to copy the person, pet or object in it with a transparent background. Text over about 1 MB is not recorded. History, images included, is saved on your Mac
+  and is still there after a restart; turn off Save History to keep only pinned items.
   - **Formatting**: text keeps the bold, links and tables it was copied with (marked **Aa**). Choose whether a click
     copies the original or plain text, hold Shift to copy the other way, or right-click for Clean Formatting, which
     keeps the structure but drops fonts, sizes and colors so the document's own style applies.

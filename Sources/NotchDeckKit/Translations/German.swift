@@ -77,7 +77,7 @@ let germanStrings: [String: String] = [
     "继续记录": "Fortsetzen",
     "暂停记录": "Pausieren",
     "保存历史": "Verlauf sichern",
-    "把文字和文件路径保存到本机，重启后还在；图片不保存": "Sichert Text und Dateipfade auf diesem Mac über einen Neustart hinaus. Bilder werden nicht gesichert.",
+    "把剪贴板历史（包括图片）保存到本机，重启后还在；关掉后只保存置顶的内容": "Speichert den Verlauf der Zwischenablage samt Bildern auf diesem Mac, damit er nach einem Neustart noch da ist. Ausgeschaltet werden nur angeheftete Einträge gespeichert.",
     "置顶内容不会被清空": "Angeheftete Einträge bleiben erhalten",
     "已暂停记录": "Aufzeichnung pausiert",
     "复制的内容会出现在这里，点一下即可重新复制": "Kopierte Inhalte erscheinen hier. Zum erneuten Kopieren klicken.",

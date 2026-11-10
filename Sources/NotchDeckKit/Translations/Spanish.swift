@@ -77,7 +77,7 @@ let spanishStrings: [String: String] = [
     "继续记录": "Reanudar",
     "暂停记录": "Pausar",
     "保存历史": "Guardar historial",
-    "把文字和文件路径保存到本机，重启后还在；图片不保存": "Guarda texto y rutas de archivos en este Mac tras reiniciar. Las imágenes no se guardan.",
+    "把剪贴板历史（包括图片）保存到本机，重启后还在；关掉后只保存置顶的内容": "Guarda el historial del portapapeles, imágenes incluidas, en este Mac para conservarlo tras reiniciar. Desactivado, solo se guardan los elementos fijados.",
     "置顶内容不会被清空": "Los elementos fijados se conservan",
     "已暂停记录": "Registro en pausa",
     "复制的内容会出现在这里，点一下即可重新复制": "Lo copiado aparece aquí. Haz clic para volver a copiarlo.",

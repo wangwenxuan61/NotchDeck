@@ -156,8 +156,16 @@ section("图片识字") {
     var waited = 0.0
     while store.imageText[item.id] == nil && waited < 60 { pump(0.5); waited += 0.5 }
     check("图片进来后在后台识别，可以按图里的文字搜索", store.imageText[item.id]?.contains("NotchDeck") == true)
+    let previousSave = store.saveHistory
+    store.saveHistory = true
+    store.persistNow()
+    let imageFile = Storage.folder.appendingPathComponent("ClipboardImages/\(item.id.uuidString)")
+    let savedJSON = (try? Data(contentsOf: Storage.folder.appendingPathComponent("clipboard.json"))).map { String(decoding: $0, as: UTF8.self) } ?? ""
+    check("图片随历史保存成单独的文件", (try? Data(contentsOf: imageFile)) == png && savedJSON.contains(item.id.uuidString) && !savedJSON.contains(png.base64EncodedString()))
     store.remove(item)
-    check("删掉图片后识别结果也清掉", store.imageText[item.id] == nil)
+    store.persistNow()
+    check("删掉图片后识别结果和文件都清掉", store.imageText[item.id] == nil && !FileManager.default.fileExists(atPath: imageFile.path))
+    store.saveHistory = previousSave
 
     let previousBoard = store.pasteboard
     let board = NSPasteboard(name: NSPasteboard.Name("NotchDeckChecks-subject-\(getpid())"))
