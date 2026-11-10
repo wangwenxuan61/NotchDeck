@@ -415,5 +415,8 @@ section("其他") {
 }
 
 try? FileManager.default.removeItem(at: sandbox)
+// 设置由系统的 cfprefsd 写到真实的 ~/Library/Preferences，不受上面的 CFFIXED_USER_HOME 影响。
+// 文件会留下，但把检查写过的值清空，下次检查也从默认设置开始。
+UserDefaults.standard.removePersistentDomain(forName: ProcessInfo.processInfo.processName)
 print(failed.isEmpty ? "全部通过：\(passed) 项" : "\(failed.count) 项失败，\(passed) 项通过：\n" + failed.joined(separator: "\n"))
 exit(failed.isEmpty ? 0 : 1)
