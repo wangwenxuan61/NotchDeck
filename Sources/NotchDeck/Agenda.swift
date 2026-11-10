@@ -100,6 +100,16 @@ final class AgendaStore: ObservableObject {
         }
     }
 
+    /// 今天之前开始的日程显示今天的结束时间；整天都在进行中的按全天显示。
+    static func timeLabel(_ item: Item, at date: Date) -> String {
+        guard !item.isAllDay else { return L("全天") }
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: date)
+        guard item.start < startOfToday else { return formatClockTime(item.start) }
+        guard let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) else { return L("全天") }
+        return item.end < startOfTomorrow ? L("至 %@", formatClockTime(item.end)) : L("全天")
+    }
+
     static func countdown(to item: Item, at date: Date) -> String? {
         guard !item.isAllDay else { return nil }
         guard item.start > date else { return L("进行中") }
@@ -128,10 +138,10 @@ struct AgendaCard: View {
         .help(L("打开日历"))
     }
 
-    private func row(_ item: AgendaStore.Item) -> some View {
+    private func row(_ item: AgendaStore.Item, at date: Date) -> some View {
         HStack(spacing: 6) {
             Capsule().fill(Color(cgColor: item.color)).frame(width: 3, height: 14)
-            Text(item.isAllDay ? L("全天") : formatClockTime(item.start))
+            Text(AgendaStore.timeLabel(item, at: date))
                 .font(.system(size: 10))
                 .monospacedDigit()
                 .foregroundStyle(Theme.secondary)
@@ -185,7 +195,7 @@ struct AgendaCard: View {
                     } else if upcoming.isEmpty {
                         message(L("今天没有更多日程"))
                     } else {
-                        ForEach(upcoming.prefix(Self.maxRows)) { row($0) }
+                        ForEach(upcoming.prefix(Self.maxRows)) { row($0, at: timeline.date) }
                         Spacer(minLength: 0)
                     }
                 }

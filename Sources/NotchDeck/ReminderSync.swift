@@ -17,13 +17,19 @@ final class ReminderSync: ObservableObject {
         }
     }
 
+    private static let hiddenKey = "syncRemindersHiddenDone"
+
     private let store = EKEventStore()
-    private var hiddenDone = Set<String>()
+    /// 从卡片上隐藏的已完成项要保存下来，否则重启后今天完成的又会出现。
+    private var hiddenDone: Set<String> {
+        didSet { UserDefaults.standard.set(Array(hiddenDone), forKey: Self.hiddenKey) }
+    }
     private var generation = 0
     private var changeWork: DispatchWorkItem?
 
     private init() {
         selectedListID = UserDefaults.standard.string(forKey: Self.listKey) ?? ""
+        hiddenDone = Set(UserDefaults.standard.stringArray(forKey: Self.hiddenKey) ?? [])
         NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: store, queue: .main) { [weak self] _ in
             self?.scheduleReload()
         }
@@ -122,6 +128,9 @@ final class ReminderSync: ObservableObject {
                     .map { TodoStore.Item(id: $0.calendarItemIdentifier, title: $0.title ?? "", done: true) }
                 DispatchQueue.main.async {
                     guard let self, self.isActive, current == self.generation else { return }
+                    // 卡片只显示今天完成的项，其余的隐藏记录已经用不上，清掉免得越存越多。
+                    let doneIDs = Set(doneItems.map(\.id))
+                    if !self.hiddenDone.isSubset(of: doneIDs) { self.hiddenDone.formIntersection(doneIDs) }
                     TodoStore.shared.showRemoteItems(pendingItems + doneItems.filter { !self.hiddenDone.contains($0.id) })
                 }
             }
@@ -146,6 +155,12 @@ final class ReminderSync: ObservableObject {
         guard let reminder = store.calendarItem(withIdentifier: id) as? EKReminder else { return }
         reminder.isCompleted.toggle()
         hiddenDone.remove(id)
+        save { try store.save(reminder, commit: true) }
+    }
+
+    func rename(_ id: String, to title: String) {
+        guard let reminder = store.calendarItem(withIdentifier: id) as? EKReminder, reminder.title != title else { return }
+        reminder.title = title
         save { try store.save(reminder, commit: true) }
     }
 

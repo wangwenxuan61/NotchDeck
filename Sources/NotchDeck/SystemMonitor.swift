@@ -17,6 +17,11 @@ struct ProcessUsage: Identifiable {
     let value: String
 }
 
+struct BatteryHealth: Equatable {
+    let percent: Int
+    let cycles: Int
+}
+
 enum MemoryPressure {
     case low, medium, high
 
@@ -71,6 +76,7 @@ final class SystemMonitor: ObservableObject {
     @Published private(set) var topCPU: [ProcessUsage] = []
     @Published private(set) var topMemory: [ProcessUsage] = []
     @Published private(set) var batteryPercent: Int?
+    @Published private(set) var batteryHealth: BatteryHealth?
     @Published private(set) var isCharging = false
     @Published private(set) var onExternalPower = false
 
@@ -331,10 +337,28 @@ final class SystemMonitor: ObservableObject {
             let value = gigabytes >= 1 ? String(format: "%.1fG", gigabytes) : String(format: "%.0fM", row.rss / 1024)
             return ProcessUsage(name: row.name, value: value)
         }
+        let health = readBatteryHealth()
         DispatchQueue.main.async {
             self.topCPU = Array(byCPU)
             self.topMemory = Array(byMemory)
+            if health != self.batteryHealth { self.batteryHealth = health }
         }
+    }
+
+    /// 最大容量用标称容量除以设计容量，新电池会略高于 100%，和系统设置一样按 100% 显示。没有电池的 Mac 返回 nil。
+    private func readBatteryHealth() -> BatteryHealth? {
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
+        guard service != 0 else { return nil }
+        defer { IOObjectRelease(service) }
+        var properties: Unmanaged<CFMutableDictionary>?
+        guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
+              let info = properties?.takeRetainedValue() as? [String: Any],
+              let cycles = info["CycleCount"] as? Int else { return nil }
+        let data = info["BatteryData"] as? [String: Any] ?? [:]
+        let design = (data["DesignCapacity"] ?? info["DesignCapacity"]) as? Int ?? 0
+        let nominal = (data["NominalChargeCapacity"] ?? info["NominalChargeCapacity"] ?? info["AppleRawMaxCapacity"]) as? Int ?? 0
+        guard design > 0, nominal > 0 else { return nil }
+        return BatteryHealth(percent: min(100, Int((Double(nominal) / Double(design) * 100).rounded())), cycles: cycles)
     }
 
     func readPower(announce: Bool) {

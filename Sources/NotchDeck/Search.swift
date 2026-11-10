@@ -158,12 +158,25 @@ final class SearchModel: ObservableObject {
         perform(results[selection], model: model)
     }
 
+    /// 翻到这张卡片所在的首页；卡片被隐藏时提示用户。
+    private func showCard(_ kind: CardKind, model: PanelModel) {
+        model.page = .home
+        if let index = CardLayoutStore.shared.visiblePages.firstIndex(where: { $0.contains(kind) }) {
+            model.homePage = index
+        } else {
+            Toasts.shared.show(L("“%@”卡片没有显示在首页", kind.title), icon: "eye.slash")
+        }
+    }
+
     func perform(_ result: SearchResult, model: PanelModel) {
         switch result.target {
         case .app(let app):
             app.launch()
-        case .todo, .note:
-            model.page = .home
+        case .todo:
+            showCard(.todo, model: model)
+            return
+        case .note:
+            showCard(.note, model: model)
             return
         case .clipboard(let item):
             ClipboardStore.shared.copy(item)

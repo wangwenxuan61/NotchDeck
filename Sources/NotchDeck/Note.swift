@@ -66,7 +66,10 @@ struct NoteCard: View {
                             Button(option.title) { store.colorIndex = option.rawValue }
                         }
                         Divider()
-                        Button(L("清空")) { store.text = "" }
+                        Button(L("清空")) {
+                            guard store.text.isEmpty || AppDelegate.shared.confirm(L("清空短记？"), message: L("清空后无法恢复。"), action: L("清空")) else { return }
+                            store.text = ""
+                        }
                     } label: {
                         Image(systemName: "ellipsis")
                     }

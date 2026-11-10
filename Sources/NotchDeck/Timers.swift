@@ -26,6 +26,7 @@ final class FocusTimer: ObservableObject {
     private func start() {
         remaining = Self.minutes * 60
         clock.start(seconds: Self.minutes * 60)
+        SystemNotifier.shared.requestPermission()
         Self.runShortcut("NotchDeck 专注开始")
     }
 
@@ -36,6 +37,7 @@ final class FocusTimer: ObservableObject {
         if completed {
             NSSound(named: "Glass")?.play()
             Toasts.shared.show(L("专注结束"), icon: "checkmark.circle")
+            SystemNotifier.shared.post(L("专注结束"))
         }
     }
 
@@ -108,6 +110,7 @@ final class CountdownTimer: ObservableObject {
             self?.reset()
             NSSound(named: "Glass")?.play()
             Toasts.shared.show(L("计时结束"), icon: "timer")
+            SystemNotifier.shared.post(L("计时结束"))
         }
     }
 
@@ -122,6 +125,7 @@ final class CountdownTimer: ObservableObject {
         remaining = seconds
         isPaused = false
         clock.start(seconds: seconds)
+        SystemNotifier.shared.requestPermission()
     }
 
     func togglePause() {

@@ -35,6 +35,15 @@ final class TodoStore: ObservableObject {
         persist()
     }
 
+    func rename(_ id: String, to title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if let sync { sync.rename(id, to: trimmed); return }
+        guard let index = items.firstIndex(where: { $0.id == id }), items[index].title != trimmed else { return }
+        items[index].title = trimmed
+        persist()
+    }
+
     func remove(_ id: String) {
         if let sync { sync.remove(id); return }
         items.removeAll { $0.id == id }
@@ -72,6 +81,23 @@ struct TodoCard: View {
     @ObservedObject private var reminders = ReminderSync.shared
     @State private var draft = ""
     @FocusState private var focused: Bool
+    @State private var editingID: String?
+    @State private var editText = ""
+    @FocusState private var editing: Bool
+
+    private func beginEdit(_ item: TodoStore.Item) {
+        editText = item.title
+        editingID = item.id
+        // 输入框要先出现才能获得焦点。
+        DispatchQueue.main.async { editing = true }
+    }
+
+    /// 回车或点到别处都会保存，内容为空时保持原样。
+    private func commitEdit() {
+        guard let id = editingID else { return }
+        editingID = nil
+        store.rename(id, to: editText)
+    }
 
     var body: some View {
         Card {
@@ -113,14 +139,32 @@ struct TodoCard: View {
                     .foregroundStyle(item.done ? Theme.teal : Theme.secondary)
             }
             .buttonStyle(.plain)
-            Text(item.title)
-                .font(.system(size: 12))
-                .lineLimit(1)
-                .strikethrough(item.done)
-                .foregroundStyle(item.done ? Theme.tertiary : Theme.primary)
+            if editingID == item.id {
+                TextField("", text: $editText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+                    .focused($editing)
+                    .onSubmit(commitEdit)
+            } else {
+                Text(item.title)
+                    .font(.system(size: 12))
+                    .lineLimit(1)
+                    .strikethrough(item.done)
+                    .foregroundStyle(item.done ? Theme.tertiary : Theme.primary)
+                    .onTapGesture(count: 2) { beginEdit(item) }
+                    .help(L("双击编辑"))
+            }
+        }
+        .onChange(of: editing) { _, isEditing in
+            if !isEditing { commitEdit() }
         }
         .contextMenu {
-            Button(L("删除")) { store.remove(item.id) }
+            Button(L("编辑")) { beginEdit(item) }
+            Button(L("删除")) {
+                // 同步时会直接删掉系统“提醒事项”里的记录，没有撤销，先确认。
+                guard !reminders.isActive || AppDelegate.shared.confirm(L("删除这条待办？"), message: L("它也会从系统“提醒事项”里删除。"), action: L("删除")) else { return }
+                store.remove(item.id)
+            }
             Button(L("清除已完成")) { store.clearDone() }
         }
     }

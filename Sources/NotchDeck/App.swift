@@ -45,7 +45,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.closePanel()
         }
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, self.controller.model.expanded, !self.isComposingText else { return event }
+            // 确认框和文件选择框打开时，Esc 要留给它们自己。
+            guard let self, self.controller.model.expanded, !self.isComposingText, !self.modalOpen else { return event }
             let onSearch = self.controller.model.page == .search
             switch event.keyCode {
             case 53:
@@ -104,6 +105,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             changes(AppSettings.shared.$showMenuBarNetwork),
             changes(AppSettings.shared.$showMenuBarBattery),
             changes(UpdateChecker.shared.$latestVersion),
+            changes(QuickControls.shared.$keepAwake),
         ])
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in self?.refreshStatusText() }
@@ -119,7 +121,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let timer = (FocusTimer.shared.remaining ?? CountdownTimer.shared.remaining).map(FocusTimer.format)
             // 用粗箭头表示有更新，避免和网速的上传箭头混淆。
             let update = UpdateChecker.shared.latestVersion == nil ? nil : "⬆︎"
-            text = (monitorStatusParts + [timer, update].compactMap { $0 }).joined(separator: "  ")
+            // 防止休眠开着时放一个标记，免得忘了关、一直耗电。
+            let awake = QuickControls.shared.keepAwake ? "☕︎" : nil
+            text = ([awake].compactMap { $0 } + monitorStatusParts + [timer, update].compactMap { $0 }).joined(separator: "  ")
         }
         if !text.isEmpty { text = " \(text)" }
         guard button.title != text else { return }
@@ -372,6 +376,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !taken.isEmpty {
             Toasts.shared.show(L("%@ 已被占用", taken.joined(separator: " ")), icon: "exclamationmark.triangle")
         }
+    }
+
+    /// 不能撤销的操作先确认。和选文件一样临时切到前台，避免面板被自动收起。
+    func confirm(_ title: String, message: String, action: String) -> Bool {
+        modalOpen = true
+        defer { modalOpen = false }
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: action).hasDestructiveAction = true
+        alert.addButton(withTitle: L("取消")).keyEquivalent = "\u{1b}"
+        NSApp.activate(ignoringOtherApps: true)
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     func pickFolder() -> URL? {

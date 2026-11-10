@@ -141,10 +141,11 @@ struct MonitorPage: View {
     private func reading(_ title: String, _ value: String?) -> some View {
         Group {
             if let value {
+                // 有的语言标题很长，空间不够时缩小字号，保持一行。
                 HStack {
-                    Text(title).foregroundStyle(Theme.secondary)
-                    Spacer()
-                    Text(value).monospacedDigit().lineLimit(1)
+                    Text(title).foregroundStyle(Theme.secondary).lineLimit(1).minimumScaleFactor(0.7)
+                    Spacer(minLength: 4)
+                    Text(value).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
                 }
                 .font(.system(size: 12))
             }
@@ -153,17 +154,22 @@ struct MonitorPage: View {
 
     private var readings: some View {
         Card {
-            VStack(spacing: 6) {
-                reading("CPU", formatTemperature(monitor.cpuTemp))
-                reading("GPU", formatTemperature(monitor.gpuTemp))
-                reading(L("电池"), formatTemperature(monitor.batteryTemp))
-                reading(L("固态硬盘"), formatTemperature(monitor.ssdTemp))
-                ForEach(monitor.fans.indices, id: \.self) { index in
-                    reading(monitor.fans.count > 1 ? L("风扇 %d", index + 1) : L("风扇"), "\(monitor.fans[index]) rpm")
+            // 有风扇的 Mac 行数更多，放不下时可以滚动。
+            ScrollView(.vertical) {
+                VStack(spacing: 4) {
+                    reading("CPU", formatTemperature(monitor.cpuTemp))
+                    reading("GPU", formatTemperature(monitor.gpuTemp))
+                    reading(L("电池"), formatTemperature(monitor.batteryTemp))
+                    reading(L("电池健康"), monitor.batteryHealth.map { "\($0.percent)% · " + L("%d 次循环", $0.cycles) })
+                    reading(L("固态硬盘"), formatTemperature(monitor.ssdTemp))
+                    ForEach(monitor.fans.indices, id: \.self) { index in
+                        reading(monitor.fans.count > 1 ? L("风扇 %d", index + 1) : L("风扇"), "\(monitor.fans[index]) rpm")
+                    }
+                    reading(L("整机功耗"), monitor.power.map { String(format: "%.1f W", $0) })
+                    reading(L("网速"), "↓ \(formatSpeed(monitor.downloadSpeed))  ↑ \(formatSpeed(monitor.uploadSpeed))")
                 }
-                reading(L("整机功耗"), monitor.power.map { String(format: "%.1f W", $0) })
-                reading(L("网速"), "↓ \(formatSpeed(monitor.downloadSpeed))  ↑ \(formatSpeed(monitor.uploadSpeed))")
             }
+            .scrollIndicators(.never)
         }
     }
 

@@ -33,17 +33,17 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 ## Features
 
 - **Home cards**: todos, today's agenda, sticky note, clock, system monitor, music, clipboard, timer, month calendar
-  and Look Busy. Reorder, hide or move them across two pages.
+  and Look Busy. Reorder, hide or move them across two pages. Double-click a to-do to edit it.
 - **Today's agenda**: upcoming events from the system Calendar, a countdown to the next one, and a join button for
   Zoom, Google Meet, Teams, Webex, Tencent Meeting, Feishu and DingTalk links.
 - **System monitor**: CPU, GPU, battery and SSD temperatures, power draw, memory pressure, swap, disk usage, upload
-  and download speed, top processes, and 10-minute history charts. CPU, GPU and temperature readings are smoothed so
+  and download speed, battery health and cycle count, top processes, and 10-minute history charts. CPU, GPU and temperature readings are smoothed so
   they are easier to read.
 - **Menu bar**: show any mix of temperature, CPU load, network speed and battery next to the icon. Right-click the
   icon for search, clipboard, the monitor, audio output, a quick countdown, keep awake, Look Busy, display sleep, screen
-  lock and update checks.
+  lock and update checks. A cup appears next to the icon while keep awake is on.
 - **Clipboard history**: text, images and files, with search and pinning. Items marked as sensitive by password
-  managers are skipped. Text over about 1 MB is not recorded. History stays in memory unless you turn on saving;
+  managers are skipped. Right-click an image to copy the text in it, recognized on your Mac. Text over about 1 MB is not recorded. History stays in memory unless you turn on saving;
   images are never written to disk.
 - **Timers**: countdown, stopwatch with laps, and a 25-minute focus timer.
 - **Music**: now-playing title, artwork, progress, playback controls and system volume.
@@ -100,6 +100,7 @@ NotchDeck only asks when you turn on a feature that needs it:
 - **Bluetooth**: for the Bluetooth toggle and device battery levels.
 - **Reminders**: for Reminders sync. Turning sync on moves your unfinished local todos into the selected list.
 - **Calendar**: for the agenda card. NotchDeck only reads your events.
+- **Notifications**: for countdown and focus alerts, so you see them even when you are away. NotchDeck asks the first time you start a timer.
 
 The app is ad-hoc signed, so macOS may ask for these permissions again after an update or rebuild.
 

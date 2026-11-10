@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Vision
 
 /// 置顶的文字和文件路径总是保存；其余历史默认只在内存里，打开“保存历史”后才写入磁盘。图片始终不落盘。
 final class ClipboardStore: ObservableObject {
@@ -225,6 +226,33 @@ final class ClipboardStore: ObservableObject {
         Toasts.shared.show(L("已复制"), icon: "doc.on.clipboard")
     }
 
+    /// 在本机识别图片里的文字并复制，不会上传。复制后会和普通内容一样进入历史。
+    func copyText(in item: Item) {
+        guard case .image(let image, _, _) = item.content,
+              let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            let text = Self.recognizeText(in: cgImage)
+            DispatchQueue.main.async {
+                guard let text, !text.isEmpty else {
+                    Toasts.shared.show(L("没有识别到文字"), icon: "text.viewfinder")
+                    return
+                }
+                self.pasteboard.clearContents()
+                self.pasteboard.setString(text, forType: .string)
+                Toasts.shared.show(L("已复制识别出的文字"), icon: "text.viewfinder")
+            }
+        }
+    }
+
+    static func recognizeText(in image: CGImage) -> String? {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["zh-Hans", "zh-Hant", "en-US", "ja-JP", "ko-KR"]
+        request.usesLanguageCorrection = true
+        guard (try? VNImageRequestHandler(cgImage: image).perform([request])) != nil else { return nil }
+        return request.results?.compactMap { $0.topCandidates(1).first?.string }.joined(separator: "\n")
+    }
+
     func remove(_ item: Item) { items.removeAll { $0.id == item.id } }
 
     /// 置顶内容不会被清空，要单独取消置顶或删除。
@@ -359,6 +387,9 @@ struct ClipboardPage: View {
                                     AppDelegate.shared.closePanel()
                                 }
                                 .contextMenu {
+                                    if case .image = item.content {
+                                        Button(L("提取文字")) { store.copyText(in: item) }
+                                    }
                                     Button(item.isPinned ? L("取消置顶") : L("置顶")) { store.togglePin(item) }
                                     Button(L("删除")) { store.remove(item) }
                                 }
