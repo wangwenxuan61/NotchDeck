@@ -40,6 +40,8 @@ final class UpdateChecker: ObservableObject {
     private var quietChecks = 0
     /// 更新后第一次打开面板时提示一下。
     private var updateNotice: String?
+    /// 用户点了“更新到”，这次检查完就下载并立即安装。
+    private var installAfterCheck = false
 
     private init() {
         autoCheck = UserDefaults.standard.object(forKey: Self.autoCheckKey) as? Bool ?? true
@@ -98,10 +100,16 @@ final class UpdateChecker: ObservableObject {
 
     private func finish(release: [String: Any]?, userInitiated: Bool) {
         isChecking = false
+        let wantsInstall = installAfterCheck
+        installAfterCheck = false
         guard let tag = release?["tag_name"] as? String else {
             // 自动检查失败时不打扰用户，半小时后再试。
             lastCheck = Date().addingTimeInterval(30 * 60 - Self.checkInterval)
-            if userInitiated { Toasts.shared.show(L("检查更新失败"), icon: "exclamationmark.triangle") }
+            if wantsInstall {
+                fail(userInitiated: true)
+            } else if userInitiated {
+                Toasts.shared.show(L("检查更新失败"), icon: "exclamationmark.triangle")
+            }
             return
         }
         lastCheck = Date()
@@ -117,6 +125,10 @@ final class UpdateChecker: ObservableObject {
         }
         latestVersion = version
         asset = release.flatMap(UpdateInstaller.dmgAsset)
+        if wantsInstall {
+            if phase == .ready { install() } else { download(thenInstall: true) }
+            return
+        }
         if autoCheck {
             // 上次下载失败的，下次检查时再试一次。
             if phase == .idle || phase == .failed { download(thenInstall: false) }
@@ -129,13 +141,15 @@ final class UpdateChecker: ObservableObject {
         }
     }
 
-    /// 设置页和右键菜单里的“更新到”：已经下载好就立即安装，否则下载完立即安装，失败时打开下载页面。
+    /// 设置页和右键菜单里的“更新到”：已经下载好就立即安装；否则先重新获取发布信息，再马上下载并安装。
+    /// 重新获取是为了用最新的下载地址和校验值，之前自动下载失败过也会重新试，这次也失败才打开下载页面。
     func updateNow() {
         switch phase {
         case .ready: install()
         case .downloading: break
-        case .failed: openDownloadPage()
-        case .idle: download(thenInstall: true)
+        case .failed, .idle:
+            installAfterCheck = true
+            check(userInitiated: true)
         }
     }
 
@@ -167,7 +181,12 @@ final class UpdateChecker: ObservableObject {
     }
 
     private func install() {
-        guard let staged else { return }
+        // 下载好的新版本被删掉了（比如手动清理），重新下载。
+        guard let staged, FileManager.default.fileExists(atPath: staged.path) else {
+            self.staged = nil
+            download(thenInstall: true)
+            return
+        }
         self.staged = nil
         let current = Bundle.main.bundleURL
         do {
