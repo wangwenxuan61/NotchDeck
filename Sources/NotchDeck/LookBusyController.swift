@@ -1,6 +1,5 @@
 import AppKit
 import Carbon
-import IOKit.pwr_mgt
 import SwiftUI
 
 /// 盖住整块屏幕的无边框窗口，层级高于菜单栏和 Dock。
@@ -38,7 +37,8 @@ final class LookBusyController: ObservableObject {
     private var timer: Timer?
     private var keyMonitor: Any?
     private var previousApp: NSRunningApplication?
-    private var displayAssertion: IOPMAssertionID = 0
+    /// 场景放着不动时屏幕也要保持亮着，否则到了系统设定的时间就黑屏了。
+    private let displayLock = DisplayWakeLock(name: "NotchDeck Look Busy")
 
     private init() {
         let defaults = UserDefaults.standard
@@ -102,31 +102,13 @@ final class LookBusyController: ObservableObject {
         let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak engine] _ in engine?.tick() }
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
-        keepDisplayOn()
+        displayLock.acquire()
         isShowing = true
-    }
-
-    /// 场景放着不动时屏幕也要保持亮着，否则到了系统设定的时间就黑屏了。
-    private func keepDisplayOn() {
-        guard displayAssertion == 0 else { return }
-        let status = IOPMAssertionCreateWithName(
-            kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
-            IOPMAssertionLevel(kIOPMAssertionLevelOn),
-            "NotchDeck Look Busy" as CFString,
-            &displayAssertion
-        )
-        if status != kIOReturnSuccess { displayAssertion = 0 }
-    }
-
-    private func allowDisplaySleep() {
-        guard displayAssertion != 0 else { return }
-        IOPMAssertionRelease(displayAssertion)
-        displayAssertion = 0
     }
 
     func hide() {
         guard isShowing else { return }
-        allowDisplaySleep()
+        displayLock.release()
         timer?.invalidate()
         timer = nil
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }

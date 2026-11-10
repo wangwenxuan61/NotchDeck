@@ -1,7 +1,5 @@
 import AppKit
 import Carbon
-import Combine
-import CoreAudio
 
 @main
 enum Entry {
@@ -18,8 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     static let shared = AppDelegate()
 
     private(set) lazy var controller = PanelController()
-    private var statusItem: NSStatusItem!
-    private var statusSubscription: AnyCancellable?
+    private var statusBar: StatusItemController!
     private var panelHotKey: HotKey?
     private var busyHotKey: HotKey?
     private var clipboardHotKey: HotKey?
@@ -34,7 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ReminderSync.shared.restore()
         AgendaStore.shared.refresh()
         UpdateChecker.shared.start()
-        setUpStatusItem()
+        statusBar = StatusItemController(app: self)
         refreshMonitorMode()
 
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
@@ -73,208 +70,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ClipboardStore.shared.persistNow()
     }
 
-    private func setUpStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.autosaveName = "NotchDeck"
-        guard let button = statusItem.button else { return }
-        let symbol = NSImage(systemSymbolName: "rectangle.topthird.inset.filled", accessibilityDescription: "NotchDeck")
-        let image = symbol?.withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 14, weight: .medium))
-        image?.isTemplate = true
-        button.image = image
-        button.imagePosition = .imageOnly
-        button.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
-        button.target = self
-        button.action = #selector(statusItemClicked)
-        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-
-        // @Published 在值改变前发出通知，切到下一轮主循环才能读到新值。
-        func changes<Value>(_ publisher: Published<Value>.Publisher) -> AnyPublisher<Void, Never> {
-            publisher.map { _ in () }.eraseToAnyPublisher()
-        }
-        statusSubscription = Publishers.MergeMany([
-            changes(Toasts.shared.$current),
-            changes(FocusTimer.shared.$remaining),
-            changes(CountdownTimer.shared.$remaining),
-            changes(SystemMonitor.shared.$cpuTemp),
-            changes(SystemMonitor.shared.$cpu),
-            changes(SystemMonitor.shared.$downloadSpeed),
-            changes(SystemMonitor.shared.$batteryPercent),
-            changes(SystemMonitor.shared.$isCharging),
-            changes(AppSettings.shared.$showMenuBarTemperature),
-            changes(AppSettings.shared.$showMenuBarCPU),
-            changes(AppSettings.shared.$showMenuBarNetwork),
-            changes(AppSettings.shared.$showMenuBarBattery),
-            changes(UpdateChecker.shared.$latestVersion),
-            changes(QuickControls.shared.$keepAwake),
-            changes(QuickControls.shared.$keepAwakeMinutesLeft),
-        ])
-        .receive(on: DispatchQueue.main)
-        .sink { [weak self] _ in self?.refreshStatusText() }
-    }
-
-    /// 平时显示温度和倒计时；面板收起时的提醒会临时占用这个位置，面板打开时提醒已显示在面板内。
-    private func refreshStatusText() {
-        guard let button = statusItem.button else { return }
-        var text: String
-        if let toast = Toasts.shared.current, !controller.model.expanded {
-            text = toast.text
-        } else {
-            let timer = (FocusTimer.shared.remaining ?? CountdownTimer.shared.remaining).map(FocusTimer.format)
-            // 用粗箭头表示有更新，避免和网速的上传箭头混淆。
-            let update = UpdateChecker.shared.latestVersion == nil ? nil : "⬆︎"
-            // 防止休眠开着时放一个标记，免得忘了关、一直耗电。
-            let controls = QuickControls.shared
-            let awake = controls.keepAwake ? (["☕︎"] + [controls.keepAwakeMinutesLeft.map { formatCompactDuration(minutes: $0) }].compactMap { $0 }).joined(separator: " ") : nil
-            text = ([awake].compactMap { $0 } + monitorStatusParts + [timer, update].compactMap { $0 }).joined(separator: "  ")
-        }
-        if !text.isEmpty { text = " \(text)" }
-        guard button.title != text else { return }
-        button.title = text
-        button.imagePosition = text.isEmpty ? .imageOnly : .imageLeading
-    }
-
-    private var monitorStatusParts: [String] {
-        let settings = AppSettings.shared
-        let monitor = SystemMonitor.shared
-        var parts: [String] = []
-        if settings.showMenuBarTemperature, let temperature = formatTemperature(monitor.cpuTemp) { parts.append(temperature) }
-        if settings.showMenuBarCPU { parts.append("CPU \(Int((monitor.cpu * 100).rounded()))%") }
-        if settings.showMenuBarNetwork {
-            parts.append("↓\(formatCompactSpeed(monitor.downloadSpeed)) ↑\(formatCompactSpeed(monitor.uploadSpeed))")
-        }
-        if settings.showMenuBarBattery, let percent = monitor.batteryPercent {
-            parts.append((monitor.isCharging ? "⚡︎" : "") + "\(percent)%")
-        }
-        return parts
-    }
-
-    private func showStatusMenu() {
-        closePanel()
-        let updates = UpdateChecker.shared
-        let updateItem = updates.latestVersion.map { menuItem(L("更新到 %@", $0), #selector(openUpdatePage)) }
-            ?? menuItem(updates.isChecking ? L("检查中…") : L("检查更新"), #selector(checkForUpdates), enabled: !updates.isChecking)
-        let sections: [[NSMenuItem]] = [
-            [
-                menuItem(L("搜索"), #selector(openSearch)),
-                menuItem(L("剪贴板"), #selector(openClipboard)),
-                menuItem(L("系统监控"), #selector(openMonitor)),
-            ],
-            audioOutputMenu() + [
-                submenu(L("倒计时"), countdownItems()),
-                keepAwakeMenu(),
-                menuItem(L("装忙"), #selector(startLookBusy)),
-            ],
-            [
-                menuItem(L("息屏"), #selector(sleepDisplay)),
-                menuItem(L("锁屏"), #selector(lockScreen)),
-            ],
-            [
-                updateItem,
-                menuItem(L("设置"), #selector(openSettings)),
-                menuItem(L("退出 NotchDeck"), #selector(quit)),
-            ],
-        ]
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-        for (index, section) in sections.enumerated() {
-            if index > 0 { menu.addItem(.separator()) }
-            section.forEach(menu.addItem)
-        }
-        // 菜单只在右键时临时挂上，否则左键也会弹菜单，打不开面板。
-        statusItem.menu = menu
-        statusItem.button?.performClick(nil)
-        statusItem.menu = nil
-    }
-
-    private func menuItem(_ title: String, _ action: Selector, tag: Int = 0, enabled: Bool = true, checked: Bool = false) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
-        item.target = self
-        item.tag = tag
-        item.isEnabled = enabled
-        item.state = checked ? .on : .off
-        return item
-    }
-
-    private func submenu(_ title: String, _ items: [NSMenuItem]) -> NSMenuItem {
-        let parent = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-        menu.items = items
-        parent.submenu = menu
-        return parent
-    }
-
-    /// 只有一个输出设备时没有可选的，不显示这一项。
-    private func audioOutputMenu() -> [NSMenuItem] {
-        let outputs = SystemVolume.outputDevices()
-        guard outputs.count > 1 else { return [] }
-        let current = SystemVolume.outputDevice()
-        let items = outputs.map { menuItem($0.name, #selector(selectOutput(_:)), tag: Int($0.id), checked: $0.id == current) }
-        return [submenu(L("音频输出"), items)]
-    }
-
-    /// 标签 0 表示一直开着，-1 表示关闭，其余是分钟数。
-    private func keepAwakeMenu() -> NSMenuItem {
-        let controls = QuickControls.shared
-        func option(_ title: String, _ tag: Int) -> NSMenuItem {
-            menuItem(title, #selector(setKeepAwake(_:)), tag: tag, checked: controls.keepAwake && (controls.keepAwakeDuration ?? 0) == tag)
-        }
-        var items = [option(L("一直"), 0)] + QuickControls.keepAwakeDurations.map { option(formatDuration(minutes: $0), $0) }
-        if controls.keepAwake {
-            items += [.separator(), menuItem(L("关闭"), #selector(setKeepAwake(_:)), tag: -1)]
-        }
-        let parent = submenu(L("防止休眠"), items)
-        parent.state = controls.keepAwake ? .on : .off
-        return parent
-    }
-
-    private func countdownItems() -> [NSMenuItem] {
-        guard CountdownTimer.shared.remaining == nil else {
-            return [menuItem(L("取消"), #selector(cancelCountdown))]
-        }
-        return [5, 10, 25].map { menuItem(L("%d 分", $0), #selector(startCountdown(_:)), tag: $0) }
-    }
-
-    @objc private func openSearch() { togglePageFromHotKey(.search) }
-    @objc private func openClipboard() { togglePageFromHotKey(.clipboard) }
-    @objc private func openMonitor() { togglePageFromHotKey(.monitor) }
-    @objc private func openSettings() { togglePageFromHotKey(.settings) }
-    @objc private func selectOutput(_ sender: NSMenuItem) { SystemVolume.setOutputDevice(AudioObjectID(sender.tag)) }
-    @objc private func startCountdown(_ sender: NSMenuItem) { CountdownTimer.shared.start(seconds: sender.tag * 60) }
-    @objc private func cancelCountdown() { CountdownTimer.shared.reset() }
-    @objc private func setKeepAwake(_ sender: NSMenuItem) {
-        switch sender.tag {
-        case -1: QuickControls.shared.stopKeepAwake()
-        case 0: QuickControls.shared.startKeepAwake(minutes: nil)
-        default: QuickControls.shared.startKeepAwake(minutes: sender.tag)
-        }
-    }
-    @objc private func startLookBusy() { LookBusyController.shared.show() }
-    @objc private func sleepDisplay() { QuickControls.shared.sleepDisplay() }
-    @objc private func lockScreen() { QuickControls.shared.lockScreen() }
-    @objc private func checkForUpdates() { UpdateChecker.shared.check(userInitiated: true) }
-    @objc private func openUpdatePage() { UpdateChecker.shared.openDownloadPage() }
-    @objc private func quit() { NSApp.terminate(nil) }
-
-    @objc private func statusItemClicked() {
-        if let event = NSApp.currentEvent, event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
-            showStatusMenu()
-            return
-        }
-        if controller.model.expanded {
-            closePanel()
-            return
-        }
-        let mouse = NSEvent.mouseLocation
-        guard let screen = screen(containing: mouse) else { return }
-        // 多显示器时状态栏窗口的 frame 可能属于另一块屏幕，这时以鼠标位置为准。
-        var midX = mouse.x
-        if let frame = statusItem.button?.window?.frame, frame.minX...frame.maxX ~= mouse.x {
-            midX = frame.midX
-        }
-        openPanel(midX: midX, on: screen)
-    }
-
     func toggleFromHotKey() {
         guard !LookBusyController.shared.isShowing else { return }
         if controller.model.expanded {
@@ -285,7 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// 已经停在这一页时收起面板，否则打开或切换到这一页。
-    private func togglePageFromHotKey(_ page: Page) {
+    func togglePage(_ page: Page) {
         guard !LookBusyController.shared.isShowing else { return }
         if controller.model.expanded {
             if controller.model.page == page {
@@ -302,7 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func openPanelFromKeyboard() {
         guard let screen = screen(containing: NSEvent.mouseLocation) else { return }
         var midX = screen.frame.midX
-        if let frame = statusItem.button?.window?.frame, screen.frame.contains(frame.origin) {
+        if let frame = statusBar.buttonFrame, screen.frame.contains(frame.origin) {
             midX = frame.midX
         }
         openPanel(midX: midX, on: screen)
@@ -328,31 +123,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func screen(containing point: NSPoint) -> NSScreen? {
+    func screen(containing point: NSPoint) -> NSScreen? {
         NSScreen.screens.first { NSMouseInRect(point, $0.frame, false) } ?? NSScreen.main ?? NSScreen.screens.first
     }
 
-    private func openPanel(midX: CGFloat, on screen: NSScreen) {
+    func openPanel(midX: CGFloat, on screen: NSScreen) {
         controller.open(midX: midX, on: screen)
         // 用户可能刚在系统设置里授权了日历，这种情况系统不会通知 App。
         AgendaStore.shared.refresh()
         refreshMonitorMode()
-        syncButtonHighlight()
+        statusBar.syncHighlight()
     }
 
     func closePanel() {
         guard controller.model.expanded else { return }
         controller.close()
         refreshMonitorMode()
-        syncButtonHighlight()
-    }
-
-    /// 鼠标抬起时系统会重置按钮高亮，所以放到下一轮再设置。
-    private func syncButtonHighlight() {
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.statusItem.button?.highlight(self.controller.model.expanded)
-        }
+        statusBar.syncHighlight()
     }
 
     func refreshMonitorMode() {
@@ -394,7 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         // 不用 ⌥⌘V：那是 Finder 移动文件的快捷键。
         clipboardHotKey = register("⌃⌥V", kVK_ANSI_V, controlKey | optionKey, id: 3) { [weak self] in
-            self?.togglePageFromHotKey(.clipboard)
+            self?.togglePage(.clipboard)
         }
         if !taken.isEmpty {
             Toasts.shared.show(L("%@ 已被占用", taken.joined(separator: " ")), icon: "exclamationmark.triangle")
