@@ -18,6 +18,10 @@ and quick system toggles. It has no Dock icon and needs no account.
 
 ## Screenshots
 
+**Clipboard smart cleanups**: right-click an item and NotchDeck suggests only what fits it, such as formatting JSON or turning a copied table into Markdown. Ordinary text gets no suggestions.
+
+![Clipboard smart cleanups](docs/media/clipboard-demo.gif)
+
 | System monitor | Clipboard history |
 | --- | --- |
 | ![System monitor](docs/media/monitor.png) | ![Clipboard history](docs/media/clipboard.png) |
@@ -37,7 +41,7 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 ## Features
 
 - **Home cards**: todos, today's agenda, sticky note, clock, system monitor, music, clipboard, timer, month calendar
-  and Look Busy. Reorder, hide or move them across two pages. Double-click a to-do to edit it.
+  and Look Busy. Reorder, hide or move them across two pages. Double-click a to-do to edit it, hover it to delete it, or clear all completed ones at once.
 - **Today's agenda**: upcoming events from the system Calendar, a countdown to the next one, and a join button for
   Zoom, Google Meet, Teams, Webex, Tencent Meeting, Feishu and DingTalk links.
 - **System monitor**: CPU, GPU, battery and SSD temperatures, power draw, memory pressure, swap, disk usage, upload
@@ -50,6 +54,14 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 - **Clipboard history**: text, images and files, with search and pinning. Items marked as sensitive by password
   managers are skipped. Right-click an image to copy the text in it, recognized on your Mac. Text over about 1 MB is not recorded. History stays in memory unless you turn on saving;
   images are never written to disk.
+  - **Formatting**: text keeps the bold, links and tables it was copied with (marked **Aa**). Choose whether a click
+    copies the original or plain text, hold Shift to copy the other way, or right-click for Clean Formatting, which
+    keeps the structure but drops fonts, sizes and colors so the document's own style applies.
+  - **Smart cleanups**: right-click an item and NotchDeck suggests only the cleanups that fit it: format or compact
+    JSON, format XML, turn a copied table into Markdown, LaTeX or CSV, unescape text, decode URLs, convert timestamps,
+    keep only the link from a share text, remove tracking parameters, join lines broken by PDFs, remove line numbers,
+    list markers, blank or duplicate lines, space out Chinese and English, fix mixed punctuation, and title-case an
+    English paper title. The cleaned text is added to the history and the original stays.
 - **Timers**: countdown, stopwatch with laps, and a 25-minute focus timer.
 - **Music**: now-playing title, artwork, progress, playback controls and system volume.
 - **Search**: apps, files (through Spotlight), todos, notes and clipboard history, with a web search fallback.
