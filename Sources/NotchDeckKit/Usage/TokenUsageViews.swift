@@ -8,6 +8,14 @@ struct TokenUsagePage: View {
     @ObservedObject var model: PanelModel
     @ObservedObject private var store = TokenUsageStore.shared
     @State private var range = TokenUsageStore.Range.today
+    /// 模型列表可见部分的高度和一行的高度，用来算有几行要滚动才看得到。
+    /// macOS 上 ScrollView 里面的尺寸传不出来，所以量的是外面的列表区域和同样字号的合计行。
+    @State private var listHeight: CGFloat = 0
+    @State private var rowHeight: CGFloat = 0
+    /// 滚动条占掉的宽度，表头和合计行也让出同样的宽度，列才对得齐。
+    @State private var listWidth: CGFloat = 0
+    @State private var contentWidth: CGFloat = 0
+    private var scrollerInset: CGFloat { max(listWidth - contentWidth, 0) }
 
     private static let numberWidth: CGFloat = 82
 
@@ -75,21 +83,47 @@ struct TokenUsagePage: View {
         } else {
             VStack(spacing: 4) {
                 tableRow(model: L("模型"), source: L("来源"), counts: nil, header: true)
+                    .padding(.trailing, scrollerInset)
                 Divider()
                 ScrollView(.vertical) {
                     VStack(spacing: 4) {
                         ForEach(rows) { row in tableRow(model: row.model, source: row.source.title, counts: row.counts, priced: row.isPriced) }
                     }
+                    .background(sizeReader { contentWidth = $0.width })
                 }
-                .scrollIndicators(.never)
+                // 有放不下的模型时一直显示滚动条，不然看不出下面还有。
+                .scrollIndicators(hiddenCount(of: rows.count) > 0 ? .visible : .never)
+                .background(sizeReader { listHeight = $0.height; listWidth = $0.width })
                 Divider()
                 tableRow(model: L("合计"), source: "", counts: rows.reduce(TokenCounts()) { $0 + $1.counts }, bold: true)
-                Text(rows.contains { !$0.isPriced } ? costNote + " " + L("没有价格的模型显示为 —。") : costNote)
-                    .font(.system(size: 10))
-                    .foregroundStyle(Theme.tertiary)
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.trailing, scrollerInset)
+                    .background(sizeReader { rowHeight = $0.height })
+                HStack(spacing: 12) {
+                    let hidden = hiddenCount(of: rows.count)
+                    if hidden > 0 {
+                        Label(L("还有 %d 个模型，向下滚动查看", hidden), systemImage: "arrow.down")
+                            .foregroundStyle(Theme.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    Text(rows.contains { !$0.isPriced } ? costNote + " " + L("没有价格的模型显示为 —。") : costNote)
+                        .foregroundStyle(Theme.tertiary)
+                }
+                .font(.system(size: 10))
+                .lineLimit(1)
             }
+        }
+    }
+
+    /// 列表里有几行要滚动才看得到，最后一行只露出一部分也算没看到。行间距是 4。
+    private func hiddenCount(of rowCount: Int) -> Int {
+        guard listHeight > 0, rowHeight > 0 else { return 0 }
+        let visible = Int((listHeight + 4) / (rowHeight + 4))
+        return max(rowCount - visible, 0)
+    }
+
+    private func sizeReader(_ update: @escaping (CGSize) -> Void) -> some View {
+        GeometryReader { proxy in
+            Color.clear.onChange(of: proxy.size, initial: true) { _, size in update(size) }
         }
     }
 

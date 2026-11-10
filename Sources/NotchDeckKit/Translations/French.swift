@@ -116,6 +116,7 @@ let frenchStrings: [String: String] = [
     "提醒事项里没有可用列表": "Aucune liste dans Rappels",
     "%d 条待办未能同步，已保留在本机": "%d tâches non synchronisées, conservées sur ce Mac",
     "同步失败": "Échec de la synchronisation",
+    "还有 %d 个模型，向下滚动查看": "%d autres modèles, faites défiler vers le bas",
     "自动更新": "Mises à jour automatiques",
     "正在下载 %@…": "Téléchargement de %@…",
     "已更新到 %@": "Mis à jour vers %@",

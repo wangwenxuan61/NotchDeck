@@ -116,6 +116,7 @@ let englishStrings: [String: String] = [
     "提醒事项里没有可用列表": "No lists found in Reminders",
     "%d 条待办未能同步，已保留在本机": "%d to-dos couldn't sync and stay on this Mac",
     "同步失败": "Sync failed",
+    "还有 %d 个模型，向下滚动查看": "%d more models, scroll down to see them",
     "自动更新": "Automatic Updates",
     "正在下载 %@…": "Downloading %@…",
     "已更新到 %@": "Updated to %@",
