@@ -25,8 +25,12 @@ and quick system toggles. It has no Dock icon and needs no account.
 | ![Quick controls](docs/media/controls.png) | ![Search](docs/media/search.png) |
 | **Music** | **Timers** |
 | ![Music](docs/media/music.png) | ![Timers](docs/media/timer.png) |
-| **Second home page** | **Look Busy** |
-| ![Second home page](docs/media/home2.png) | ![Look Busy scene](docs/media/lookbusy.png) |
+| **Second home page** | **AI token usage** |
+| ![Second home page](docs/media/home2.png) | ![AI token usage](docs/media/usage.png) |
+
+**Look Busy**
+
+![Look Busy scene](docs/media/lookbusy.png)
 
 The screenshots use made-up demo data and show the Chinese interface. Other languages are available in Settings.
 

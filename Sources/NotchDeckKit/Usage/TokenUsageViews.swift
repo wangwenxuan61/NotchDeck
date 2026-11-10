@@ -152,9 +152,10 @@ struct TokenUsageCard: View {
                     Spacer(minLength: 0)
                     ForEach(rows.prefix(2)) { row in
                         HStack(spacing: 6) {
-                            Text(row.model).lineLimit(1).truncationMode(.middle)
+                            // 卡片窄时先缩小一点字号，放不下才从中间省略。
+                            Text(row.model).lineLimit(1).minimumScaleFactor(0.8).truncationMode(.middle).layoutPriority(1)
                             Spacer(minLength: 4)
-                            Text(formatTokens(row.counts.total)).monospacedDigit().foregroundStyle(Theme.secondary)
+                            Text(formatTokens(row.counts.total)).monospacedDigit().foregroundStyle(Theme.secondary).fixedSize()
                         }
                         .font(.system(size: 11))
                     }

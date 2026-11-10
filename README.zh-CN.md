@@ -24,8 +24,12 @@ NotchDeck 是一个用 Swift 和 SwiftUI 写的 macOS 菜单栏小工具。点�
 | ![快捷开关](docs/media/controls.png) | ![搜索](docs/media/search.png) |
 | **音乐** | **计时器** |
 | ![音乐](docs/media/music.png) | ![计时器](docs/media/timer.png) |
-| **首页第 2 页** | **装忙** |
-| ![首页第 2 页](docs/media/home2.png) | ![装忙场景](docs/media/lookbusy.png) |
+| **首页第 2 页** | **AI Token 用量** |
+| ![首页第 2 页](docs/media/home2.png) | ![AI Token 用量](docs/media/usage.png) |
+
+**装忙**
+
+![装忙场景](docs/media/lookbusy.png)
 
 截图里都是虚构的演示数据，界面语言为中文，可以在设置里切换成其他语言。
 
