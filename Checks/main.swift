@@ -121,7 +121,7 @@ section("剪贴板去重") {
     let png = Data([1, 2, 3])
     check("相同文字", ClipboardStore.isSameContent(.text("a"), .text("a")))
     check("不同文字", !ClipboardStore.isSameContent(.text("a"), .text("b")))
-    check("相同图片", ClipboardStore.isSameContent(.image(NSImage(), png, .png), .image(NSImage(), png, .png)))
+    check("相同图片", ClipboardStore.isSameContent(.image(thumbnail: NSImage(), data: png, type: .png, size: .zero), .image(thumbnail: NSImage(), data: png, type: .png, size: .zero)))
     check("同一路径的两种写法", ClipboardStore.isSameContent(.files([URL(fileURLWithPath: "/Applications")]), .files([URL(fileURLWithPath: "/Applications/")])))
     check("不同类型", !ClipboardStore.isSameContent(.text("/Applications"), .files([URL(fileURLWithPath: "/Applications")])))
 }
@@ -134,8 +134,12 @@ section("图片识字") {
     NSRect(origin: .zero, size: size).fill()
     ("NotchDeck OCR 2026" as NSString).draw(at: NSPoint(x: 30, y: 50), withAttributes: [.font: NSFont.systemFont(ofSize: 56), .foregroundColor: NSColor.black])
     image.unlockFocus()
-    let text = image.cgImage(forProposedRect: nil, context: nil, hints: nil).flatMap(ClipboardStore.recognizeText) ?? ""
+    let png = image.tiffRepresentation.flatMap { NSBitmapImageRep(data: $0)?.representation(using: .png, properties: [:]) } ?? Data()
+    let text = ClipboardStore.fullImage(png).flatMap(ClipboardStore.recognizeText) ?? ""
     check("识别出文字和数字", text.contains("NotchDeck") && text.contains("2026"))
+    let thumbnail = ClipboardStore.thumbnail(of: png)
+    let pixels = ClipboardStore.downsample(png, maxPixels: 128).map { max($0.width, $0.height) } ?? 0
+    check("列表只解码小缩略图，但记下原图尺寸", pixels > 0 && pixels <= 128 && thumbnail.map { Int($0.1.width) } == NSBitmapImageRep(data: png)?.pixelsWide)
 }
 
 section("计时") {
@@ -483,6 +487,14 @@ section("剪贴板格式") {
     let saved = (try? Data(contentsOf: Storage.folder.appendingPathComponent("clipboard.json"))).map { String(decoding: $0, as: UTF8.self) } ?? ""
     check("格式随历史一起保存", saved.contains("\"rtf\"") && saved.contains("\"html\""))
     store.remove(item)
+
+    let old = ClipboardStore.Item(content: .text(#"{"city":"Paris","temp":18}"#), date: Date(timeIntervalSinceNow: -3_600), sourceName: "")
+    store.insert(old)
+    pump(1)
+    check("整理推荐在后台提前算好", store.suggestionCache[old.id]?.map(\.id) == ["json"])
+    store.copy(old, style: .plain)
+    check("重新复制时排到最前并更新时间", store.items.first { !$0.isPinned }?.id == old.id && abs(store.items.first { $0.id == old.id }?.date.timeIntervalSinceNow ?? -100) < 5)
+    store.remove(old)
     store.saveHistory = previousSave
     store.persistNow()
     board.releaseGlobally()

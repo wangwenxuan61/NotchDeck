@@ -16,11 +16,13 @@ struct PageHeader<Trailing: View>: View {
     let title: String
     let model: PanelModel
     var backTo: Page = .home
+    /// 页面里还有下一层（比如剪贴板的查看）时，返回先回到上一层。
+    var back: (() -> Void)?
     @ViewBuilder var trailing: Trailing
 
     var body: some View {
         HStack(spacing: 6) {
-            Button { model.page = backTo } label: {
+            Button { if let back { back() } else { model.page = backTo } } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
                     Text(title)

@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 import SwiftUI
 import Vision
 
@@ -8,7 +9,8 @@ final class ClipboardStore: ObservableObject {
 
     enum Content {
         case text(String)
-        case image(NSImage, Data, NSPasteboard.PasteboardType)
+        /// 列表只显示缩略图，原图数据只在复制、查看和识别文字时用，不常驻解码后的大图。
+        case image(thumbnail: NSImage, data: Data, type: NSPasteboard.PasteboardType, size: CGSize)
         case files([URL])
     }
 
@@ -20,7 +22,7 @@ final class ClipboardStore: ObservableObject {
     struct Item: Identifiable {
         let id: UUID
         let content: Content
-        let date: Date
+        var date: Date
         let sourceName: String
         var isPinned = false
         /// 文字附带的格式（HTML、RTF），没有格式时为 nil。
@@ -47,7 +49,7 @@ final class ClipboardStore: ObservableObject {
         var preview: String {
             switch content {
             case .text: return textPreview
-            case .image(let image, _, _): return L("图片 %d×%d", Int(image.size.width), Int(image.size.height))
+            case .image(_, _, _, let size): return L("图片 %d×%d", Int(size.width), Int(size.height))
             case .files(let urls):
                 let first = urls.first?.lastPathComponent ?? ""
                 return urls.count > 1 ? L("%@ 等 %d 个文件", first, urls.count) : first
@@ -123,7 +125,7 @@ final class ClipboardStore: ObservableObject {
         }
     }
     /// 每条文字的整理建议只算一次。
-    private var suggestionCache: [UUID: [Suggestion]] = [:]
+    private(set) var suggestionCache: [UUID: [Suggestion]] = [:]
     @Published var isPaused = false
     /// 点击带格式的内容时默认复制成纯文本；按住 ⇧ 点击复制成另一种。
     @Published var copiesPlainByDefault: Bool {
@@ -143,6 +145,9 @@ final class ClipboardStore: ObservableObject {
     private var timer: Timer?
     private var persistWork: DispatchWorkItem?
     private var keepAllForRestart = false
+    /// 写文件在后台排队进行，带格式的历史可能有几 MB，不能卡住界面。
+    private let saveQueue = DispatchQueue(label: "notchdeck.clipboard.save", qos: .utility)
+    private let suggestionQueue = DispatchQueue(label: "notchdeck.clipboard.suggestions", qos: .utility)
 
     private init() {
         lastChange = NSPasteboard.general.changeCount
@@ -150,6 +155,7 @@ final class ClipboardStore: ObservableObject {
         copiesPlainByDefault = UserDefaults.standard.bool(forKey: Self.copyPlainKey)
         if let data = try? Data(contentsOf: fileURL), let saved = try? JSONDecoder().decode([SavedItem].self, from: data) {
             items = saved.compactMap(\.item)
+            prepareSuggestions(for: items)
         }
         if UserDefaults.standard.bool(forKey: Self.keptForRestartKey) {
             UserDefaults.standard.removeObject(forKey: Self.keptForRestartKey)
@@ -168,23 +174,36 @@ final class ClipboardStore: ObservableObject {
 
     private func schedulePersist() {
         persistWork?.cancel()
-        let work = DispatchWorkItem { [weak self] in self?.persistNow() }
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            let saved = self.itemsToSave, url = self.fileURL
+            self.saveQueue.async { Self.write(saved, to: url) }
+        }
         persistWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
     }
 
+    /// 立即保存并等写完，退出和更新重启前用。
     func persistNow() {
         persistWork?.cancel()
         persistWork = nil
-        let saved = items.filter { saveHistory || keepAllForRestart || $0.isPinned }.compactMap(SavedItem.init)
+        let saved = itemsToSave, url = fileURL
+        saveQueue.sync { Self.write(saved, to: url) }
+    }
+
+    private var itemsToSave: [SavedItem] {
+        items.filter { saveHistory || keepAllForRestart || $0.isPinned }.compactMap(SavedItem.init)
+    }
+
+    private static func write(_ saved: [SavedItem], to url: URL) {
         guard !saved.isEmpty else {
-            try? FileManager.default.removeItem(at: fileURL)
+            try? FileManager.default.removeItem(at: url)
             return
         }
         guard let data = try? JSONEncoder().encode(saved) else { return }
-        try? data.write(to: fileURL, options: .atomic)
+        try? data.write(to: url, options: .atomic)
         // 复制的内容可能敏感，文件只允许当前用户读写。
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
 
     func start() {
@@ -214,11 +233,34 @@ final class ClipboardStore: ObservableObject {
             return text.utf8.count <= Self.maxTextBytes ? .text(text) : nil
         }
         for type in [NSPasteboard.PasteboardType.png, .tiff] {
-            if let data = pasteboard.data(forType: type), data.count <= Self.maxImageBytes, let image = NSImage(data: data) {
-                return .image(image, data, type)
+            if let data = pasteboard.data(forType: type), data.count <= Self.maxImageBytes, let (thumbnail, size) = Self.thumbnail(of: data) {
+                return .image(thumbnail: thumbnail, data: data, type: type, size: size)
             }
         }
         return nil
+    }
+
+    /// 只解码出一张小缩略图，原图保持压缩数据，避免十几张截图占掉上百 MB 内存。
+    static func thumbnail(of data: Data) -> (NSImage, CGSize)? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? Int, let height = properties[kCGImagePropertyPixelHeight] as? Int,
+              let image = downsample(data, maxPixels: 128) else { return nil }
+        return (NSImage(cgImage: image, size: .zero), CGSize(width: width, height: height))
+    }
+
+    static func downsample(_ data: Data, maxPixels: Int) -> CGImage? {
+        CGImageSourceCreateWithData(data as CFData, nil).flatMap {
+            CGImageSourceCreateThumbnailAtIndex($0, 0, [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: maxPixels,
+            ] as CFDictionary)
+        }
+    }
+
+    static func fullImage(_ data: Data) -> CGImage? {
+        CGImageSourceCreateWithData(data as CFData, nil).flatMap { CGImageSourceCreateImageAtIndex($0, 0, nil) }
     }
 
     /// 文字附带的格式。太大时不保存格式，只留文字。
@@ -238,12 +280,30 @@ final class ClipboardStore: ObservableObject {
         items.removeAll(where: matches)
         items.insert(item, at: insertionIndex)
         trim()
+        prepareSuggestions(for: [item])
+    }
+
+    /// 在后台提前算好整理推荐，打开右键菜单时直接用。
+    private func prepareSuggestions(for items: [Item]) {
+        let texts = items.compactMap { item -> (UUID, String, String)? in
+            guard case .text(let text) = item.content, suggestionCache[item.id] == nil else { return nil }
+            return (item.id, text, item.sourceName)
+        }
+        guard !texts.isEmpty else { return }
+        suggestionQueue.async { [weak self] in
+            let found = texts.map { ($0.0, TextTransforms.suggestions(for: $0.1, source: $0.2)) }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                let present = Set(self.items.map(\.id))
+                for (id, suggestions) in found where present.contains(id) { self.suggestionCache[id] = suggestions }
+            }
+        }
     }
 
     static func isSameContent(_ first: Content, _ second: Content) -> Bool {
         switch (first, second) {
         case (.text(let a), .text(let b)): return a == b
-        case (.image(_, let a, _), .image(_, let b, _)): return a == b
+        case (.image(_, let a, _, _), .image(_, let b, _, _)): return a == b
         case (.files(let a), .files(let b)): return a.map(\.path) == b.map(\.path)
         default: return false
         }
@@ -277,12 +337,15 @@ final class ClipboardStore: ObservableObject {
         pasteboard.clearContents()
         switch item.content {
         case .text(let text): write(text, rich: item.rich, style: style)
-        case .image(_, let data, let type): pasteboard.setData(data, forType: type)
+        case .image(_, let data, let type, _): pasteboard.setData(data, forType: type)
         case .files(let urls): pasteboard.writeObjects(urls as [NSURL])
         }
         lastChange = pasteboard.changeCount
+        // 重新复制的内容排到最上面，时间也改成现在，顺序和时间才对得上。
+        var copied = item
+        copied.date = Date()
         items.removeAll { $0.id == item.id }
-        items.insert(item, at: item.isPinned ? 0 : insertionIndex)
+        items.insert(copied, at: item.isPinned ? 0 : insertionIndex)
         // 没有格式的内容不管选哪种都一样，提示保持“已复制”。
         let message = !item.hasFormatting || style == .original ? L("已复制") : (style == .plain ? L("已复制为纯文本") : L("已复制为干净格式"))
         Toasts.shared.show(message, icon: "doc.on.clipboard")
@@ -320,10 +383,9 @@ final class ClipboardStore: ObservableObject {
 
     /// 在本机识别图片里的文字并复制，不会上传。复制后会和普通内容一样进入历史。
     func copyText(in item: Item) {
-        guard case .image(let image, _, _) = item.content,
-              let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+        guard case .image(_, let data, _, _) = item.content else { return }
         DispatchQueue.global(qos: .userInitiated).async {
-            let text = Self.recognizeText(in: cgImage)
+            let text = Self.fullImage(data).flatMap(Self.recognizeText)
             DispatchQueue.main.async {
                 guard let text, !text.isEmpty else {
                     Toasts.shared.show(L("没有识别到文字"), icon: "text.viewfinder")
@@ -365,8 +427,8 @@ struct ClipboardRow: View {
         switch item.content {
         case .text:
             Image(systemName: "text.alignleft").foregroundStyle(Theme.secondary)
-        case .image(let image, _, _):
-            Image(nsImage: image).resizable().scaledToFill().frame(width: thumbnailSize, height: thumbnailSize)
+        case .image(let thumbnail, _, _, _):
+            Image(nsImage: thumbnail).resizable().scaledToFill().frame(width: thumbnailSize, height: thumbnailSize)
                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
         case .files(let urls):
             Image(nsImage: NSWorkspace.shared.icon(forFile: urls.first?.path ?? "/")).resizable().frame(width: thumbnailSize - 2, height: thumbnailSize - 2)
@@ -431,6 +493,11 @@ struct ClipboardPage: View {
     @ObservedObject var model: PanelModel
     @ObservedObject private var store = ClipboardStore.shared
     @State private var query = ""
+    @State private var viewingID: UUID?
+
+    private var viewing: ClipboardStore.Item? {
+        viewingID.flatMap { id in store.items.first { $0.id == id } }
+    }
 
     private var filtered: [ClipboardStore.Item] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
@@ -457,6 +524,7 @@ struct ClipboardPage: View {
             Button(L("复制为干净格式")) { copy(item, .clean) }
             Divider()
         }
+        Button(L("查看")) { viewingID = item.id }
         if case .image = item.content {
             Button(L("提取文字")) { store.copyText(in: item) }
         }
@@ -477,6 +545,25 @@ struct ClipboardPage: View {
     }
 
     var body: some View {
+        if let viewing {
+            VStack(spacing: 6) {
+                PageHeader(title: L("剪贴板"), model: model, back: { viewingID = nil }) {
+                    HStack(spacing: 12) {
+                        headerButton(L("复制"), "doc.on.doc") {
+                            store.copy(viewing, style: store.defaultStyle(inverted: false))
+                            AppDelegate.shared.closePanel()
+                        }
+                        headerButton(L("删除"), "trash") { store.remove(viewing) }
+                    }
+                }
+                Card(padding: 10) { ClipboardDetail(item: viewing) }
+            }
+        } else {
+            list
+        }
+    }
+
+    private var list: some View {
         VStack(spacing: 6) {
             PageHeader(title: L("剪贴板"), model: model) {
                 HStack(spacing: 12) {
@@ -520,6 +607,99 @@ struct ClipboardPage: View {
                     .scrollIndicators(.never)
                 }
             }
+        }
+    }
+}
+
+/// 查看一条记录的完整内容：文字可以选中复制，图片显示大图和识别出的文字，文件列出完整路径。
+struct ClipboardDetail: View {
+    let item: ClipboardStore.Item
+    @State private var image: NSImage?
+    @State private var recognized: String?
+    @State private var recognizing = false
+    /// 很长的文字只显示开头，渲染不会卡住；复制时仍是完整内容。
+    private static let shownLength = 50_000
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(meta).font(.system(size: 10)).foregroundStyle(Theme.secondary)
+            switch item.content {
+            case .text(let text):
+                selectableText(String(text.prefix(Self.shownLength)) + (text.count > Self.shownLength ? "\n…" : ""))
+            case .image(let thumbnail, let data, _, _):
+                HStack(alignment: .top, spacing: 10) {
+                    Image(nsImage: image ?? thumbnail).resizable().scaledToFit()
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Group {
+                        if recognizing {
+                            // 第一次识别时系统要先准备识字模型，可能要等半分钟，所以写明在做什么。
+                            VStack(spacing: 6) {
+                                ProgressView().controlSize(.small)
+                                Text(L("正在识别文字…")).font(.system(size: 11)).foregroundStyle(Theme.secondary)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if let recognized, !recognized.isEmpty {
+                            selectableText(recognized)
+                        } else {
+                            Text(L("没有识别到文字")).font(.system(size: 12)).foregroundStyle(Theme.secondary)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .task(id: item.id) { await load(data) }
+            case .files(let urls):
+                ScrollView(.vertical) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(urls, id: \.self) { url in
+                            Button { NSWorkspace.shared.activateFileViewerSelecting([url]) } label: {
+                                HStack(spacing: 6) {
+                                    Image(nsImage: NSWorkspace.shared.icon(forFile: url.path)).resizable().frame(width: 16, height: 16)
+                                    Text(url.path).font(.system(size: 12)).lineLimit(1).truncationMode(.middle)
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .help(L("在访达中显示"))
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private var meta: String {
+        var parts = [item.sourceName, relativeTime(item.date)].filter { !$0.isEmpty }
+        switch item.content {
+        case .text(let text): parts.append(L("%d 个字", text.count))
+        case .image: parts.append(item.preview)
+        case .files(let urls): parts.append(L("%d 个文件", urls.count))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func selectableText(_ text: String) -> some View {
+        ScrollView(.vertical) {
+            Text(text).font(.system(size: 12)).textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// 大图只解码到面板用得到的尺寸，识别文字在后台做。
+    private func load(_ data: Data) async {
+        recognizing = true
+        image = await background { ClipboardStore.downsample(data, maxPixels: 1200) }.map { NSImage(cgImage: $0, size: .zero) }
+        recognized = await background { ClipboardStore.fullImage(data).flatMap(ClipboardStore.recognizeText) }
+        recognizing = false
+    }
+
+    /// Vision 在主线程上会卡住，所以明确放到全局队列，而不是用 Task.detached。
+    private func background<T>(_ work: @escaping () -> T) async -> T {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async { continuation.resume(returning: work()) }
         }
     }
 }
