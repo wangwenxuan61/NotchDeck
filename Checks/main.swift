@@ -1,4 +1,5 @@
 import AppKit
+import Security
 @testable import NotchDeckKit
 
 // 逻辑检查：不依赖 XCTest，只装命令行工具也能运行。用法：swift run NotchDeckChecks
@@ -378,6 +379,18 @@ section("自动更新") {
     check("从 DMG 里复制出 App 并卸载", failure { try UpdateInstaller.copyApp(fromDMG: dmg, mountPoint: folder.appendingPathComponent("mount"), to: copied) } == nil
           && failure { try UpdateInstaller.validate(app: copied, bundleID: "test.notchdeck", version: "9.9.9") } == nil
           && (try? FileManager.default.contentsOfDirectory(atPath: folder.appendingPathComponent("mount").path))?.isEmpty == true)
+
+    // 当前版本用证书签名时，新版本必须是同一个证书签的。
+    func requirement(_ text: String) -> SecRequirement? {
+        var requirement: SecRequirement?
+        return SecRequirementCreateWithString(text as CFString, [], &requirement) == errSecSuccess ? requirement : nil
+    }
+    check("临时签名的 App 没有可比较的证书要求", UpdateInstaller.signingRequirement(of: copied) == nil)
+    check("满足当前版本签名要求的新版本可以安装",
+          failure { try UpdateInstaller.validate(app: copied, bundleID: "test.notchdeck", version: "9.9.9", requirement: requirement(#"identifier "test.notchdeck""#)) } == nil)
+    check("不是同一个证书签名的新版本不安装",
+          failure { try UpdateInstaller.validate(app: copied, bundleID: "test.notchdeck", version: "9.9.9",
+                                                requirement: requirement(#"identifier "test.notchdeck" and certificate leaf = H"0000000000000000000000000000000000000000""#)) } == .wrongSigner)
 
     // 替换：新版本放到原位置，旧版本删掉；新版本不存在时原来的 App 保持不动。
     let current = folder.appendingPathComponent("NotchDeck.app")

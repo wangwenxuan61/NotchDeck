@@ -1,5 +1,6 @@
 import AppKit
 import CryptoKit
+import Security
 
 /// 下载新版本的 DMG，校验后替换正在运行的 NotchDeck.app 并重新打开。
 /// 每一步出错都会抛出，调用方退回到打开下载页面，原来的 App 不受影响。
@@ -11,7 +12,7 @@ enum UpdateInstaller {
     }
 
     enum Failure: Error, Equatable {
-        case noAsset, download, checksum, mount, missingApp, wrongApp, signature, notWritable, replace
+        case noAsset, download, checksum, mount, missingApp, wrongApp, signature, wrongSigner, notWritable, replace
     }
 
     private static let appName = "NotchDeck.app"
@@ -52,10 +53,11 @@ enum UpdateInstaller {
 
         let folder = currentApp.deletingLastPathComponent()
         guard FileManager.default.isWritableFile(atPath: folder.path) else { throw Failure.notWritable }
+        let requirement = signingRequirement(of: currentApp)
         let staged = folder.appendingPathComponent(".NotchDeck-update-\(UUID().uuidString).app")
         do {
             try copyApp(fromDMG: dmg, mountPoint: work.appendingPathComponent("mount"), to: staged)
-            try validate(app: staged, bundleID: bundleID, version: version)
+            try validate(app: staged, bundleID: bundleID, version: version, requirement: requirement)
         } catch {
             try? FileManager.default.removeItem(at: staged)
             throw error
@@ -96,11 +98,31 @@ enum UpdateInstaller {
     }
 
     /// 必须是同一个 App、正好是要更新的版本，并且签名完整。
-    static func validate(app: URL, bundleID: String, version: String) throws {
+    /// 给了 requirement 时，新版本还必须满足它，也就是和当前版本用同一个证书签名。
+    static func validate(app: URL, bundleID: String, version: String, requirement: SecRequirement? = nil) throws {
         guard let info = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist")) as? [String: Any],
               info["CFBundleIdentifier"] as? String == bundleID,
               info["CFBundleShortVersionString"] as? String == version else { throw Failure.wrongApp }
         guard run("/usr/bin/codesign", ["--verify", "--deep", "--strict", app.path]) else { throw Failure.signature }
+        if let requirement {
+            var code: SecStaticCode?
+            guard SecStaticCodeCreateWithPath(app as CFURL, [], &code) == errSecSuccess, let code,
+                  SecStaticCodeCheckValidity(code, SecCSFlags(rawValue: kSecCSStrictValidate | kSecCSCheckNestedCode), requirement) == errSecSuccess
+            else { throw Failure.wrongSigner }
+        }
+    }
+
+    /// 当前 App 的签名要求，只在它是用证书签名时返回。临时签名的要求是这一个版本的哈希值，
+    /// 每个版本都不同，不能拿来要求新版本，所以返回 nil，从临时签名的版本也能更新到证书签名的版本。
+    static func signingRequirement(of app: URL) -> SecRequirement? {
+        var code: SecStaticCode?
+        var requirement: SecRequirement?
+        var text: CFString?
+        guard SecStaticCodeCreateWithPath(app as CFURL, [], &code) == errSecSuccess, let code,
+              SecCodeCopyDesignatedRequirement(code, [], &requirement) == errSecSuccess, let requirement,
+              SecRequirementCopyString(requirement, [], &text) == errSecSuccess,
+              (text as String?)?.contains("certificate") == true else { return nil }
+        return requirement
     }
 
     // MARK: - 替换并重新打开

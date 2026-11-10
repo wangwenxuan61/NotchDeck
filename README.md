@@ -111,7 +111,7 @@ NotchDeck only asks when you turn on a feature that needs it:
 - **Calendar**: for the agenda card. NotchDeck only reads your events.
 - **Notifications**: for countdown and focus alerts, so you see them even when you are away. NotchDeck asks the first time you start a timer.
 
-The app is ad-hoc signed, so macOS may ask for these permissions again after an update or rebuild.
+From 0.1.11, releases are signed with a fixed self-signed certificate, so permissions you grant are kept when NotchDeck updates. Updating from 0.1.10 or earlier asks for them once more, because those versions were ad-hoc signed. Automatic updates only install versions signed with the same certificate. If you build it yourself, `build.sh` uses the certificate when it is in your keychain and an ad-hoc signature otherwise, so macOS may ask again after each rebuild.
 
 Do Not Disturb has no public API. To link it with the focus timer, create two Shortcuts named `NotchDeck 专注开始` and
 `NotchDeck 专注结束`, and NotchDeck will run them when a focus session starts and ends.
