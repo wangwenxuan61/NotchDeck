@@ -61,7 +61,7 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 - **Languages**: Simplified and Traditional Chinese, English, Japanese, Korean, French, German and Spanish. Switch in Settings without restarting.
 - **Automatic updates**: checks GitHub for a new release every few hours, downloads it in the background, verifies its
   checksum, bundle ID and signature, and installs it and reopens NotchDeck while you are not using it (the panel is
-  closed and no timer, keep awake or Look Busy is running). It sends nothing about you, and you can turn it off in
+  closed and no timer or Look Busy is running). Keep awake stays on across the update, with the same end time. It sends nothing about you, and you can turn it off in
   Settings; then you get a button to update by hand.
 
 ## Keyboard shortcuts

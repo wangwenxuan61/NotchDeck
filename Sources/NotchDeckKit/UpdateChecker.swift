@@ -79,11 +79,11 @@ final class UpdateChecker: ObservableObject {
         check(userInitiated: false)
     }
 
-    /// 面板关着、没有在计时、没开防止休眠和装忙，这时重启不会打断任何事。
+    /// 面板关着、没有在计时、没在装忙，这时重启不会打断任何事。防止休眠会在新版本里恢复，不用等它关掉。
     private var isQuiet: Bool {
         let app = AppDelegate.shared
         return !app.controller.model.expanded && !app.modalOpen && !LookBusyController.shared.isShowing
-            && !KeepAwake.shared.isOn && !CountdownTimer.shared.isActive && !FocusTimer.shared.running && !Stopwatch.shared.isRunning
+            && !CountdownTimer.shared.isActive && !FocusTimer.shared.running && !Stopwatch.shared.isRunning
     }
 
     func check(userInitiated: Bool) {
@@ -197,6 +197,7 @@ final class UpdateChecker: ObservableObject {
         }
         UserDefaults.standard.set(currentVersion, forKey: Self.updatedFromKey)
         ClipboardStore.shared.persistForRestart()
+        KeepAwake.shared.saveForRestart()
         UpdateInstaller.relaunch(current)
     }
 

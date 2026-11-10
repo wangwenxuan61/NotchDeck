@@ -36,6 +36,8 @@ final class DisplayWakeLock {
 final class KeepAwake: ObservableObject {
     static let shared = KeepAwake()
     static let durations = [15, 30, 45, 60, 240, 480, 720]
+    /// 自动更新重启时记下的状态，新版本启动时恢复，用完就删。
+    private static let restartKey = "keepAwakeAfterRestart"
 
     @Published private(set) var isOn = false
     /// 定时的时长（分钟），一直开着时为 nil。
@@ -53,12 +55,35 @@ final class KeepAwake: ObservableObject {
 
     /// minutes 为 nil 表示一直开着，直到手动关闭或退出 App。已经开着时只改时长。
     func start(minutes: Int?) {
+        start(until: minutes.map { Date().addingTimeInterval(TimeInterval($0 * 60)) }, duration: minutes)
+    }
+
+    /// 自动更新重启前调用：记下是否开着，定时的还记下结束时间和选的时长。
+    func saveForRestart() {
+        guard isOn else { return }
+        var state: [String: Any] = [:]
+        if let end { state["end"] = end.timeIntervalSince1970 }
+        if let duration { state["duration"] = duration }
+        UserDefaults.standard.set(state, forKey: Self.restartKey)
+    }
+
+    /// 启动时调用：恢复更新前的防止休眠，定时的按原来的结束时间继续，已经过期就不恢复。
+    func restoreAfterRestart() {
+        let defaults = UserDefaults.standard
+        guard let state = defaults.dictionary(forKey: Self.restartKey) else { return }
+        defaults.removeObject(forKey: Self.restartKey)
+        let end = (state["end"] as? Double).map(Date.init(timeIntervalSince1970:))
+        guard end.map({ $0 > Date() }) ?? true else { return }
+        start(until: end, duration: state["duration"] as? Int)
+    }
+
+    private func start(until end: Date?, duration: Int?) {
         guard lock.acquire() else { return }
         isOn = true
-        duration = minutes
+        self.duration = duration
         timer?.invalidate()
         timer = nil
-        end = minutes.map { Date().addingTimeInterval(TimeInterval($0 * 60)) }
+        self.end = end
         guard end != nil else {
             minutesLeft = nil
             return

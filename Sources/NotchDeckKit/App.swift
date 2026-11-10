@@ -27,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SystemMonitor.shared.start()
         MediaController.shared.start()
         ClipboardStore.shared.start()
+        KeepAwake.shared.restoreAfterRestart()
         ReminderSync.shared.restore()
         AgendaStore.shared.refresh()
         TokenUsageStore.shared.refreshIfNeeded()

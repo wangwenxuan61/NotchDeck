@@ -163,6 +163,24 @@ section("防止休眠") {
     check("改成一直开着", keepAwake.isOn && keepAwake.duration == nil && keepAwake.minutesLeft == nil)
     keepAwake.stop()
     check("关闭", !keepAwake.isOn)
+
+    // 自动更新重启时：记下状态，新版本启动后恢复，只用一次。
+    keepAwake.start(minutes: nil)
+    keepAwake.saveForRestart()
+    keepAwake.stop()
+    keepAwake.restoreAfterRestart()
+    check("更新后恢复一直开着", keepAwake.isOn && keepAwake.duration == nil && keepAwake.minutesLeft == nil)
+    keepAwake.start(minutes: 240)
+    keepAwake.saveForRestart()
+    keepAwake.stop()
+    keepAwake.restoreAfterRestart()
+    check("更新后恢复定时，保留时长和结束时间", keepAwake.isOn && keepAwake.duration == 240 && keepAwake.minutesLeft == 240)
+    keepAwake.stop()
+    keepAwake.restoreAfterRestart()
+    check("记录用一次就删", !keepAwake.isOn)
+    UserDefaults.standard.set(["end": Date().addingTimeInterval(-60).timeIntervalSince1970, "duration": 15], forKey: "keepAwakeAfterRestart")
+    keepAwake.restoreAfterRestart()
+    check("已经过期的定时不恢复", !keepAwake.isOn && UserDefaults.standard.object(forKey: "keepAwakeAfterRestart") == nil)
 }
 
 section("待办（临时目录）") {
