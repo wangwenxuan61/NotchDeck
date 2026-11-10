@@ -2,19 +2,12 @@ import AppKit
 import SwiftUI
 
 struct ClockCard: View {
-    private var dateFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.locale = LanguageStore.shared.locale
-        formatter.setLocalizedDateFormatFromTemplate("MMMdEEE")
-        return formatter
-    }
-
     var body: some View {
         Button(action: openCalendarApp) {
             Card {
                 TimelineView(.periodic(from: .now, by: 1)) { timeline in
                     VStack(spacing: 6) {
-                        Text(dateFormatter.string(from: timeline.date))
+                        Text(localizedDateFormatter("MMMdEEE").string(from: timeline.date))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(Theme.secondary)
                         Text(formatClockTime(timeline.date))
@@ -32,29 +25,13 @@ struct ClockCard: View {
     }
 }
 
-/// 文字语言跟随 App 设置，12 或 24 小时制跟随系统设置。
-func formatClockTime(_ date: Date) -> String {
-    // 小时字段 h、K 表示 12 小时制。不能靠有没有 a 判断：中文的时段字段是 B；引号里的文字也要先去掉，法语格式会写成 HH 'h'。
-    let pattern = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: .current) ?? ""
-    let uses12Hour = pattern.replacingOccurrences(of: "'[^']*'", with: "", options: .regularExpression).contains { $0 == "h" || $0 == "K" }
-    let formatter = DateFormatter()
-    formatter.locale = LanguageStore.shared.locale
-    formatter.setLocalizedDateFormatFromTemplate(uses12Hour ? "hm" : "Hm")
-    return formatter.string(from: date)
-}
-
 struct CalendarCard: View {
     private func monthTitle(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = LanguageStore.shared.locale
-        formatter.setLocalizedDateFormatFromTemplate("yMMMM")
-        return formatter.string(from: date)
+        localizedDateFormatter("yMMMM").string(from: date)
     }
 
     private func weekdaySymbols(calendar: Calendar) -> [String] {
-        let formatter = DateFormatter()
-        formatter.locale = LanguageStore.shared.locale
-        let symbols = formatter.veryShortStandaloneWeekdaySymbols ?? []
+        let symbols = localizedDateFormatter().veryShortStandaloneWeekdaySymbols ?? []
         let start = calendar.firstWeekday - 1
         return Array(symbols[start...] + symbols[..<start])
     }

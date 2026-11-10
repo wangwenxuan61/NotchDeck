@@ -93,6 +93,8 @@ open build/NotchDeck.app
 
 To keep it around, and before you enable *Launch at login*, move `build/NotchDeck.app` to your Applications folder.
 
+After changing any text, run `python3 scripts/check-translations.py` to make sure every language has it.
+
 ## Permissions
 
 NotchDeck only asks when you turn on a feature that needs it:

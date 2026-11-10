@@ -174,10 +174,7 @@ struct TimerCard: View {
         Card {
             VStack(alignment: .leading, spacing: 6) {
                 Button { model.page = .timer } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "timer").foregroundStyle(Theme.blue)
-                        Text(L("计时器")).font(.system(size: 13, weight: .semibold))
-                        Spacer()
+                    CardHeader(L("计时器"), symbol: "timer", color: Theme.blue) {
                         Image(systemName: "chevron.right").font(.system(size: 10)).foregroundStyle(Theme.tertiary)
                     }
                     .contentShape(Rectangle())

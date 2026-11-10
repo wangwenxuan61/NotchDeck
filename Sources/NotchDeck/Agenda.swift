@@ -124,10 +124,7 @@ struct AgendaCard: View {
 
     private func header(countdown: String?) -> some View {
         Button(action: openCalendarApp) {
-            HStack(spacing: 5) {
-                Image(systemName: "list.bullet.below.rectangle").foregroundStyle(Theme.coral)
-                Text(L("今日日程")).font(.system(size: 13, weight: .semibold)).lineLimit(1)
-                Spacer(minLength: 4)
+            CardHeader(L("今日日程"), symbol: "list.bullet.below.rectangle", color: Theme.coral) {
                 if let countdown {
                     Text(countdown).font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.teal).lineLimit(1).fixedSize()
                 }

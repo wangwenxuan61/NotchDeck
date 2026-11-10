@@ -102,13 +102,11 @@ struct TodoCard: View {
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 5) {
-                    Image(systemName: "checkmark.circle").foregroundStyle(Theme.teal)
-                    Text(L("待办")).font(.system(size: 13, weight: .semibold))
+                CardHeader(L("待办"), symbol: "checkmark.circle", color: Theme.teal) {
                     if reminders.isActive {
                         Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 10)).foregroundStyle(Theme.secondary)
                     }
-                    Spacer()
+                } trailing: {
                     Text("\(store.pendingCount)").font(.system(size: 13)).foregroundStyle(Theme.secondary)
                 }
                 ScrollView(.vertical) {

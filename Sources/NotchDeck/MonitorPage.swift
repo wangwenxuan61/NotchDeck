@@ -1,9 +1,5 @@
 import SwiftUI
 
-func formatTemperature(_ value: Double?) -> String? {
-    value.map { "\(Int($0.rounded()))°C" }
-}
-
 struct Ring: View {
     let value: Double
     let color: Color
@@ -90,19 +86,6 @@ struct MonitorCard: View {
         .buttonStyle(.plain)
         .help(L("查看监控详情"))
     }
-}
-
-func formatSpeed(_ bytesPerSecond: Double) -> String {
-    bytesPerSecond >= 1_000_000
-        ? String(format: "%.1f MB/s", bytesPerSecond / 1_000_000)
-        : String(format: "%.0f KB/s", bytesPerSecond / 1_000)
-}
-
-/// 菜单栏空间有限，只保留数字和单位首字母。
-func formatCompactSpeed(_ bytesPerSecond: Double) -> String {
-    bytesPerSecond >= 1_000_000
-        ? String(format: "%.1fM", bytesPerSecond / 1_000_000)
-        : String(format: "%.0fK", bytesPerSecond / 1_000)
 }
 
 struct MonitorPage: View {

@@ -164,10 +164,7 @@ struct LookBusyCard: View {
     var body: some View {
         Card {
             VStack(spacing: 5) {
-                HStack(spacing: 5) {
-                    Image(systemName: "briefcase.fill").foregroundStyle(Theme.purple)
-                    Text(L("装忙")).font(.system(size: 13, weight: .semibold))
-                    Spacer()
+                CardHeader(L("装忙"), symbol: "briefcase.fill", color: Theme.purple) {
                     Text("⌃⌥B").font(.system(size: 11)).foregroundStyle(Theme.secondary)
                 }
                 HStack(spacing: 5) {

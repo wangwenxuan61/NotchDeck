@@ -57,10 +57,7 @@ struct NoteCard: View {
     var body: some View {
         Card(padding: 8) {
             VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 5) {
-                    Image(systemName: "note.text").foregroundStyle(Theme.orange)
-                    Text(L("短记")).font(.system(size: 13, weight: .semibold))
-                    Spacer()
+                CardHeader(L("短记"), symbol: "note.text", color: Theme.orange) {
                     Menu {
                         ForEach(NoteColor.allCases, id: \.self) { option in
                             Button(option.title) { store.colorIndex = option.rawValue }

@@ -259,14 +259,6 @@ final class ClipboardStore: ObservableObject {
     func clear() { items.removeAll { !$0.isPinned } }
 }
 
-func relativeTime(_ date: Date) -> String {
-    let seconds = Int(Date().timeIntervalSince(date))
-    if seconds < 60 { return L("刚刚") }
-    if seconds < 3600 { return L("%d 分钟前", seconds / 60) }
-    if seconds < 86400 { return L("%d 小时前", seconds / 3600) }
-    return L("%d 天前", seconds / 86400)
-}
-
 struct ClipboardRow: View {
     let item: ClipboardStore.Item
     var showsMeta = true
@@ -411,10 +403,7 @@ struct ClipboardCard: View {
         Card {
             VStack(alignment: .leading, spacing: 4) {
                 Button { model.page = .clipboard } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "doc.on.clipboard").foregroundStyle(Theme.blue)
-                        Text(L("剪贴板")).font(.system(size: 13, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
-                        Spacer()
+                    CardHeader(L("剪贴板"), symbol: "doc.on.clipboard", color: Theme.blue) {
                         Image(systemName: "chevron.right").font(.system(size: 10)).foregroundStyle(Theme.tertiary)
                     }
                     .contentShape(Rectangle())

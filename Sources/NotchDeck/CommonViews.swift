@@ -87,3 +87,37 @@ struct IconButton: View {
         .onHover { hovering = $0 }
     }
 }
+
+/// 卡片顶部的图标和标题。accessory 紧跟在标题后面，trailing 靠右，比如数量、菜单或箭头。
+struct CardHeader<Accessory: View, Trailing: View>: View {
+    let title: String
+    let symbol: String
+    let color: Color
+    let accessory: Accessory
+    let trailing: Trailing
+
+    init(_ title: String, symbol: String, color: Color, @ViewBuilder accessory: () -> Accessory, @ViewBuilder trailing: () -> Trailing) {
+        self.title = title
+        self.symbol = symbol
+        self.color = color
+        self.accessory = accessory()
+        self.trailing = trailing()
+    }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: symbol).foregroundStyle(color)
+            // 有的语言标题很长，卡片又窄，空间不够时先缩小字号再截断。
+            Text(title).font(.system(size: 13, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
+            accessory
+            Spacer(minLength: 4)
+            trailing
+        }
+    }
+}
+
+extension CardHeader where Accessory == EmptyView {
+    init(_ title: String, symbol: String, color: Color, @ViewBuilder trailing: () -> Trailing) {
+        self.init(title, symbol: symbol, color: color, accessory: { EmptyView() }, trailing: trailing)
+    }
+}

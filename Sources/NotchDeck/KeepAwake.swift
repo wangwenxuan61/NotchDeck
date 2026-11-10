@@ -93,17 +93,6 @@ final class KeepAwake: ObservableObject {
     }
 }
 
-func formatDuration(minutes: Int) -> String {
-    if minutes < 60 { return L("%d 分钟", minutes) }
-    return minutes % 60 == 0 ? L("%d 小时", minutes / 60) : L("%d 小时 %d 分钟", minutes / 60, minutes % 60)
-}
-
-/// 菜单栏空间有限，用 42m、3h12m 这样的短格式。
-func formatCompactDuration(minutes: Int) -> String {
-    if minutes < 60 { return "\(minutes)m" }
-    return minutes % 60 == 0 ? "\(minutes / 60)h" : "\(minutes / 60)h\(minutes % 60)m"
-}
-
 /// 防止休眠的开关和时长选择，首页底部和快捷开关页都用这个弹出面板。
 struct KeepAwakePanel: View {
     @ObservedObject private var keepAwake = KeepAwake.shared
