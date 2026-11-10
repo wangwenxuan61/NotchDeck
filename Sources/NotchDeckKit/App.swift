@@ -46,6 +46,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self, self.controller.model.expanded, !self.isComposingText, !self.modalOpen else { return event }
             let onSearch = self.controller.model.page == .search
             switch event.keyCode {
+            case 53 where !onSearch && NSApp.keyWindow?.firstResponder is NSTextView:
+                // 正在待办或短记里输入时，Esc 先结束输入，再按一次才关面板。
+                NSApp.keyWindow?.makeFirstResponder(nil)
             case 53:
                 self.closePanel()
             case 125 where onSearch:

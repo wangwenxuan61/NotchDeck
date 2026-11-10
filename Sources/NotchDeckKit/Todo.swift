@@ -81,6 +81,7 @@ struct TodoCard: View {
     @ObservedObject private var reminders = ReminderSync.shared
     @State private var draft = ""
     @FocusState private var focused: Bool
+    @State private var hoveringInput = false
     @State private var editingID: String?
     @State private var editText = ""
     @FocusState private var editing: Bool
@@ -116,17 +117,38 @@ struct TodoCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .scrollIndicators(.never)
-                TextField(L("添加待办"), text: $draft)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 12))
-                    .focused($focused)
-                    .onSubmit {
-                        store.add(draft)
-                        draft = ""
-                        focused = false
-                    }
+                addRow
             }
         }
+    }
+
+    /// 输入行带“＋”和底色，一眼能看出可以输入。点“＋”或按回车添加，加完光标留在原处，可以接着输入下一条。
+    private var addRow: some View {
+        HStack(spacing: 6) {
+            Button(action: submitDraft) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(draft.trimmingCharacters(in: .whitespaces).isEmpty ? Theme.tertiary : Theme.teal)
+            }
+            .buttonStyle(.plain)
+            .help(L("添加"))
+            TextField(L("添加待办"), text: $draft)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12))
+                .focused($focused)
+                .onSubmit(submitDraft)
+        }
+        .padding(.horizontal, 7)
+        .frame(height: 24)
+        .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(focused || hoveringInput ? Theme.controlHover : Theme.control))
+        .onHover { hoveringInput = $0 }
+    }
+
+    private func submitDraft() {
+        store.add(draft)
+        draft = ""
+        // 回车后输入框可能会失去焦点，等这一轮更新完再放回去。
+        DispatchQueue.main.async { focused = true }
     }
 
     private func row(_ item: TodoStore.Item) -> some View {

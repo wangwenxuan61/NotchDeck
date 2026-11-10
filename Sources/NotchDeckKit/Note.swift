@@ -82,6 +82,16 @@ struct NoteCard: View {
                     .scrollIndicators(.never)
                     .foregroundStyle(Color.black.opacity(0.82))
                     .colorScheme(.light)
+                    // 空着时提示可以直接写，开始输入就消失。
+                    .overlay(alignment: .topLeading) {
+                        if store.text.isEmpty {
+                            Text(L("点这里写点什么"))
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.black.opacity(0.35))
+                                .padding(.leading, 5)
+                                .allowsHitTesting(false)
+                        }
+                    }
                     .padding(5)
                     .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(color))
             }
