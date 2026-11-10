@@ -471,6 +471,54 @@ section("剪贴板格式") {
     store.pasteboard = previousBoard
 }
 
+section("剪贴板智能整理") {
+    typealias T = TextTransforms
+    func ids(_ text: String, source: String = "") -> [String] { T.suggestions(for: text, source: source).map(\.id) }
+
+    check("JSON 格式化保留键的顺序", T.json(#"{"b":1,"a":[1,{"c":"x,y"}],"e":{}}"#, pretty: true)
+          == "{\n  \"b\": 1,\n  \"a\": [\n    1,\n    {\n      \"c\": \"x,y\"\n    }\n  ],\n  \"e\": {}\n}")
+    check("JSON 压缩成一行", T.json("{\n  \"a\": [1, 2]\n}", pretty: false) == #"{"a":[1,2]}"#)
+    check("挤在一起的 JSON 只推荐格式化，排好的只推荐压缩", ids(#"{"a":1}"#) == ["json"] && ids("{\n  \"a\": 1\n}") == ["json-min"])
+    check("不是 JSON 不推荐", T.json("{not json}", pretty: true) == nil)
+    check("XML 格式化且不加声明", T.xml("<a><b>1</b></a>")?.hasPrefix("<a>") == true && T.xml("<a><b>1</b></a>")?.contains("\n") == true)
+
+    let table = "名称\t数量\nA_1\t3\nB|2\t4\nC#\t50%"
+    check("表格转 Markdown", T.table(table, as: .markdown) == "| 名称 | 数量 |\n| --- | --- |\n| A_1 | 3 |\n| B\\|2 | 4 |\n| C# | 50% |")
+    let latex = T.table(table, as: .latex) ?? ""
+    check("表格转 LaTeX 并转义", latex.hasPrefix(#"\begin{tabular}{ll}"#) && latex.contains(#"A\_1 & 3 \\"#) && latex.contains(##"C\# & 50\% \\"##))
+    check("表格转 CSV", T.table("a\tb\nx,1\t\"q\"", as: .csv) == "a,b\n\"x,1\",\"\"\"q\"\"\"")
+    check("Tab 缩进的代码不算表格", T.table("\tfoo()\n\tbar()", as: .markdown) == nil)
+
+    check("去转义，包括 emoji 的代理项", T.unescape(#"第一行\n\"引号\" 中文 😀"#) == "第一行\n\"引号\" 中文 😀")
+    check("URL 解码", T.urlDecode("q=%E4%B8%AD%E6%96%87") == "q=中文" && T.urlDecode("100% sure") == nil)
+    check("时间戳", T.timestamp("1731234567") != nil && T.timestamp("1731234567000") == T.timestamp("1731234567") && T.timestamp("12345") == nil && T.timestamp("9999999999") == nil)
+
+    check("分享口令只留链接", T.onlyLink("【淘宝】限时特惠 https://m.tb.cn/h.abc 打开手机淘宝") == "https://m.tb.cn/h.abc" && T.onlyLink("https://example.com") == nil)
+    check("去掉跟踪参数，保留正常参数", T.stripTracking("看 https://x.com/item?id=1&utm_source=wx&spm=a.b 这个") == "看 https://x.com/item?id=1 这个"
+          && T.stripTracking("https://x.com/item?id=1") == nil)
+
+    let pdf = "The results show that the pro-\nposed method improves the accuracy of\nsegmentation on all datasets."
+    check("PDF 断行合并，去掉断词连字符", T.mergeLines(pdf) == "The results show that the proposed method improves the accuracy of segmentation on all datasets.")
+    check("中文断行合并不加空格", T.mergeLines("这是第一行\n接着第二行") == "这是第一行接着第二行")
+    check("PDF 文字推荐合并，列表不推荐", ids(pdf).contains("merge") && !ids("- 苹果\n- 香蕉", source: "预览").contains("merge"))
+
+    check("去掉连续行号", T.removeLineNumbers(["1  import os", "2  print(1)", "3  x = 2"]) == "import os\nprint(1)\nx = 2" && T.removeLineNumbers(["1 a", "3 b", "4 c"]) == nil)
+    check("去掉编号和项目符号", T.removeListMarkers(["1. 苹果", "2. 香蕉"]) == "苹果\n香蕉" && T.removeListMarkers(["• a", "普通一行"]) == nil)
+    check("短行列表去空行，文章分段不动", T.removeBlankLines(["a", "", "b"]) == "a\nb"
+          && T.removeBlankLines([String(repeating: "长句子", count: 30), "", String(repeating: "长句子", count: 30)]) == nil)
+    check("去掉重复行", T.removeDuplicateLines(["a", "b", "a"]) == "a\nb" && T.removeDuplicateLines(["a", "b", "c"]) == nil)
+
+    check("中英文之间加空格", T.spaceCJK("使用Python处理3组数据") == "使用 Python 处理 3 组数据" && T.spaceCJK("使用 Python 处理") == nil)
+    check("中文标点，小数和网址不受影响", T.chinesePunctuation("你好,世界.价格是3.5元(含税)") == "你好，世界。价格是3.5元（含税）")
+    check("英文标点", T.englishPunctuation("Hello，world。This is （a） test？") == "Hello, world. This is (a) test?")
+    check("论文标题大小写", T.titleCase("a novel method for image segmentation with U-Net and iPhone data")
+          == "A Novel Method for Image Segmentation with U-Net and iPhone Data" && T.titleCase("A NOVEL METHOD") == "A Novel Method")
+    check("句子和已是标题的不推荐标题大小写", T.titleCase("This is a sentence.") == nil && T.titleCase("A Novel Method") == nil)
+
+    check("普通聊天内容没有任何推荐", ids("明天下午三点开会，记得带电脑。").isEmpty && ids("ok").isEmpty)
+    check("结果相同的推荐只留一个", Set(ids("1. a\n2. b\n3. c")).count == ids("1. a\n2. b\n3. c").count)
+}
+
 section("其他") {
     check("内存压力文字", [MemoryPressure.low, .medium, .high].map(\.title) == [L("压力低"), L("压力中"), L("压力高")])
     check("便签颜色编号不能变", NoteColor.allCases.map(\.rawValue) == [0, 1, 2, 3] && NoteColor(rawValue: 1) == .yellow)

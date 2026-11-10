@@ -116,8 +116,14 @@ final class ClipboardStore: ObservableObject {
     }
 
     @Published private(set) var items: [Item] = [] {
-        didSet { schedulePersist() }
+        didSet {
+            schedulePersist()
+            let ids = Set(items.map(\.id))
+            suggestionCache = suggestionCache.filter { ids.contains($0.key) }
+        }
     }
+    /// 每条文字的整理建议只算一次。
+    private var suggestionCache: [UUID: [Suggestion]] = [:]
     @Published var isPaused = false
     /// 点击带格式的内容时默认复制成纯文本；按住 ⇧ 点击复制成另一种。
     @Published var copiesPlainByDefault: Bool {
@@ -295,6 +301,23 @@ final class ClipboardStore: ObservableObject {
         pasteboard.setString(text, forType: .string)
     }
 
+    func suggestions(for item: Item) -> [Suggestion] {
+        guard case .text(let text) = item.content else { return [] }
+        if let cached = suggestionCache[item.id] { return cached }
+        let found = TextTransforms.suggestions(for: text, source: item.sourceName)
+        suggestionCache[item.id] = found
+        return found
+    }
+
+    /// 复制整理后的文字，并作为一条新记录放进历史，原来那条保留。
+    func copy(_ suggestion: Suggestion, from item: Item) {
+        pasteboard.clearContents()
+        pasteboard.setString(suggestion.result, forType: .string)
+        lastChange = pasteboard.changeCount
+        insert(Item(content: .text(suggestion.result), date: Date(), sourceName: item.sourceName))
+        Toasts.shared.show(L("已复制整理后的内容"), icon: "wand.and.stars")
+    }
+
     /// 在本机识别图片里的文字并复制，不会上传。复制后会和普通内容一样进入历史。
     func copyText(in item: Item) {
         guard case .image(let image, _, _) = item.content,
@@ -415,6 +438,37 @@ struct ClipboardPage: View {
         return store.items.filter { $0.preview.localizedCaseInsensitiveContains(trimmed) }
     }
 
+    /// 先列出认出来的整理方式（最多 3 项，其余放进“更多整理”），再列格式和其他操作。
+    @ViewBuilder private func menu(for item: ClipboardStore.Item) -> some View {
+        let suggestions = store.suggestions(for: item)
+        let apply = { (suggestion: Suggestion) in
+            Button { store.copy(suggestion, from: item); AppDelegate.shared.closePanel() } label: {
+                Label(suggestion.title, systemImage: "wand.and.stars")
+            }
+        }
+        ForEach(suggestions.prefix(3), content: apply)
+        if suggestions.count > 3 {
+            Menu(L("更多整理")) { ForEach(suggestions.dropFirst(3), content: apply) }
+        }
+        if !suggestions.isEmpty { Divider() }
+        if item.hasFormatting {
+            Button(L("复制原格式")) { copy(item, .original) }
+            Button(L("复制为纯文本")) { copy(item, .plain) }
+            Button(L("复制为干净格式")) { copy(item, .clean) }
+            Divider()
+        }
+        if case .image = item.content {
+            Button(L("提取文字")) { store.copyText(in: item) }
+        }
+        Button(item.isPinned ? L("取消置顶") : L("置顶")) { store.togglePin(item) }
+        Button(L("删除")) { store.remove(item) }
+    }
+
+    private func copy(_ item: ClipboardStore.Item, _ style: ClipboardStore.CopyStyle) {
+        store.copy(item, style: style)
+        AppDelegate.shared.closePanel()
+    }
+
     private func headerButton(_ title: String, _ symbol: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: symbol).font(.system(size: 12))
@@ -459,23 +513,7 @@ struct ClipboardPage: View {
                                     store.copy(item, style: store.defaultStyle(inverted: NSEvent.modifierFlags.contains(.shift)))
                                     AppDelegate.shared.closePanel()
                                 }
-                                .contextMenu {
-                                    if case .image = item.content {
-                                        Button(L("提取文字")) { store.copyText(in: item) }
-                                    }
-                                    if item.hasFormatting {
-                                        if store.copiesPlainByDefault {
-                                            Button(L("复制原格式")) { store.copy(item, style: .original); AppDelegate.shared.closePanel() }
-                                        } else {
-                                            Button(L("复制为纯文本")) { store.copy(item, style: .plain); AppDelegate.shared.closePanel() }
-                                        }
-                                        Button(L("复制为干净格式")) { store.copy(item, style: .clean); AppDelegate.shared.closePanel() }
-                                            .help(L("保留粗体、列表、链接和表格，去掉字体、字号和颜色"))
-                                        Divider()
-                                    }
-                                    Button(item.isPinned ? L("取消置顶") : L("置顶")) { store.togglePin(item) }
-                                    Button(L("删除")) { store.remove(item) }
-                                }
+                                .contextMenu { menu(for: item) }
                             }
                         }
                     }
