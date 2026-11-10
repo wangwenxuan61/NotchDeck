@@ -47,6 +47,33 @@ func formatCompactDuration(minutes: Int) -> String {
     return minutes % 60 == 0 ? "\(minutes / 60)h" : "\(minutes / 60)h\(minutes % 60)m"
 }
 
+/// token 数的短格式：980、12.3K、1.23M、4.5B。
+func formatTokens(_ count: Int) -> String {
+    let value = Double(count)
+    switch count {
+    case ..<1_000: return "\(count)"
+    case ..<1_000_000: return String(format: "%.1fK", value / 1_000)
+    case ..<1_000_000_000: return String(format: "%.2fM", value / 1_000_000)
+    default: return String(format: "%.2fB", value / 1_000_000_000)
+    }
+}
+
+/// 美元金额，比如 $0.42、$1,234.56。不到一美分但不为零时显示 <$0.01。
+func formatDollars(_ amount: Double) -> String {
+    if amount > 0, amount < 0.005 { return "<$0.01" }
+    return dollarFormatter.string(from: NSNumber(value: amount)) ?? String(format: "$%.2f", amount)
+}
+
+private let dollarFormatter: NumberFormatter = {
+    let formatter = NumberFormatter()
+    formatter.locale = Locale(identifier: "en_US")
+    formatter.numberStyle = .currency
+    formatter.currencyCode = "USD"
+    formatter.minimumFractionDigits = 2
+    formatter.maximumFractionDigits = 2
+    return formatter
+}()
+
 func relativeTime(_ date: Date) -> String {
     let seconds = Int(Date().timeIntervalSince(date))
     if seconds < 60 { return L("刚刚") }

@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 enum CardKind: String, Codable, CaseIterable, Identifiable {
-    case todo, note, clock, monitor, music, clipboard, timer, calendar, lookBusy, agenda
+    case todo, note, clock, monitor, music, clipboard, timer, calendar, lookBusy, agenda, tokenUsage
 
     var id: String { rawValue }
 
@@ -18,6 +18,7 @@ enum CardKind: String, Codable, CaseIterable, Identifiable {
         case .calendar: return L("月历")
         case .lookBusy: return L("装忙")
         case .agenda: return L("今日日程")
+        case .tokenUsage: return L("Token 用量")
         }
     }
 
@@ -33,6 +34,7 @@ enum CardKind: String, Codable, CaseIterable, Identifiable {
         case .calendar: return "calendar"
         case .lookBusy: return "briefcase"
         case .agenda: return "list.bullet.below.rectangle"
+        case .tokenUsage: return "chart.bar.xaxis"
         }
     }
 
@@ -44,6 +46,7 @@ enum CardKind: String, Codable, CaseIterable, Identifiable {
         case .monitor: return 1.75
         case .clipboard, .calendar, .lookBusy: return 1.1
         case .agenda: return 1.35
+        case .tokenUsage: return 1.1
         }
     }
 }

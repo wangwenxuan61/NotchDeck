@@ -16,6 +16,7 @@ struct HomeCards: View {
         case .calendar: CalendarCard()
         case .lookBusy: LookBusyCard()
         case .agenda: AgendaCard()
+        case .tokenUsage: TokenUsageCard(model: model)
         }
     }
 

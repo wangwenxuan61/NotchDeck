@@ -2,7 +2,7 @@ import AppKit
 import Combine
 import SwiftUI
 
-enum Page: String { case home, monitor, apps, pinned, settings, clipboard, timer, music, customize, search, toggles }
+enum Page: String { case home, monitor, apps, pinned, settings, clipboard, timer, music, customize, search, toggles, usage }
 
 enum Metrics {
     static let contentWidth: CGFloat = 880

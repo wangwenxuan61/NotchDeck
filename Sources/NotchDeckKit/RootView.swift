@@ -115,6 +115,7 @@ struct ExpandedContent: View {
         case .customize: CustomizePage(model: model)
         case .search: SearchPage(model: model)
         case .toggles: QuickControlsPage(model: model)
+        case .usage: TokenUsagePage(model: model)
         }
     }
 
@@ -200,6 +201,7 @@ struct TopBar: View {
             tab("doc.on.clipboard", .clipboard, help: L("剪贴板"))
             tab("timer", .timer, help: L("计时器"))
             tab("music.note", .music, help: L("音乐"))
+            tab("chart.bar.xaxis", .usage, help: L("Token 用量"))
 
             Spacer()
 

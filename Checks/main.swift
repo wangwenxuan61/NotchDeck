@@ -177,6 +177,161 @@ section("待办（临时目录）") {
     check("只删除已移交的待办", Storage.load([TodoStore.Item].self, from: "todos.json")?.map(\.id) == ["b", "c"])
 }
 
+/// 只比较四项 token 数，费用另外检查。
+func tokens(_ counts: TokenCounts?) -> [Int]? { counts.map { [$0.input, $0.cacheRead, $0.cacheWrite, $0.output] } }
+func near(_ a: Double?, _ b: Double) -> Bool { a.map { abs($0 - b) < 1e-9 } ?? false }
+
+section("Token 用量解析") {
+    check("token 短格式", formatTokens(980) == "980" && formatTokens(12_345) == "12.3K" && formatTokens(1_234_567) == "1.23M" && formatTokens(4_500_000_000) == "4.50B")
+    let stamp = "2026-11-10T03:00:00.000Z"
+    let day = UsageParsing.dayKey(for: ISO8601DateFormatter().date(from: "2026-11-10T03:00:00Z")!)
+    check("时间戳换算成本地日期", UsageParsing.day(fromTimestamp: stamp) == day && UsageParsing.day(fromTimestamp: "2026-11-10T03:00:00Z") == day)
+
+    var claude = UsageFileState(source: .claudeCode)
+    var claudeSeen = Set<String>()
+    let opus = #"{"type":"assistant","timestamp":"\#(stamp)","message":{"id":"msg_1","model":"claude-opus-5-5","usage":{"input_tokens":10,"cache_read_input_tokens":100,"cache_creation_input_tokens":20,"output_tokens":5}}}"#
+    for line in [
+        opus, opus,
+        #"{"type":"assistant","timestamp":"\#(stamp)","message":{"id":"msg_2","model":"claude-sonnet-5-5","usage":{"input_tokens":1,"output_tokens":2}}}"#,
+        #"{"type":"user","timestamp":"\#(stamp)","message":{"role":"user","content":"what is the usage of this?"}}"#,
+        #"{"type":"assistant","timestamp":"\#(stamp)","message":{"id":"msg_3","model":"<synthetic>","usage":{"input_tokens":0,"output_tokens":0}}}"#,
+        "not json",
+    ] { UsageParsing.consume(Data(line.utf8), into: &claude, seen: &claudeSeen) }
+    check("Claude Code 重复记录只算一次", tokens(claude.days[day]?["claude-opus-5-5"]) == [10, 100, 20, 5])
+    check("Claude Code 按模型分开", tokens(claude.days[day]?["claude-sonnet-5-5"]) == [1, 0, 0, 2])
+    check("没有用量的行和空用量被忽略", claude.days[day]?.count == 2)
+    var copied = UsageFileState(source: .claudeCode)
+    UsageParsing.consume(Data(opus.utf8), into: &copied, seen: &claudeSeen)
+    check("复制到别的文件的请求不重复计算", copied.days.isEmpty && copied.ids.isEmpty && claude.ids == ["msg_1", "msg_2", "msg_3"])
+
+    // 扫描器只认 message 里的 usage：对话内容里同名的键、转义的引号和反斜杠都不能干扰。
+    var tricky = UsageFileState(source: .claudeCode)
+    var trickySeen = Set<String>()
+    for line in [
+        #"{"timestamp":"\#(stamp)","message":{"id":"t1","model":"claude-opus-5-5","content":[{"type":"tool_use","input":{"usage":{"input_tokens":999},"text":"a \"usage\": {\"x\"} \\"}}],"usage":{"input_tokens":3,"output_tokens":4}}}"#,
+        #"{"timestamp":"\#(stamp)","type":"user","message":{"role":"user","content":"x"},"toolUseResult":{"usage":{"input_tokens":50}}}"#,
+        #"{"timestamp":"\#(stamp)","message":"hello","usage":{"input_tokens":5}}"#,
+        #"{ "timestamp" : "\#(stamp)" , "message" : { "id" : "t2" , "model" : "claude\u002dhaiku-5-5" , "usage" : { "output_tokens" : 1 } } }"#,
+        #"{"timestamp":"\#(stamp)","message":{"id":"t3","model":"m","usage":{"input_tokens":1}"#,
+    ] { UsageParsing.consume(Data(line.utf8), into: &tricky, seen: &trickySeen) }
+    check("对话内容里的同名键和转义字符不影响读取", tokens(tricky.days[day]?["claude-opus-5-5"]) == [3, 0, 0, 4])
+    check("带转义的模型名和多余空格也能读", tokens(tricky.days[day]?["claude-haiku-5-5"]) == [0, 0, 0, 1] && tricky.days[day]?.count == 2)
+    check("不完整的行被忽略", tricky.ids == ["t1", "t2"])
+    let utc = ISO8601DateFormatter()
+    check("时间戳快速换算和格式化器一致", ["2026-12-31T23:59:59Z", "2024-02-29T12:00:00.5Z", "2026-01-01T00:00:00.000Z", "2026-07-15T16:30:00Z"].allSatisfy {
+        UsageParsing.day(fromTimestamp: $0) == UsageParsing.dayKey(for: utc.date(from: $0.replacingOccurrences(of: #"\.\d+"#, with: "", options: .regularExpression))!)
+    })
+    check("带时区偏移的时间戳交给格式化器，非法日期被忽略", UsageParsing.day(fromTimestamp: "2026-11-10T11:00:00+08:00") == day
+          && UsageParsing.day(fromTimestamp: "2026-13-40T00:00:00Z") == nil && UsageParsing.day(fromTimestamp: "2026-11-1xT00:00:00Z") == nil)
+
+    var codex = UsageFileState(source: .codex)
+    var codexSeen = Set<String>()
+    func tokenCount(_ total: (Int, Int, Int), _ last: (Int, Int, Int)) -> String {
+        #"{"timestamp":"\#(stamp)","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":\#(total.0),"cached_input_tokens":\#(total.1),"output_tokens":\#(total.2)},"last_token_usage":{"input_tokens":\#(last.0),"cached_input_tokens":\#(last.1),"output_tokens":\#(last.2)}}}}"#
+    }
+    for line in [
+        #"{"timestamp":"\#(stamp)","type":"turn_context","payload":{"model":"gpt-a"}}"#,
+        tokenCount((100, 40, 10), (100, 40, 10)),
+        tokenCount((100, 40, 10), (100, 40, 10)),
+        tokenCount((250, 100, 30), (100, 40, 10)),
+        #"{"timestamp":"\#(stamp)","type":"turn_context","payload":{"model":"gpt-b"}}"#,
+        tokenCount((50, 0, 5), (50, 0, 5)),
+        #"{"timestamp":"\#(stamp)","type":"event_msg","payload":{"type":"token_count","info":null}}"#,
+    ] { UsageParsing.consume(Data(line.utf8), into: &codex, seen: &codexSeen) }
+    check("Codex 按累计增量计算，重复的累计跳过", tokens(codex.days[day]?["gpt-a"]) == [150, 100, 0, 30])
+    check("Codex 累计清零后用单次用量，并跟随模型切换", tokens(codex.days[day]?["gpt-b"]) == [50, 0, 0, 5])
+
+    var resumed = UsageFileState(source: .codex)
+    UsageParsing.consume(Data(tokenCount((1_000, 0, 100), (10, 0, 1)).utf8), into: &resumed, seen: &codexSeen)
+    check("续接会话的第一条只算单次用量", tokens(resumed.days[day]?["unknown"]) == [10, 0, 0, 1])
+
+    let file = sandbox.appendingPathComponent("partial.jsonl")
+    let second = #"{"type":"assistant","timestamp":"\#(stamp)","message":{"id":"msg_9","model":"m","usage":{"input_tokens":7,"output_tokens":3}}}"#
+    let firstPart = opus + "\n" + second.prefix(40)
+    try? Data(firstPart.utf8).write(to: file)
+    var partial = UsageFileState(source: .claudeCode)
+    var partialSeen = Set<String>()
+    try? UsageParsing.readNewLines(of: file, into: &partial, seen: &partialSeen)
+    check("没写完的行留到下次", partial.offset == UInt64(opus.utf8.count + 1) && partial.days[day]?["m"] == nil)
+    try? Data((firstPart + second.dropFirst(40) + "\n").utf8).write(to: file)
+    try? UsageParsing.readNewLines(of: file, into: &partial, seen: &partialSeen)
+    check("Claude Code 按模型价格算费用", near(claude.days[day]?["claude-opus-5-5"]?.cost, 0.000_26))
+    var priced = UsageFileState(source: .claudeCode)
+    var pricedSeen = Set<String>()
+    let fastLine = #"{"timestamp":"\#(stamp)","message":{"id":"fast","model":"claude-opus-5-5","usage":{"input_tokens":0,"cache_creation_input_tokens":1000000,"cache_creation":{"ephemeral_5m_input_tokens":400000,"ephemeral_1h_input_tokens":600000},"output_tokens":0,"speed":"fast","inference_geo":"us"}}}"#
+    UsageParsing.consume(Data(fastLine.utf8), into: &priced, seen: &pricedSeen)
+    check("缓存写入分 5 分钟和 1 小时，快速模式和美国境内处理加价", near(priced.days[day]?["claude-opus-5-5"]?.cost, 14.96))
+    check("按最长前缀找价格", TokenPricing.price(for: "claude-opus-5-5")?.rates.input == 4 && TokenPricing.price(for: "claude-haiku-4-5-20251001")?.rates.input == 1
+          && TokenPricing.price(for: "gpt-5.5-pro")?.rates.input == 30 && TokenPricing.price(for: "claude-opus-50") == nil && TokenPricing.price(for: "<synthetic>") == nil)
+    check("Haiku 5.5 超过 10 万 token 按长上下文价格", near(TokenPricing.cost(of: TokenUsage(input: 100_000), model: "claude-haiku-5-5"), 0.01)
+          && near(TokenPricing.cost(of: TokenUsage(input: 100_001), model: "claude-haiku-5-5"), 0.050_000_5))
+    check("OpenAI 输入扣掉缓存，超过 27.2 万按长上下文价格", near(TokenPricing.cost(of: CodexTotals(input: 300_000, cached: 100_000).usage, model: "gpt-5.6-sol"), 1.68))
+    check("没有价格的模型费用为 0", codex.days[day]?["gpt-a"]?.cost == 0 && TokenPricing.cost(of: TokenUsage(input: 1), model: "gpt-a") == nil)
+    check("美元格式", formatDollars(0) == "$0.00" && formatDollars(0.001) == "<$0.01" && formatDollars(1234.5) == "$1,234.50")
+    check("补全后只读新增部分", tokens(partial.days[day]?["m"]) == [7, 0, 0, 3] && partial.days[day]?["claude-opus-5-5"]?.total == 135)
+}
+
+section("Token 用量汇总") {
+    let claudeRoot = sandbox.appendingPathComponent("claude/projects/demo")
+    let codexRoot = sandbox.appendingPathComponent("codex/sessions/2026/11/10")
+    try? FileManager.default.createDirectory(at: claudeRoot, withIntermediateDirectories: true)
+    try? FileManager.default.createDirectory(at: codexRoot, withIntermediateDirectories: true)
+    let now = ISO8601DateFormatter().string(from: Date())
+    let claudeFile = claudeRoot.appendingPathComponent("a.jsonl")
+    func claudeLine(_ id: String, _ output: Int) -> String {
+        #"{"timestamp":"\#(now)","message":{"id":"\#(id)","model":"claude-opus-5-5","usage":{"input_tokens":100,"output_tokens":\#(output)}}}"# + "\n"
+    }
+    try? Data((claudeLine("a", 50) + claudeLine("a", 50)).utf8).write(to: claudeFile)
+    // 恢复或分叉会话时，Claude Code 会把旧记录复制到另一个文件。
+    let copyRoot = sandbox.appendingPathComponent("claude/projects/fork")
+    try? FileManager.default.createDirectory(at: copyRoot, withIntermediateDirectories: true)
+    try? Data(claudeLine("a", 50).utf8).write(to: copyRoot.appendingPathComponent("b.jsonl"))
+    try? Data((#"{"timestamp":"\#(now)","type":"turn_context","payload":{"model":"gpt-x"}}"# + "\n" +
+               #"{"timestamp":"\#(now)","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":10},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":10}}}}"# + "\n").utf8)
+        .write(to: codexRoot.appendingPathComponent("rollout.jsonl"))
+    // 30 天前就没改过的旧文件不读。
+    let oldFile = claudeRoot.appendingPathComponent("old.jsonl")
+    try? Data(claudeLine("old", 999).utf8).write(to: oldFile)
+    try? FileManager.default.setAttributes([.modificationDate: Date().addingTimeInterval(-40 * 86_400)], ofItemAtPath: oldFile.path)
+
+    // 旧版本的统计文件在第一次读取时删掉。
+    try? Data("{}".utf8).write(to: Storage.folder.appendingPathComponent("token-usage.json"))
+    let store = TokenUsageStore.shared
+    store.roots = [(sandbox.appendingPathComponent("claude/projects"), .claudeCode), (sandbox.appendingPathComponent("codex/sessions"), .codex)]
+    func waitForScan() {
+        var done = false
+        store.refresh { done = true }
+        let limit = Date().addingTimeInterval(10)
+        while !done && Date() < limit { pump(0.05) }
+    }
+    store.isEnabled = true
+    pump(0.1)
+    let firstLimit = Date().addingTimeInterval(10)
+    while (store.isScanning || store.lastUpdated == nil) && Date() < firstLimit { pump(0.05) }
+    var rows = store.rows(for: .today)
+    check("按用量排序，旧文件跳过，跨文件复制的请求只算一次", rows.map(\.model) == ["gpt-x", "claude-opus-5-5"] && rows.map(\.counts.total) == [1_010, 150])
+    check("来源正确", rows.map(\.source) == [.codex, .claudeCode])
+    check("汇总费用，没有价格的模型标出来", near(rows.last?.counts.cost, 0.0014) && rows.map(\.isPriced) == [false, true])
+    check("删除旧版本的统计文件", !FileManager.default.fileExists(atPath: Storage.folder.appendingPathComponent("token-usage.json").path))
+
+    let handle = try? FileHandle(forWritingTo: claudeFile)
+    _ = try? handle?.seekToEnd()
+    try? handle?.write(contentsOf: Data(claudeLine("b", 5).utf8))
+    try? handle?.close()
+    waitForScan()
+    rows = store.rows(for: .today)
+    check("再次刷新只加新增的用量", rows.first { $0.model == "claude-opus-5-5" }?.counts.total == 255)
+
+    try? Data(claudeLine("c", 1).utf8).write(to: claudeFile)
+    waitForScan()
+    check("文件被重写后重新统计", store.rows(for: .today).first { $0.model == "claude-opus-5-5" }?.counts.total == 101)
+    check("统计结果保存在本机", FileManager.default.fileExists(atPath: Storage.folder.appendingPathComponent(TokenUsageStore.file).path))
+
+    store.isEnabled = false
+    pump(0.3)
+    check("关闭后清空并删除统计文件", store.days.isEmpty && !FileManager.default.fileExists(atPath: Storage.folder.appendingPathComponent(TokenUsageStore.file).path))
+}
+
 section("其他") {
     check("内存压力文字", [MemoryPressure.low, .medium, .high].map(\.title) == [L("压力低"), L("压力中"), L("压力高")])
     check("便签颜色编号不能变", NoteColor.allCases.map(\.rawValue) == [0, 1, 2, 3] && NoteColor(rawValue: 1) == .yellow)

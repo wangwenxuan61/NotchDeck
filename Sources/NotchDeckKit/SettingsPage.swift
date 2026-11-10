@@ -8,6 +8,7 @@ struct SettingsPage: View {
     @ObservedObject private var busy = LookBusyController.shared
     @ObservedObject private var language = LanguageStore.shared
     @ObservedObject private var updates = UpdateChecker.shared
+    @ObservedObject private var usage = TokenUsageStore.shared
 
     private func row<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         HStack {
@@ -89,6 +90,15 @@ struct SettingsPage: View {
                     menuBarChip(L("电池"), $settings.showMenuBarBattery)
                 }
             }
+            row(L("AI Token 用量")) {
+                HStack(spacing: 8) {
+                    if usage.isEnabled {
+                        Button(L("查看")) { model.page = .usage }.controlSize(.small)
+                    }
+                    toggle($usage.isEnabled)
+                }
+            }
+            .help(L("开启后，NotchDeck 只在本机读取 Claude Code 和 Codex 的用量记录，只统计模型和 token 数，不读取对话内容。"))
         }
     }
 

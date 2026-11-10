@@ -42,6 +42,7 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 - **Menu bar**: show any mix of temperature, CPU load, network speed and battery next to the icon. Right-click the
   icon for search, clipboard, the monitor, audio output, a quick countdown, keep awake, Look Busy, display sleep, screen
   lock and update checks. A cup appears next to the icon while keep awake is on.
+- **AI token usage** (optional, off by default): token counts per model for Claude Code and Codex, for today, 7 days or 30 days, split into input, cache reads, cache writes and output, with the cost in US dollars estimated at official API prices. NotchDeck reads only the usage fields of their local records on your Mac, never your conversations.
 - **Clipboard history**: text, images and files, with search and pinning. Items marked as sensitive by password
   managers are skipped. Right-click an image to copy the text in it, recognized on your Mac. Text over about 1 MB is not recorded. History stays in memory unless you turn on saving;
   images are never written to disk.
