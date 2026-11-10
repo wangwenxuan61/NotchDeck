@@ -19,7 +19,8 @@ final class AgendaStore: ObservableObject {
     @Published private(set) var items: [Item] = []
     @Published private(set) var status = EKEventStore.authorizationStatus(for: .event)
 
-    private let store = EKEventStore()
+    /// 授权前创建的 EKEventStore 在授权后可能仍然读不到数据，授权后会换一个新的。
+    private var store = EKEventStore()
     private let queue = DispatchQueue(label: "notchdeck.agenda", qos: .utility)
 
     private static let meetingLink = try? NSRegularExpression(
@@ -29,23 +30,37 @@ final class AgendaStore: ObservableObject {
 
     private init() {
         let center = NotificationCenter.default
-        center.addObserver(forName: .EKEventStoreChanged, object: store, queue: .main) { [weak self] _ in self?.refresh() }
+        center.addObserver(forName: .EKEventStoreChanged, object: nil, queue: .main) { [weak self] note in
+            guard let self, note.object as? EKEventStore === self.store else { return }
+            self.refresh()
+        }
         center.addObserver(forName: .NSCalendarDayChanged, object: nil, queue: .main) { [weak self] _ in self?.refresh() }
     }
 
     func refresh() {
-        status = EKEventStore.authorizationStatus(for: .event)
+        var current = EKEventStore.authorizationStatus(for: .event)
+        if current == .notDetermined || current == .denied {
+            // App 运行期间刚授权（弹窗里允许，或在系统设置里打开）时，系统返回的状态可能还停在旧值，要重启 App 才更新。
+            // 新建一个 EKEventStore 实际读一下日历列表，能读到就是已经有权限了。
+            let probe = EKEventStore()
+            if !probe.calendars(for: .event).isEmpty {
+                store = probe
+                current = .fullAccess
+            }
+        }
+        status = current
         guard status == .fullAccess else {
             items = []
             return
         }
+        let store = store
         queue.async { [weak self] in
             guard let self else { return }
             let calendar = Calendar.current
             let start = calendar.startOfDay(for: Date())
             guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return }
-            let predicate = self.store.predicateForEvents(withStart: start, end: end, calendars: nil)
-            let loaded = self.store.events(matching: predicate)
+            let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
+            let loaded = store.events(matching: predicate)
                 .filter { $0.attendees?.first(where: \.isCurrentUser)?.participantStatus != .declined }
                 .map(Self.item)
             DispatchQueue.main.async {
@@ -58,10 +73,11 @@ final class AgendaStore: ObservableObject {
         switch EKEventStore.authorizationStatus(for: .event) {
         case .notDetermined:
             NSApp.activate(ignoringOtherApps: true)
-            store.requestFullAccessToEvents { [weak self] _, _ in
+            store.requestFullAccessToEvents { [weak self] granted, _ in
                 DispatchQueue.main.async {
-                    self?.store.refreshSourcesIfNecessary()
-                    self?.refresh()
+                    guard let self else { return }
+                    if granted { self.store = EKEventStore() }
+                    self.refresh()
                 }
             }
         default:

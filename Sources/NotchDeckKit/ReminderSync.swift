@@ -19,7 +19,8 @@ final class ReminderSync: ObservableObject {
 
     private static let hiddenKey = "syncRemindersHiddenDone"
 
-    private let store = EKEventStore()
+    /// 授权前创建的 EKEventStore 在授权后可能仍然读不到列表，授权后会换一个新的。
+    private var store = EKEventStore()
     /// 从卡片上隐藏的已完成项要保存下来，否则重启后今天完成的又会出现。
     private var hiddenDone: Set<String> {
         didSet { UserDefaults.standard.set(Array(hiddenDone), forKey: Self.hiddenKey) }
@@ -30,8 +31,10 @@ final class ReminderSync: ObservableObject {
     private init() {
         selectedListID = UserDefaults.standard.string(forKey: Self.listKey) ?? ""
         hiddenDone = Set(UserDefaults.standard.stringArray(forKey: Self.hiddenKey) ?? [])
-        NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: store, queue: .main) { [weak self] _ in
-            self?.scheduleReload()
+        // store 授权后会换成新的，所以不按对象过滤，只处理当前这个 store 的变化。
+        NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: nil, queue: .main) { [weak self] note in
+            guard let self, note.object as? EKEventStore === self.store else { return }
+            self.scheduleReload()
         }
     }
 
@@ -58,6 +61,7 @@ final class ReminderSync: ObservableObject {
             DispatchQueue.main.async {
                 guard let self else { return }
                 if granted {
+                    self.store = EKEventStore()
                     self.activate(movingLocalTodos: true)
                 } else {
                     Toasts.shared.show(L("未获得提醒事项权限"), icon: "exclamationmark.triangle")
