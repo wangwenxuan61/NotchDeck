@@ -1,5 +1,4 @@
 let germanStrings: [String: String] = [
-    "自动检查更新": "Updates automatisch suchen",
     "检查更新": "Prüfen",
     "检查中…": "Wird geprüft…",
     "更新到 %@": "%@ laden",
@@ -117,6 +116,12 @@ let germanStrings: [String: String] = [
     "提醒事项里没有可用列表": "Keine Listen in Erinnerungen",
     "%d 条待办未能同步，已保留在本机": "%d Aufgaben nicht synchronisiert, auf diesem Mac behalten",
     "同步失败": "Synchronisierung fehlgeschlagen",
+    "自动更新": "Automatische Updates",
+    "正在下载 %@…": "%@ wird geladen…",
+    "已更新到 %@": "Auf %@ aktualisiert",
+    "自动更新失败，可以手动下载": "Automatisches Update fehlgeschlagen. Du kannst es manuell laden.",
+    "开启后发现新版本会自动下载，在你不用 NotchDeck 时安装并重新打开。": "Wenn aktiviert, werden neue Versionen automatisch geladen und installiert, wenn du NotchDeck gerade nicht benutzt. Danach startet NotchDeck neu.",
+    "新版本已下载，不用 NotchDeck 时会自动安装并重新打开。现在点击立即安装。": "Die neue Version ist geladen und wird installiert, wenn du NotchDeck nicht benutzt. Klicke, um sie jetzt zu installieren.",
     "费用": "Kosten",
     "费用按官方 API 价格估算，订阅套餐实际不按 token 计费。": "Kosten geschätzt nach offiziellen API-Preisen. Abos werden nicht pro Token abgerechnet.",
     "没有价格的模型显示为 —。": "Modelle ohne Preis zeigen —.",

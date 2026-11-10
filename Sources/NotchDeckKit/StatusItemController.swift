@@ -128,7 +128,7 @@ final class StatusItemController: NSObject {
     private func showMenu() {
         app.closePanel()
         let updates = UpdateChecker.shared
-        let updateItem = updates.latestVersion.map { menuItem(L("更新到 %@", $0), #selector(openUpdatePage)) }
+        let updateItem = updates.latestVersion.map { menuItem(L("更新到 %@", $0), #selector(updateNow), enabled: updates.phase != .downloading) }
             ?? menuItem(updates.isChecking ? L("检查中…") : L("检查更新"), #selector(checkForUpdates), enabled: !updates.isChecking)
         let sections: [[NSMenuItem]] = [
             [
@@ -230,6 +230,6 @@ final class StatusItemController: NSObject {
     @objc private func sleepDisplay() { QuickControls.shared.sleepDisplay() }
     @objc private func lockScreen() { QuickControls.shared.lockScreen() }
     @objc private func checkForUpdates() { UpdateChecker.shared.check(userInitiated: true) }
-    @objc private func openUpdatePage() { UpdateChecker.shared.openDownloadPage() }
+    @objc private func updateNow() { UpdateChecker.shared.updateNow() }
     @objc private func quit() { NSApp.terminate(nil) }
 }

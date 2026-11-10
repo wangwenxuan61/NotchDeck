@@ -1,5 +1,4 @@
 let englishStrings: [String: String] = [
-    "自动检查更新": "Check for Updates",
     "检查更新": "Check Now",
     "检查中…": "Checking…",
     "更新到 %@": "Get %@",
@@ -117,6 +116,12 @@ let englishStrings: [String: String] = [
     "提醒事项里没有可用列表": "No lists found in Reminders",
     "%d 条待办未能同步，已保留在本机": "%d to-dos couldn't sync and stay on this Mac",
     "同步失败": "Sync failed",
+    "自动更新": "Automatic Updates",
+    "正在下载 %@…": "Downloading %@…",
+    "已更新到 %@": "Updated to %@",
+    "自动更新失败，可以手动下载": "Automatic update failed. You can download it manually.",
+    "开启后发现新版本会自动下载，在你不用 NotchDeck 时安装并重新打开。": "When on, new versions download automatically and install, reopening NotchDeck, while you are not using it.",
+    "新版本已下载，不用 NotchDeck 时会自动安装并重新打开。现在点击立即安装。": "The new version is downloaded and will install when you are not using NotchDeck. Click to install it now.",
     "费用": "Cost",
     "费用按官方 API 价格估算，订阅套餐实际不按 token 计费。": "Costs are estimated at official API prices. Subscription plans are not billed per token.",
     "没有价格的模型显示为 —。": "Models without a price show —.",

@@ -61,6 +61,8 @@ final class ClipboardStore: ObservableObject {
     ]
 
     private static let saveHistoryKey = "clipboardSaveHistory"
+    /// 自动更新重启时临时保存了全部历史，新版本读回后要按设置重写文件。
+    private static let keptForRestartKey = "clipboardKeptForRestart"
 
     private struct SavedItem: Codable {
         let id: UUID
@@ -111,6 +113,7 @@ final class ClipboardStore: ObservableObject {
     private var lastChange: Int
     private var timer: Timer?
     private var persistWork: DispatchWorkItem?
+    private var keepAllForRestart = false
 
     private init() {
         lastChange = NSPasteboard.general.changeCount
@@ -118,6 +121,19 @@ final class ClipboardStore: ObservableObject {
         if let data = try? Data(contentsOf: fileURL), let saved = try? JSONDecoder().decode([SavedItem].self, from: data) {
             items = saved.compactMap(\.item)
         }
+        if UserDefaults.standard.bool(forKey: Self.keptForRestartKey) {
+            UserDefaults.standard.removeObject(forKey: Self.keptForRestartKey)
+            persistNow()
+        }
+    }
+
+    /// 自动更新重启前调用：没开“保存历史”时也把这次的历史留到新版本，读回后立即只保留固定的项。
+    func persistForRestart() {
+        if !saveHistory {
+            keepAllForRestart = true
+            UserDefaults.standard.set(true, forKey: Self.keptForRestartKey)
+        }
+        persistNow()
     }
 
     private func schedulePersist() {
@@ -130,7 +146,7 @@ final class ClipboardStore: ObservableObject {
     func persistNow() {
         persistWork?.cancel()
         persistWork = nil
-        let saved = items.filter { saveHistory || $0.isPinned }.compactMap(SavedItem.init)
+        let saved = items.filter { saveHistory || keepAllForRestart || $0.isPinned }.compactMap(SavedItem.init)
         guard !saved.isEmpty else {
             try? FileManager.default.removeItem(at: fileURL)
             return
@@ -178,7 +194,7 @@ final class ClipboardStore: ObservableObject {
     /// 新内容排在置顶项之后。
     private var insertionIndex: Int { items.firstIndex { !$0.isPinned } ?? items.endIndex }
 
-    private func insert(_ item: Item) {
+    func insert(_ item: Item) {
         func matches(_ other: Item) -> Bool { Self.isSameContent(other.content, item.content) }
         guard !items.contains(where: { $0.isPinned && matches($0) }) else { return }
         items.removeAll(where: matches)

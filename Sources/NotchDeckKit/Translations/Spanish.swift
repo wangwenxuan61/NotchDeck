@@ -1,5 +1,4 @@
 let spanishStrings: [String: String] = [
-    "自动检查更新": "Buscar actualizaciones",
     "检查更新": "Comprobar",
     "检查中…": "Comprobando…",
     "更新到 %@": "Obtener %@",
@@ -117,6 +116,12 @@ let spanishStrings: [String: String] = [
     "提醒事项里没有可用列表": "No hay listas en Recordatorios",
     "%d 条待办未能同步，已保留在本机": "%d tareas sin sincronizar, guardadas en este Mac",
     "同步失败": "Error de sincronización",
+    "自动更新": "Actualizaciones automáticas",
+    "正在下载 %@…": "Descargando %@…",
+    "已更新到 %@": "Actualizado a %@",
+    "自动更新失败，可以手动下载": "La actualización automática falló. Puedes descargarla manualmente.",
+    "开启后发现新版本会自动下载，在你不用 NotchDeck 时安装并重新打开。": "Al activarlo, las versiones nuevas se descargan solas y se instalan cuando no usas NotchDeck, que se vuelve a abrir.",
+    "新版本已下载，不用 NotchDeck 时会自动安装并重新打开。现在点击立即安装。": "La versión nueva ya está descargada y se instalará cuando no uses NotchDeck. Haz clic para instalarla ahora.",
     "费用": "Coste",
     "费用按官方 API 价格估算，订阅套餐实际不按 token 计费。": "Costes estimados con los precios oficiales de la API. Las suscripciones no se cobran por token.",
     "没有价格的模型显示为 —。": "Los modelos sin precio muestran —.",

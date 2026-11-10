@@ -332,6 +332,81 @@ section("Token 用量汇总") {
     check("关闭后清空并删除统计文件", store.days.isEmpty && !FileManager.default.fileExists(atPath: Storage.folder.appendingPathComponent(TokenUsageStore.file).path))
 }
 
+section("自动更新") {
+    let release: [String: Any] = ["tag_name": "v9.9.9", "assets": [
+        ["name": "notes.txt", "browser_download_url": "https://example.com/notes.txt"],
+        ["name": "NotchDeck-9.9.9-x86_64.dmg", "browser_download_url": "https://example.com/x86.dmg"],
+        ["name": "NotchDeck-9.9.9-arm64.dmg", "browser_download_url": "https://example.com/arm.dmg", "digest": "sha256:ABCDEF"],
+    ]]
+    check("优先选 Apple 芯片的 DMG 并读出校验值", UpdateInstaller.dmgAsset(in: release) == .init(url: URL(string: "https://example.com/arm.dmg")!, sha256: "abcdef"))
+    check("没有 DMG 或不是 https 时不下载", UpdateInstaller.dmgAsset(in: ["assets": [["name": "a.zip", "browser_download_url": "https://e.com/a.zip"]]]) == nil
+          && UpdateInstaller.dmgAsset(in: ["assets": [["name": "a.dmg", "browser_download_url": "http://e.com/a.dmg"]]]) == nil
+          && UpdateInstaller.dmgAsset(in: ["assets": [["name": "a.dmg", "browser_download_url": "https://e.com/a.dmg"]]])?.sha256 == nil)
+
+    let folder = sandbox.appendingPathComponent("update")
+    try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    let abc = folder.appendingPathComponent("abc.txt")
+    try? Data("abc".utf8).write(to: abc)
+    check("SHA-256", (try? UpdateInstaller.sha256(of: abc)) == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+
+    /// 做一个最小的 App：Info.plist 加一个可执行文件，再做临时签名。
+    func makeApp(_ url: URL, id: String, version: String) {
+        let contents = url.appendingPathComponent("Contents")
+        try? FileManager.default.createDirectory(at: contents.appendingPathComponent("MacOS"), withIntermediateDirectories: true)
+        (["CFBundleIdentifier": id, "CFBundleShortVersionString": version, "CFBundleExecutable": "app", "CFBundlePackageType": "APPL"] as NSDictionary)
+            .write(to: contents.appendingPathComponent("Info.plist"), atomically: true)
+        try? FileManager.default.copyItem(atPath: "/usr/bin/true", toPath: contents.appendingPathComponent("MacOS/app").path)
+        _ = Shell.output("/usr/bin/codesign", ["--force", "--sign", "-", url.path])
+    }
+    let good = folder.appendingPathComponent("Good.app")
+    makeApp(good, id: "test.notchdeck", version: "9.9.9")
+    func failure(_ body: () throws -> Void) -> UpdateInstaller.Failure? {
+        do { try body(); return nil } catch { return error as? UpdateInstaller.Failure }
+    }
+    check("同一个 App、正确版本、签名完整才算通过", failure { try UpdateInstaller.validate(app: good, bundleID: "test.notchdeck", version: "9.9.9") } == nil
+          && failure { try UpdateInstaller.validate(app: good, bundleID: "other.app", version: "9.9.9") } == .wrongApp
+          && failure { try UpdateInstaller.validate(app: good, bundleID: "test.notchdeck", version: "9.9.8") } == .wrongApp)
+    try? Data("x".utf8).write(to: good.appendingPathComponent("Contents/added.txt"))
+    check("签名后被改过的 App 不安装", failure { try UpdateInstaller.validate(app: good, bundleID: "test.notchdeck", version: "9.9.9") } == .signature)
+
+    // 从 DMG 里复制出 App。
+    let source = folder.appendingPathComponent("dmg-source")
+    makeApp(source.appendingPathComponent("NotchDeck.app"), id: "test.notchdeck", version: "9.9.9")
+    let dmg = folder.appendingPathComponent("test.dmg")
+    _ = Shell.output("/usr/bin/hdiutil", ["create", "-quiet", "-volname", "NotchDeckTest", "-srcfolder", source.path, "-format", "UDZO", dmg.path])
+    let copied = folder.appendingPathComponent("Copied.app")
+    check("从 DMG 里复制出 App 并卸载", failure { try UpdateInstaller.copyApp(fromDMG: dmg, mountPoint: folder.appendingPathComponent("mount"), to: copied) } == nil
+          && failure { try UpdateInstaller.validate(app: copied, bundleID: "test.notchdeck", version: "9.9.9") } == nil
+          && (try? FileManager.default.contentsOfDirectory(atPath: folder.appendingPathComponent("mount").path))?.isEmpty == true)
+
+    // 替换：新版本放到原位置，旧版本删掉；新版本不存在时原来的 App 保持不动。
+    let current = folder.appendingPathComponent("NotchDeck.app")
+    makeApp(current, id: "test.notchdeck", version: "1.0")
+    try? FileManager.default.copyItem(at: copied, to: folder.appendingPathComponent(".NotchDeck-update-1.app"))
+    check("替换后原位置是新版本，没有留下旧版本", failure { try UpdateInstaller.replace(current, with: folder.appendingPathComponent(".NotchDeck-update-1.app")) } == nil
+          && failure { try UpdateInstaller.validate(app: current, bundleID: "test.notchdeck", version: "9.9.9") } == nil
+          && !((try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []).contains { $0.hasPrefix(".NotchDeck-") })
+    check("新版本不见了就保留原来的 App", failure { try UpdateInstaller.replace(current, with: folder.appendingPathComponent(".NotchDeck-update-missing.app")) } == .replace
+          && FileManager.default.fileExists(atPath: current.appendingPathComponent("Contents/Info.plist").path))
+    try? FileManager.default.createDirectory(at: folder.appendingPathComponent(".NotchDeck-old-2.app"), withIntermediateDirectories: true)
+    try? FileManager.default.createDirectory(at: folder.appendingPathComponent(".NotchDeck-update-3.app"), withIntermediateDirectories: true)
+    UpdateInstaller.removeLeftovers(next: current)
+    check("启动时清掉上次没装完的文件", ((try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []).filter { $0.hasPrefix(".NotchDeck-") }.isEmpty
+          && FileManager.default.fileExists(atPath: current.path))
+
+    // 没开“保存历史”时，重启更新也要把这次的剪贴板历史带到新版本。
+    let clipboard = ClipboardStore.shared
+    let previous = clipboard.saveHistory
+    clipboard.saveHistory = false
+    clipboard.insert(.init(content: .text("固定内容"), date: Date(), sourceName: "Test", isPinned: true))
+    clipboard.insert(.init(content: .text("临时内容"), date: Date(), sourceName: "Test"))
+    clipboard.persistForRestart()
+    let saved = (try? Data(contentsOf: Storage.folder.appendingPathComponent("clipboard.json"))).map { String(decoding: $0, as: UTF8.self) } ?? ""
+    check("更新重启前保存全部剪贴板历史", saved.contains("临时内容") && saved.contains("固定内容") && UserDefaults.standard.bool(forKey: "clipboardKeptForRestart"))
+    UserDefaults.standard.removeObject(forKey: "clipboardKeptForRestart")
+    clipboard.saveHistory = previous
+}
+
 section("其他") {
     check("内存压力文字", [MemoryPressure.low, .medium, .high].map(\.title) == [L("压力低"), L("压力中"), L("压力高")])
     check("便签颜色编号不能变", NoteColor.allCases.map(\.rawValue) == [0, 1, 2, 3] && NoteColor(rawValue: 1) == .yellow)

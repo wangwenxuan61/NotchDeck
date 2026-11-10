@@ -1,18 +1,20 @@
 import AppKit
 
-/// 向 GitHub 查询最新发布的版本号，只读取版本信息，不上传任何使用数据。
+/// 向 GitHub 查询最新发布的版本，只读取发布信息，不上传任何使用数据。
+/// 开启自动更新时，发现新版本就在后台下载并校验，等用户没在用 NotchDeck 时替换并重新打开；
+/// 出了问题就退回到打开下载页面。
 final class UpdateChecker: ObservableObject {
     static let shared = UpdateChecker()
 
     private static let latestReleaseAPI = URL(string: "https://api.github.com/repos/wangwenxuan61/NotchDeck/releases/latest")!
     private static let downloadPage = URL(string: "https://github.com/wangwenxuan61/NotchDeck/releases/latest")!
-    private static let checkInterval: TimeInterval = 86_400
+    private static let checkInterval: TimeInterval = 6 * 3600
     private static let autoCheckKey = "checkForUpdates"
     private static let notifiedVersionKey = "lastNotifiedUpdate"
+    private static let updatedFromKey = "updatedFromVersion"
 
-    private struct Release: Decodable {
-        let tagName: String
-        enum CodingKeys: String, CodingKey { case tagName = "tag_name" }
+    enum Phase: Equatable {
+        case idle, downloading, ready, failed
     }
 
     let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
@@ -20,6 +22,8 @@ final class UpdateChecker: ObservableObject {
     /// 有比当前更新的版本时才有值。
     @Published private(set) var latestVersion: String?
     @Published private(set) var isChecking = false
+    @Published private(set) var phase = Phase.idle
+    /// 开启后自动下载并安装新版本，键名沿用原来的“自动检查更新”。
     @Published var autoCheck: Bool {
         didSet {
             UserDefaults.standard.set(autoCheck, forKey: Self.autoCheckKey)
@@ -29,21 +33,55 @@ final class UpdateChecker: ObservableObject {
 
     private var lastCheck = Date.distantPast
     private var timer: Timer?
+    private var asset: UpdateInstaller.Asset?
+    /// 已经下载、校验好的新版本，放在当前 App 旁边。
+    private var staged: URL?
+    /// 连续几次检查都没在用，才自动安装。
+    private var quietChecks = 0
+    /// 更新后第一次打开面板时提示一下。
+    private var updateNotice: String?
 
     private init() {
         autoCheck = UserDefaults.standard.object(forKey: Self.autoCheckKey) as? Bool ?? true
+        let defaults = UserDefaults.standard
+        if let previous = defaults.string(forKey: Self.updatedFromKey) {
+            defaults.removeObject(forKey: Self.updatedFromKey)
+            if previous != currentVersion { updateNotice = currentVersion }
+        }
     }
 
     func start() {
+        UpdateInstaller.removeLeftovers(next: Bundle.main.bundleURL)
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.checkIfDue() }
-        let timer = Timer(timeInterval: 3600, repeats: true) { [weak self] _ in self?.checkIfDue() }
+        // 每分钟看一次：到时间就检查新版本，有下载好的新版本就看能不能安装。
+        let timer = Timer(timeInterval: 60, repeats: true) { [weak self] _ in self?.tick() }
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
+    }
+
+    func showUpdateNoticeIfNeeded() {
+        guard let version = updateNotice else { return }
+        updateNotice = nil
+        Toasts.shared.show(L("已更新到 %@", version), icon: "checkmark.seal")
+    }
+
+    private func tick() {
+        checkIfDue()
+        guard autoCheck, phase == .ready else { return }
+        quietChecks = isQuiet ? quietChecks + 1 : 0
+        if quietChecks >= 2 { install() }
     }
 
     private func checkIfDue() {
         guard autoCheck, Date().timeIntervalSince(lastCheck) >= Self.checkInterval else { return }
         check(userInitiated: false)
+    }
+
+    /// 面板关着、没有在计时、没开防止休眠和装忙，这时重启不会打断任何事。
+    private var isQuiet: Bool {
+        let app = AppDelegate.shared
+        return !app.controller.model.expanded && !app.modalOpen && !LookBusyController.shared.isShowing
+            && !KeepAwake.shared.isOn && !CountdownTimer.shared.isActive && !FocusTimer.shared.running && !Stopwatch.shared.isRunning
     }
 
     func check(userInitiated: Bool) {
@@ -53,15 +91,16 @@ final class UpdateChecker: ObservableObject {
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
             let succeeded = (response as? HTTPURLResponse)?.statusCode == 200
-            let tag = succeeded ? data.flatMap { try? JSONDecoder().decode(Release.self, from: $0) }?.tagName : nil
-            DispatchQueue.main.async { self?.finish(tag: tag, userInitiated: userInitiated) }
+            let release = succeeded ? data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] } : nil
+            DispatchQueue.main.async { self?.finish(release: release, userInitiated: userInitiated) }
         }.resume()
     }
 
-    private func finish(tag: String?, userInitiated: Bool) {
+    private func finish(release: [String: Any]?, userInitiated: Bool) {
         isChecking = false
-        guard let tag else {
-            // 自动检查失败时不打扰用户。lastCheck 不更新，一小时后的定时器会再试。
+        guard let tag = release?["tag_name"] as? String else {
+            // 自动检查失败时不打扰用户，半小时后再试。
+            lastCheck = Date().addingTimeInterval(30 * 60 - Self.checkInterval)
             if userInitiated { Toasts.shared.show(L("检查更新失败"), icon: "exclamationmark.triangle") }
             return
         }
@@ -71,12 +110,88 @@ final class UpdateChecker: ObservableObject {
             if userInitiated { Toasts.shared.show(L("已是最新版本"), icon: "checkmark.circle") }
             return
         }
+        if version != latestVersion {
+            // 又有了更新的版本，之前下载好的作废。
+            discardStaged()
+            phase = .idle
+        }
         latestVersion = version
+        asset = release.flatMap(UpdateInstaller.dmgAsset)
+        if autoCheck {
+            // 上次下载失败的，下次检查时再试一次。
+            if phase == .idle || phase == .failed { download(thenInstall: false) }
+            return
+        }
         let defaults = UserDefaults.standard
         if userInitiated || defaults.string(forKey: Self.notifiedVersionKey) != version {
             defaults.set(version, forKey: Self.notifiedVersionKey)
             Toasts.shared.show(L("发现新版本 %@", version), icon: "arrow.up.circle")
         }
+    }
+
+    /// 设置页和右键菜单里的“更新到”：已经下载好就立即安装，否则下载完立即安装，失败时打开下载页面。
+    func updateNow() {
+        switch phase {
+        case .ready: install()
+        case .downloading: break
+        case .failed: openDownloadPage()
+        case .idle: download(thenInstall: true)
+        }
+    }
+
+    private func download(thenInstall: Bool) {
+        guard let version = latestVersion, let asset, let bundleID = Bundle.main.bundleIdentifier else {
+            if thenInstall { openDownloadPage() }
+            return
+        }
+        phase = .downloading
+        let current = Bundle.main.bundleURL
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let result = Result { try UpdateInstaller.prepare(asset: asset, version: version, replacing: current, bundleID: bundleID) }
+            DispatchQueue.main.async {
+                guard let self, self.latestVersion == version else {
+                    if case .success(let url) = result { try? FileManager.default.removeItem(at: url) }
+                    return
+                }
+                switch result {
+                case .success(let url):
+                    self.staged = url
+                    self.phase = .ready
+                    self.quietChecks = 0
+                    if thenInstall { self.install() }
+                case .failure:
+                    self.fail(userInitiated: thenInstall)
+                }
+            }
+        }
+    }
+
+    private func install() {
+        guard let staged else { return }
+        self.staged = nil
+        let current = Bundle.main.bundleURL
+        do {
+            try UpdateInstaller.replace(current, with: staged)
+        } catch {
+            fail(userInitiated: true)
+            return
+        }
+        UserDefaults.standard.set(currentVersion, forKey: Self.updatedFromKey)
+        ClipboardStore.shared.persistForRestart()
+        UpdateInstaller.relaunch(current)
+    }
+
+    /// 自动下载失败时不打扰用户，设置页的按钮会变成打开下载页面；用户点的才提示并打开下载页面。
+    private func fail(userInitiated: Bool) {
+        phase = .failed
+        guard userInitiated else { return }
+        Toasts.shared.show(L("自动更新失败，可以手动下载"), icon: "exclamationmark.triangle")
+        openDownloadPage()
+    }
+
+    private func discardStaged() {
+        if let staged { try? FileManager.default.removeItem(at: staged) }
+        staged = nil
     }
 
     /// 发布标签形如 v0.1.5。按数字逐段比较，0.1.10 比 0.1.9 新；不比当前版本新时返回 nil。

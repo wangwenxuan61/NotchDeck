@@ -59,8 +59,10 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 - **Look Busy**: four convincing full-screen work scenes for demos and screenshots. Nothing they show is real.
 - **Appearance**: light, dark or follow the system.
 - **Languages**: Simplified and Traditional Chinese, English, Japanese, Korean, French, German and Spanish. Switch in Settings without restarting.
-- **Update reminders**: checks GitHub for a new release once a day and tells you when one is available. It only reads
-  the version number, and you can turn it off in Settings.
+- **Automatic updates**: checks GitHub for a new release every few hours, downloads it in the background, verifies its
+  checksum, bundle ID and signature, and installs it and reopens NotchDeck while you are not using it (the panel is
+  closed and no timer, keep awake or Look Busy is running). It sends nothing about you, and you can turn it off in
+  Settings; then you get a button to update by hand.
 
 ## Keyboard shortcuts
 

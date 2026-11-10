@@ -1,5 +1,4 @@
 let frenchStrings: [String: String] = [
-    "自动检查更新": "Vérifier les mises à jour",
     "检查更新": "Vérifier",
     "检查中…": "Vérification…",
     "更新到 %@": "Obtenir %@",
@@ -117,6 +116,12 @@ let frenchStrings: [String: String] = [
     "提醒事项里没有可用列表": "Aucune liste dans Rappels",
     "%d 条待办未能同步，已保留在本机": "%d tâches non synchronisées, conservées sur ce Mac",
     "同步失败": "Échec de la synchronisation",
+    "自动更新": "Mises à jour automatiques",
+    "正在下载 %@…": "Téléchargement de %@…",
+    "已更新到 %@": "Mis à jour vers %@",
+    "自动更新失败，可以手动下载": "La mise à jour automatique a échoué. Vous pouvez la télécharger manuellement.",
+    "开启后发现新版本会自动下载，在你不用 NotchDeck 时安装并重新打开。": "Une fois activé, les nouvelles versions sont téléchargées automatiquement, puis installées quand vous n’utilisez pas NotchDeck, qui se rouvre ensuite.",
+    "新版本已下载，不用 NotchDeck 时会自动安装并重新打开。现在点击立即安装。": "La nouvelle version est téléchargée et s’installera quand vous n’utiliserez pas NotchDeck. Cliquez pour l’installer maintenant.",
     "费用": "Coût",
     "费用按官方 API 价格估算，订阅套餐实际不按 token 计费。": "Coûts estimés aux tarifs officiels de l’API. Les abonnements ne sont pas facturés au jeton.",
     "没有价格的模型显示为 —。": "Les modèles sans prix affichent —.",

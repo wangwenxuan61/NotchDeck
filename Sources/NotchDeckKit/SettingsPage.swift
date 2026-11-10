@@ -137,16 +137,23 @@ struct SettingsPage: View {
             row(L("首页卡片")) {
                 Button(L("自定义")) { model.page = .customize }.controlSize(.small)
             }
-            row(L("自动检查更新")) {
+            row(L("自动更新")) {
                 HStack(spacing: 8) {
                     Text(verbatim: "v\(updates.currentVersion)")
                         .font(.system(size: 12))
                         .foregroundStyle(Theme.secondary)
                         .monospacedDigit()
                     if let latest = updates.latestVersion {
-                        Button(L("更新到 %@", latest)) { updates.openDownloadPage() }
-                            .controlSize(.small)
-                            .keyboardShortcut(.defaultAction)
+                        if updates.phase == .downloading {
+                            Text(L("正在下载 %@…", latest))
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.secondary)
+                        } else {
+                            Button(L("更新到 %@", latest)) { updates.updateNow() }
+                                .controlSize(.small)
+                                .keyboardShortcut(.defaultAction)
+                                .help(updates.phase == .ready ? L("新版本已下载，不用 NotchDeck 时会自动安装并重新打开。现在点击立即安装。") : "")
+                        }
                     } else {
                         Button(updates.isChecking ? L("检查中…") : L("检查更新")) { updates.check(userInitiated: true) }
                             .controlSize(.small)
@@ -155,6 +162,7 @@ struct SettingsPage: View {
                     toggle($updates.autoCheck)
                 }
             }
+            .help(L("开启后发现新版本会自动下载，在你不用 NotchDeck 时安装并重新打开。"))
         }
     }
 }
