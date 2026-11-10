@@ -420,6 +420,57 @@ section("自动更新") {
     clipboard.saveHistory = previous
 }
 
+section("剪贴板格式") {
+    let html = Data(#"<html><head><style>p{color:red}</style><script>alert(1)</script></head><body><p style="font-family:Arial;color:#f00" class="x"><span style="font-size:20px">Hello <strong>bold</strong> <a href="https://example.com" style="color:blue">link</a> <a href="javascript:alert(1)">bad</a></span></p><ul><li>one</li><li><em>two</em></li></ul><table><tr><td colspan="2" style="background:#eee">cell</td></tr></table><img src="x.png"></body></html>"#.utf8)
+    let cleaned = RichTextCleaner.cleanHTML(fromHTML: html) ?? ""
+    check("干净格式保留粗体、链接、列表和表格", cleaned.contains("<b>bold</b>") && cleaned.contains(#"<a href="https://example.com">link</a>"#)
+          && cleaned.contains("<ul><li>one</li><li><i>two</i></li></ul>") && cleaned.contains(#"<table><tr><td colspan="2">cell </td></tr></table>"#))
+    check("干净格式去掉样式、字体、颜色、脚本和图片", !cleaned.contains("style") && !cleaned.contains("class") && !cleaned.contains("Arial")
+          && !cleaned.contains("alert") && !cleaned.contains("<img") && !cleaned.contains("<span") && !cleaned.contains("javascript"))
+
+    let attributed = NSMutableAttributedString(string: "Plain ", attributes: [.font: NSFont.systemFont(ofSize: 18), .foregroundColor: NSColor.red])
+    attributed.append(NSAttributedString(string: "Bold", attributes: [.font: NSFont.boldSystemFont(ofSize: 18), .backgroundColor: NSColor.yellow]))
+    attributed.append(NSAttributedString(string: " site", attributes: [.font: NSFont.systemFont(ofSize: 12), .link: URL(string: "https://example.org")!]))
+    let rtf = attributed.rtf(from: NSRange(location: 0, length: attributed.length), documentAttributes: [:]) ?? Data()
+    let fromRTF = RichTextCleaner.cleanHTML(from: RichText(rtf: rtf, html: nil)) ?? ""
+    check("RTF 也能转成干净格式", fromRTF.contains("<p>Plain <b>Bold</b>") && fromRTF.contains(#"<a href="https://example.org"> site</a>"#)
+          && !fromRTF.contains("color") && !fromRTF.contains("font"))
+
+    let store = ClipboardStore.shared
+    let previousBoard = store.pasteboard
+    let board = NSPasteboard(name: NSPasteboard.Name("NotchDeckChecks-\(getpid())"))
+    store.pasteboard = board
+    let item = ClipboardStore.Item(content: .text("Hello bold"), date: Date(), sourceName: "Test", rich: RichText(rtf: rtf, html: html))
+    store.copy(item, style: .original)
+    check("原格式：文字、RTF、HTML 都放回剪贴板", board.string(forType: .string) == "Hello bold" && board.data(forType: .rtf) == rtf && board.data(forType: .html) == html)
+    store.copy(item, style: .plain)
+    check("纯文本：只放文字", board.string(forType: .string) == "Hello bold" && board.data(forType: .rtf) == nil && board.data(forType: .html) == nil)
+    store.copy(item, style: .clean)
+    let cleanOnBoard = board.data(forType: .html).map { String(decoding: $0, as: UTF8.self) } ?? ""
+    check("干净格式：放不带样式的 HTML 和文字", board.data(forType: .rtf) == nil && cleanOnBoard.contains("<b>bold</b>") && !cleanOnBoard.contains("style")
+          && board.string(forType: .string) == "Hello bold")
+    let previousDefault = store.copiesPlainByDefault
+    store.copiesPlainByDefault = false
+    let defaultOriginal = store.defaultStyle() == .original && store.defaultStyle(inverted: true) == .plain
+    store.copiesPlainByDefault = true
+    check("默认复制方式和 ⇧ 反转", defaultOriginal && store.defaultStyle() == .plain && store.defaultStyle(inverted: true) == .original)
+    store.copiesPlainByDefault = previousDefault
+    check("空的格式不算带格式", !ClipboardStore.Item(content: .text("x"), date: Date(), sourceName: "", rich: RichText()).hasFormatting && item.hasFormatting)
+
+    // 保存历史时格式也一起保存。
+    let previousSave = store.saveHistory
+    store.saveHistory = true
+    store.insert(item)
+    store.persistNow()
+    let saved = (try? Data(contentsOf: Storage.folder.appendingPathComponent("clipboard.json"))).map { String(decoding: $0, as: UTF8.self) } ?? ""
+    check("格式随历史一起保存", saved.contains("\"rtf\"") && saved.contains("\"html\""))
+    store.remove(item)
+    store.saveHistory = previousSave
+    store.persistNow()
+    board.releaseGlobally()
+    store.pasteboard = previousBoard
+}
+
 section("其他") {
     check("内存压力文字", [MemoryPressure.low, .medium, .high].map(\.title) == [L("压力低"), L("压力中"), L("压力高")])
     check("便签颜色编号不能变", NoteColor.allCases.map(\.rawValue) == [0, 1, 2, 3] && NoteColor(rawValue: 1) == .yellow)

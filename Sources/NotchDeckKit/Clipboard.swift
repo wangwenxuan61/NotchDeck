@@ -12,22 +12,31 @@ final class ClipboardStore: ObservableObject {
         case files([URL])
     }
 
+    /// 点击时复制成什么样：原样（带格式）、纯文本，或者只保留结构的干净格式。
+    enum CopyStyle {
+        case original, plain, clean
+    }
+
     struct Item: Identifiable {
         let id: UUID
         let content: Content
         let date: Date
         let sourceName: String
         var isPinned = false
+        /// 文字附带的格式（HTML、RTF），没有格式时为 nil。
+        let rich: RichText?
+        var hasFormatting: Bool { rich != nil }
         /// 只有展示和搜索用这段，复制时始终使用完整内容。
         private let textPreview: String
         private static let previewLength = 20_000
 
-        init(id: UUID = UUID(), content: Content, date: Date, sourceName: String, isPinned: Bool = false) {
+        init(id: UUID = UUID(), content: Content, date: Date, sourceName: String, isPinned: Bool = false, rich: RichText? = nil) {
             self.id = id
             self.content = content
             self.date = date
             self.sourceName = sourceName
             self.isPinned = isPinned
+            self.rich = rich.flatMap { $0.isEmpty ? nil : $0 }
             if case .text(let text) = content {
                 textPreview = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.previewLength))
             } else {
@@ -51,6 +60,8 @@ final class ClipboardStore: ObservableObject {
     private static let maxImageBytes = 8_000_000
     /// 超过这个大小的文字不记录。历史里的内容必须能完整粘贴回去，所以不做截断。
     private static let maxTextBytes = 1_000_000
+    /// 格式数据超过这个大小时只保留文字，避免很大的网页占满内存。
+    private static let maxRichBytes = 1_000_000
     /// 密码管理器等 App 用这些类型标记不应被记录的内容。
     private static let ignoredTypes: Set<String> = [
         "org.nspasteboard.ConcealedType",
@@ -61,6 +72,7 @@ final class ClipboardStore: ObservableObject {
     ]
 
     private static let saveHistoryKey = "clipboardSaveHistory"
+    private static let copyPlainKey = "clipboardCopyPlain"
     /// 自动更新重启时临时保存了全部历史，新版本读回后要按设置重写文件。
     private static let keptForRestartKey = "clipboardKeptForRestart"
 
@@ -71,10 +83,16 @@ final class ClipboardStore: ObservableObject {
         let date: Date
         let sourceName: String
         let isPinned: Bool
+        /// 旧版本保存的文件里没有这两项，读出来是 nil。
+        var rtf: Data?
+        var html: Data?
 
         init?(_ item: Item) {
             switch item.content {
-            case .text(let value): text = value
+            case .text(let value):
+                text = value
+                rtf = item.rich?.rtf
+                html = item.rich?.html
             case .files(let urls): paths = urls.map(\.path)
             case .image: return nil
             }
@@ -93,7 +111,7 @@ final class ClipboardStore: ObservableObject {
             } else {
                 return nil
             }
-            return Item(id: id, content: content, date: date, sourceName: sourceName, isPinned: isPinned)
+            return Item(id: id, content: content, date: date, sourceName: sourceName, isPinned: isPinned, rich: RichText(rtf: rtf, html: html))
         }
     }
 
@@ -101,6 +119,10 @@ final class ClipboardStore: ObservableObject {
         didSet { schedulePersist() }
     }
     @Published var isPaused = false
+    /// 点击带格式的内容时默认复制成纯文本；按住 ⇧ 点击复制成另一种。
+    @Published var copiesPlainByDefault: Bool {
+        didSet { UserDefaults.standard.set(copiesPlainByDefault, forKey: Self.copyPlainKey) }
+    }
     @Published var saveHistory: Bool {
         didSet {
             UserDefaults.standard.set(saveHistory, forKey: Self.saveHistoryKey)
@@ -108,7 +130,8 @@ final class ClipboardStore: ObservableObject {
         }
     }
 
-    private let pasteboard = NSPasteboard.general
+    /// 检查程序会换成一个独立的剪贴板，免得改动用户正在用的系统剪贴板。
+    var pasteboard = NSPasteboard.general
     private let fileURL = Storage.folder.appendingPathComponent("clipboard.json")
     private var lastChange: Int
     private var timer: Timer?
@@ -118,6 +141,7 @@ final class ClipboardStore: ObservableObject {
     private init() {
         lastChange = NSPasteboard.general.changeCount
         saveHistory = UserDefaults.standard.bool(forKey: Self.saveHistoryKey)
+        copiesPlainByDefault = UserDefaults.standard.bool(forKey: Self.copyPlainKey)
         if let data = try? Data(contentsOf: fileURL), let saved = try? JSONDecoder().decode([SavedItem].self, from: data) {
             items = saved.compactMap(\.item)
         }
@@ -169,7 +193,7 @@ final class ClipboardStore: ObservableObject {
         lastChange = change
         guard !isPaused, let content = readContent() else { return }
         let app = NSWorkspace.shared.frontmostApplication
-        insert(Item(content: content, date: Date(), sourceName: app?.localizedName ?? ""))
+        insert(Item(content: content, date: Date(), sourceName: app?.localizedName ?? "", rich: readRichText(for: content)))
     }
 
     private func readContent() -> Content? {
@@ -189,6 +213,14 @@ final class ClipboardStore: ObservableObject {
             }
         }
         return nil
+    }
+
+    /// 文字附带的格式。太大时不保存格式，只留文字。
+    private func readRichText(for content: Content) -> RichText? {
+        guard case .text = content else { return nil }
+        let rich = RichText(rtf: pasteboard.data(forType: .rtf), html: pasteboard.data(forType: .html))
+        guard !rich.isEmpty, rich.byteCount <= Self.maxRichBytes else { return nil }
+        return rich
     }
 
     /// 新内容排在置顶项之后。
@@ -229,17 +261,38 @@ final class ClipboardStore: ObservableObject {
         items = items.filter(\.isPinned) + items.filter { !$0.isPinned }
     }
 
-    func copy(_ item: Item) {
+    /// 点击时的默认复制方式；inverted 为 true（按住 ⇧）时用另一种。
+    func defaultStyle(inverted: Bool = false) -> CopyStyle {
+        copiesPlainByDefault != inverted ? .plain : .original
+    }
+
+    func copy(_ item: Item, style requested: CopyStyle? = nil) {
+        let style = requested ?? defaultStyle()
         pasteboard.clearContents()
         switch item.content {
-        case .text(let text): pasteboard.setString(text, forType: .string)
+        case .text(let text): write(text, rich: item.rich, style: style)
         case .image(_, let data, let type): pasteboard.setData(data, forType: type)
         case .files(let urls): pasteboard.writeObjects(urls as [NSURL])
         }
         lastChange = pasteboard.changeCount
         items.removeAll { $0.id == item.id }
         items.insert(item, at: item.isPinned ? 0 : insertionIndex)
-        Toasts.shared.show(L("已复制"), icon: "doc.on.clipboard")
+        // 没有格式的内容不管选哪种都一样，提示保持“已复制”。
+        let message = !item.hasFormatting || style == .original ? L("已复制") : (style == .plain ? L("已复制为纯文本") : L("已复制为干净格式"))
+        Toasts.shared.show(message, icon: "doc.on.clipboard")
+    }
+
+    private func write(_ text: String, rich: RichText?, style: CopyStyle) {
+        switch style {
+        case .original:
+            if let rtf = rich?.rtf { pasteboard.setData(rtf, forType: .rtf) }
+            if let html = rich?.html { pasteboard.setData(html, forType: .html) }
+        case .clean:
+            if let rich, let html = RichTextCleaner.cleanHTML(from: rich) { pasteboard.setData(Data(html.utf8), forType: .html) }
+        case .plain:
+            break
+        }
+        pasteboard.setString(text, forType: .string)
     }
 
     /// 在本机识别图片里的文字并复制，不会上传。复制后会和普通内容一样进入历史。
@@ -306,10 +359,21 @@ struct ClipboardRow: View {
                         .font(.system(size: 12))
                         .lineLimit(1)
                     if showsMeta {
-                        Text(item.sourceName.isEmpty ? relativeTime(item.date) : "\(item.sourceName) · \(relativeTime(item.date))")
-                            .font(.system(size: 10))
-                            .foregroundStyle(Theme.secondary)
-                            .lineLimit(1)
+                        HStack(spacing: 5) {
+                            Text(item.sourceName.isEmpty ? relativeTime(item.date) : "\(item.sourceName) · \(relativeTime(item.date))")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Theme.secondary)
+                                .lineLimit(1)
+                            if item.hasFormatting {
+                                // 带格式的内容，点击时按设置复制成原格式或纯文本。
+                                Text(verbatim: "Aa")
+                                    .font(.system(size: 8, weight: .semibold))
+                                    .foregroundStyle(Theme.secondary)
+                                    .padding(.horizontal, 3)
+                                    .overlay(RoundedRectangle(cornerRadius: 3, style: .continuous).stroke(Theme.tertiary, lineWidth: 0.5))
+                                    .help(L("带格式"))
+                            }
+                        }
                     }
                 }
                 Spacer(minLength: 0)
@@ -391,12 +455,23 @@ struct ClipboardPage: View {
                         LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 2) {
                             ForEach(filtered) { item in
                                 ClipboardRow(item: item, onPin: { store.togglePin(item) }) {
-                                    store.copy(item)
+                                    // 按住 ⇧ 点击时复制成另一种：默认原格式就复制纯文本，默认纯文本就复制原格式。
+                                    store.copy(item, style: store.defaultStyle(inverted: NSEvent.modifierFlags.contains(.shift)))
                                     AppDelegate.shared.closePanel()
                                 }
                                 .contextMenu {
                                     if case .image = item.content {
                                         Button(L("提取文字")) { store.copyText(in: item) }
+                                    }
+                                    if item.hasFormatting {
+                                        if store.copiesPlainByDefault {
+                                            Button(L("复制原格式")) { store.copy(item, style: .original); AppDelegate.shared.closePanel() }
+                                        } else {
+                                            Button(L("复制为纯文本")) { store.copy(item, style: .plain); AppDelegate.shared.closePanel() }
+                                        }
+                                        Button(L("复制为干净格式")) { store.copy(item, style: .clean); AppDelegate.shared.closePanel() }
+                                            .help(L("保留粗体、列表、链接和表格，去掉字体、字号和颜色"))
+                                        Divider()
                                     }
                                     Button(item.isPinned ? L("取消置顶") : L("置顶")) { store.togglePin(item) }
                                     Button(L("删除")) { store.remove(item) }
@@ -433,7 +508,9 @@ struct ClipboardCard: View {
                 } else {
                     VStack(spacing: 0) {
                         ForEach(store.items.prefix(3)) { item in
-                            ClipboardRow(item: item, showsMeta: false) { store.copy(item) }
+                            ClipboardRow(item: item, showsMeta: false) {
+                                store.copy(item, style: store.defaultStyle(inverted: NSEvent.modifierFlags.contains(.shift)))
+                            }
                         }
                     }
                     Spacer(minLength: 0)

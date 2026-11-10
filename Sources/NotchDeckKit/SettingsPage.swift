@@ -9,6 +9,7 @@ struct SettingsPage: View {
     @ObservedObject private var language = LanguageStore.shared
     @ObservedObject private var updates = UpdateChecker.shared
     @ObservedObject private var usage = TokenUsageStore.shared
+    @ObservedObject private var clipboard = ClipboardStore.shared
 
     private func row<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         HStack {
@@ -90,6 +91,17 @@ struct SettingsPage: View {
                     menuBarChip(L("电池"), $settings.showMenuBarBattery)
                 }
             }
+            row(L("剪贴板点击时复制为")) {
+                Picker("", selection: $clipboard.copiesPlainByDefault) {
+                    Text(L("原格式")).tag(false)
+                    Text(L("纯文本")).tag(true)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .controlSize(.small)
+                .fixedSize()
+            }
+            .help(L("带格式（Aa）的内容点击时复制成哪种；按住 ⇧ 点击复制成另一种"))
             row(L("AI Token 用量")) {
                 HStack(spacing: 8) {
                     if usage.isEnabled {
