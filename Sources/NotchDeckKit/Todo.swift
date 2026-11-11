@@ -10,6 +10,8 @@ final class TodoStore: ObservableObject {
     }
 
     @Published private(set) var items: [Item]
+    /// 还没添加的输入。面板收起后界面会拆掉，放在这里下次打开还在；不保存到文件。
+    @Published var draft = ""
 
     private static let file = "todos.json"
     private var sync: ReminderSync? { ReminderSync.shared.isActive ? ReminderSync.shared : nil }
@@ -79,7 +81,6 @@ final class TodoStore: ObservableObject {
 struct TodoCard: View {
     @ObservedObject private var store = TodoStore.shared
     @ObservedObject private var reminders = ReminderSync.shared
-    @State private var draft = ""
     @FocusState private var focused: Bool
     @State private var hoveringInput = false
     /// 鼠标所在的那一条，右边显示删除按钮。
@@ -142,11 +143,11 @@ struct TodoCard: View {
             Button(action: submitDraft) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 13))
-                    .foregroundStyle(draft.trimmingCharacters(in: .whitespaces).isEmpty ? Theme.tertiary : Theme.teal)
+                    .foregroundStyle(store.draft.trimmingCharacters(in: .whitespaces).isEmpty ? Theme.tertiary : Theme.teal)
             }
             .buttonStyle(.plain)
             .help(L("添加"))
-            TextField(L("添加待办"), text: $draft)
+            TextField(L("添加待办"), text: $store.draft)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
                 .focused($focused)
@@ -159,8 +160,8 @@ struct TodoCard: View {
     }
 
     private func submitDraft() {
-        store.add(draft)
-        draft = ""
+        store.add(store.draft)
+        store.draft = ""
         // 回车后输入框可能会失去焦点，等这一轮更新完再放回去。
         DispatchQueue.main.async { focused = true }
     }

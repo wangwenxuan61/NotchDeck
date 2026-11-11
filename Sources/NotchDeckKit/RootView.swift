@@ -38,10 +38,12 @@ struct RootView: View {
         ZStack(alignment: .top) {
             VisualEffect(cornerRadius: Metrics.cornerRadius)
             Theme.panelTint
-            ExpandedContent(model: model)
-                .frame(width: Metrics.contentWidth, height: Metrics.contentHeight, alignment: .top)
-                // 换语言时重建整个界面，所有文字一起更新。
-                .id(language.current)
+            if model.contentMounted {
+                ExpandedContent(model: model)
+                    .frame(width: Metrics.contentWidth, height: Metrics.contentHeight, alignment: .top)
+                    // 换语言时重建整个界面，所有文字一起更新。
+                    .id(language.current)
+            }
         }
         .frame(width: Metrics.panelWidth, height: Metrics.contentHeight)
         .clipShape(shape)

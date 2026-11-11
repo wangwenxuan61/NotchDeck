@@ -20,6 +20,8 @@ enum Metrics {
 
 final class PanelModel: ObservableObject {
     @Published var expanded = false
+    /// 面板内容是否在界面里。收起动画结束后拆掉，看不见时就不会每秒重画时钟、跟着数据刷新。
+    @Published var contentMounted = false
     @Published var page: Page = .home {
         didSet { AppDelegate.shared.refreshMonitorMode() }
     }
@@ -104,6 +106,7 @@ final class PanelController {
         hideWork = nil
         place(midX: midX, on: screen)
         if !panel.isVisible { panel.alphaValue = 0 }
+        model.contentMounted = true
         panel.orderFrontRegardless()
         panel.makeKey()
         // 窗口成为 key 后系统会自动聚焦第一个输入框，这里清掉，等用户点击时再输入。搜索页例外，打开就要能打字。
@@ -130,6 +133,7 @@ final class PanelController {
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             self.panel.orderOut(nil)
+            self.model.contentMounted = false
             self.model.page = .home
             self.model.homePage = 0
         }
