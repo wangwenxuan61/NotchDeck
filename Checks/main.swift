@@ -629,6 +629,12 @@ section("正在播放的辅助进程") {
     check("关掉后不会自己重启", helpers() == 0)
 }
 
+section("首页卡片") {
+    let layout = CardLayoutStore.shared
+    check("时间在顶栏，默认不放时钟卡片", !layout.pages.joined().contains(.clock) && layout.hidden.contains(.clock))
+    check("待办和短记默认在第一页最前面", Array(layout.pages[0].prefix(2)) == [.todo, .note])
+}
+
 section("其他") {
     check("内存压力文字", [MemoryPressure.low, .medium, .high].map(\.title) == [L("压力低"), L("压力中"), L("压力高")])
     check("便签颜色编号不能变", NoteColor.allCases.map(\.rawValue) == [0, 1, 2, 3] && NoteColor(rawValue: 1) == .yellow)

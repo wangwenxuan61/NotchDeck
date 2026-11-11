@@ -41,7 +41,8 @@ enum CardKind: String, Codable, CaseIterable, Identifiable {
     /// 同一页内各卡片按这个比例分配宽度。
     var weight: CGFloat {
         switch self {
-        case .todo, .note: return 0.85
+        // 时钟卡片挪走后空出的位置给了待办和短记，监控和音乐卡片的宽度不变。
+        case .todo, .note: return 1.35
         case .clock, .music, .timer: return 0.95
         case .monitor: return 1.75
         case .clipboard, .calendar, .lookBusy: return 1.1
@@ -59,11 +60,12 @@ final class CardLayoutStore: ObservableObject {
     static let hiddenColumn = 2
     private static let file = "cards.json"
     private static let defaultPages: [[CardKind]] = [
-        [.todo, .note, .clock, .monitor, .music],
+        [.todo, .note, .monitor, .music],
         [.agenda, .clipboard, .timer, .calendar, .lookBusy],
     ]
     private static let lookBusyAddedKey = "cardsAddedLookBusy"
     private static let agendaAddedKey = "cardsAddedAgenda"
+    private static let clockMovedKey = "cardsMovedClockToTopBar"
 
     @Published private(set) var pages: [[CardKind]]
 
@@ -83,7 +85,17 @@ final class CardLayoutStore: ObservableObject {
             UserDefaults.standard.set(true, forKey: Self.agendaAddedKey)
             if !seen.contains(.agenda), cleaned[1].count < Self.maxPerPage { cleaned[1].insert(.agenda, at: 0) }
         }
+        // 时间挪到了顶栏，时钟卡片对已有布局也只自动拿掉一次，想要的话可以在“首页卡片”里加回来。
+        var changed = false
+        if !UserDefaults.standard.bool(forKey: Self.clockMovedKey) {
+            UserDefaults.standard.set(true, forKey: Self.clockMovedKey)
+            for index in cleaned.indices where cleaned[index].contains(.clock) {
+                cleaned[index].removeAll { $0 == .clock }
+                changed = true
+            }
+        }
         pages = cleaned
+        if changed { persist() }
     }
 
     var hidden: [CardKind] { CardKind.allCases.filter { kind in !pages.contains { $0.contains(kind) } } }

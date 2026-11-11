@@ -149,6 +149,31 @@ struct ExpandedContent: View {
     }
 }
 
+/// 顶栏右侧的日期和时间，点击打开日历。只在面板打开时存在，每分钟刷新一次。
+private struct TopBarClock: View {
+    var body: some View {
+        Button(action: openCalendarApp) {
+            TimelineView(.everyMinute) { timeline in
+                HStack(spacing: 6) {
+                    Text(localizedDateFormatter("MMMdEEE").string(from: timeline.date))
+                        .foregroundStyle(Theme.secondary)
+                    Text(formatClockTime(timeline.date))
+                        .fontWeight(.semibold)
+                        .monospacedDigit()
+                }
+                .font(.system(size: 12, weight: .medium))
+                .lineLimit(1)
+                .padding(.horizontal, 10)
+                .frame(height: 28)
+                .background(Capsule().fill(Theme.control))
+                .contentShape(Capsule())
+            }
+        }
+        .buttonStyle(.plain)
+        .help(L("打开日历"))
+    }
+}
+
 struct TopBar: View {
     @ObservedObject var model: PanelModel
     @ObservedObject private var monitor = SystemMonitor.shared
@@ -208,6 +233,7 @@ struct TopBar: View {
 
             Spacer()
 
+            TopBarClock()
             if let percent = monitor.batteryPercent {
                 HStack(spacing: 5) {
                     Image(systemName: batterySymbol).font(.system(size: 13))
