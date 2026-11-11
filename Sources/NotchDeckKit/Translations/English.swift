@@ -260,4 +260,8 @@ let englishStrings: [String: String] = [
     "按图片里的文字搜索": "Search images by their text",
     "在剪贴板的搜索框输入截图里的词，就能找到那张图。": "Type a word from a screenshot into the clipboard search to find that image.",
     "右键图片选“抠出主体”，把人、宠物或物品复制成透明背景的图片。": "Right-click an image and choose Copy Subject to copy the person, pet or object on a transparent background.",
+    "更新后看看有什么新功能": "What's new after each update",
+    "以后每次更新，打开面板就会先看到这一页；在设置里点版本号可以再看。": "From now on, opening the panel after an update shows this page first. Click the version number in Settings to see it again.",
+    "后台更省电": "Lighter in the background",
+    "面板收起后不再刷新里面的内容，正在播放的信息也只在打开面板时读取，后台占用降到原来的七分之一左右。": "The closed panel no longer refreshes or checks what's playing, cutting background use to about a seventh.",
 ]

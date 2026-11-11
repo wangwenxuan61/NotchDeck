@@ -16,6 +16,14 @@ struct ReleaseNotes {
     /// 文字在用到时才取，这样换语言后显示的也是新语言。
     static var all: [ReleaseNotes] {
         [
+            ReleaseNotes(version: "0.1.15", items: [
+                Item(symbol: "sparkles", color: Theme.purple,
+                     title: L("更新后看看有什么新功能"),
+                     detail: L("以后每次更新，打开面板就会先看到这一页；在设置里点版本号可以再看。")),
+                Item(symbol: "leaf", color: Theme.teal,
+                     title: L("后台更省电"),
+                     detail: L("面板收起后不再刷新里面的内容，正在播放的信息也只在打开面板时读取，后台占用降到原来的七分之一左右。")),
+            ]),
             ReleaseNotes(version: "0.1.14", items: [
                 Item(symbol: "clock.arrow.circlepath", color: Theme.teal,
                      title: L("剪贴板历史重启后还在"),

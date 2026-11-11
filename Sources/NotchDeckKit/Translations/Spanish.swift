@@ -260,4 +260,8 @@ let spanishStrings: [String: String] = [
     "按图片里的文字搜索": "Buscar imágenes por su texto",
     "在剪贴板的搜索框输入截图里的词，就能找到那张图。": "Escribe una palabra de una captura en la búsqueda del portapapeles para encontrar la imagen.",
     "右键图片选“抠出主体”，把人、宠物或物品复制成透明背景的图片。": "Haz clic derecho en una imagen y elige «Copiar sujeto» para copiar la persona, mascota u objeto con fondo transparente.",
+    "更新后看看有什么新功能": "Novedades tras cada actualización",
+    "以后每次更新，打开面板就会先看到这一页；在设置里点版本号可以再看。": "Tras una actualización, el panel muestra primero esta página. Haz clic en el número de versión en Ajustes para volver a verla.",
+    "后台更省电": "Más ligero en segundo plano",
+    "面板收起后不再刷新里面的内容，正在播放的信息也只在打开面板时读取，后台占用降到原来的七分之一左右。": "Cerrado, el panel ya no se actualiza ni consulta lo que suena: el uso en segundo plano baja a una séptima parte aproximadamente.",
 ]

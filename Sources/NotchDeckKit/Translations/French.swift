@@ -260,4 +260,8 @@ let frenchStrings: [String: String] = [
     "按图片里的文字搜索": "Rechercher les images par leur texte",
     "在剪贴板的搜索框输入截图里的词，就能找到那张图。": "Tapez un mot d’une capture d’écran dans la recherche du presse-papiers pour retrouver l’image.",
     "右键图片选“抠出主体”，把人、宠物或物品复制成透明背景的图片。": "Clic droit sur une image, puis « Copier le sujet » : la personne, l’animal ou l’objet est copié sur fond transparent.",
+    "更新后看看有什么新功能": "Les nouveautés après chaque mise à jour",
+    "以后每次更新，打开面板就会先看到这一页；在设置里点版本号可以再看。": "Après une mise à jour, le panneau affiche d’abord cette page. Cliquez sur le numéro de version dans les Réglages pour la revoir.",
+    "后台更省电": "Plus léger en arrière-plan",
+    "面板收起后不再刷新里面的内容，正在播放的信息也只在打开面板时读取，后台占用降到原来的七分之一左右。": "Fermé, le panneau ne se rafraîchit plus et ne lit plus la lecture en cours : l’usage en arrière-plan tombe à environ un septième.",
 ]
