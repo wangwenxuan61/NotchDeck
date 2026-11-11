@@ -7,8 +7,8 @@ final class TokenUsageStore: ObservableObject {
     static let retentionDays = 30
     private static let enabledKey = "tokenUsageEnabled"
     /// 保存格式或价格表变了就把版本号加一，旧的统计会删掉重新读取。
-    static let file = "token-usage-v3.json"
-    private static let legacyFiles = ["token-usage.json", "token-usage-v2.json"]
+    static let file = "token-usage-v4.json"
+    private static let legacyFiles = ["token-usage.json", "token-usage-v2.json", "token-usage-v3.json"]
 
     enum Range: CaseIterable {
         case today, week, month
@@ -138,10 +138,13 @@ final class TokenUsageStore: ObservableObject {
         let keys: [URLResourceKey] = [.contentModificationDateKey, .fileSizeKey, .isRegularFileKey]
         var jobs: [Job] = []
         var sizes: [UInt64] = []
+        /// Codex 会话 ID -> 文件，文件名以会话 ID 结尾。
+        var codexFiles: [String: URL] = [:]
         for root in roots {
             guard let enumerator = FileManager.default.enumerator(at: root.url, includingPropertiesForKeys: keys) else { continue }
             for case let url as URL in enumerator where url.pathExtension == "jsonl" {
                 guard let values = try? url.resourceValues(forKeys: Set(keys)), values.isRegularFile == true else { continue }
+                if root.source == .codex { codexFiles[String(url.deletingPathExtension().lastPathComponent.suffix(36))] = url }
                 let path = url.path
                 // 30 天内没改过的文件，不会有新的用量。
                 let isOld = (values.contentModificationDate ?? Date()) < cutoffDate
@@ -159,12 +162,23 @@ final class TokenUsageStore: ObservableObject {
             }
         }
 
+        // Codex 子代理文件第一次读时，开头是从父会话复制来的历史，先取出父会话的累计值好跳过它们。
+        // 复制是创建子代理时一次写完的，之后新增的都是子代理自己的用量，所以只在从头读时需要。
+        var copied: [Int: Set<CodexTotals>] = [:]
+        var parentTotals: [String: Set<CodexTotals>] = [:]
+        for i in jobs.indices where jobs[i].needsRead && jobs[i].state.source == .codex && jobs[i].state.offset == 0 {
+            guard let parent = UsageParsing.codexForkParent(of: jobs[i].url), let parentURL = codexFiles[parent] else { continue }
+            if parentTotals[parent] == nil { parentTotals[parent] = UsageParsing.codexTotals(in: parentURL) }
+            copied[i] = parentTotals[parent]
+        }
+
         // 大文件先读，免得最后只剩一个大文件在单独读。
         let order = jobs.indices.filter { jobs[$0].needsRead }.sorted { sizes[$0] > sizes[$1] }
         jobs.withUnsafeMutableBufferPointer { buffer in
             DispatchQueue.concurrentPerform(iterations: order.count) { index in
                 let i = order[index]
-                try? UsageParsing.readNewLines(of: buffer[i].url, into: &buffer[i].state, entries: &buffer[i].entries)
+                try? UsageParsing.readNewLines(of: buffer[i].url, into: &buffer[i].state, entries: &buffer[i].entries,
+                                               copiedCodexTotals: copied[i] ?? [])
             }
         }
 

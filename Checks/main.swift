@@ -354,6 +354,29 @@ section("Token 用量解析") {
           TokenPricing.price(for: "gpt-5.4")?.rates.input == 2.5 && TokenPricing.price(for: "gpt-5.4-mini")?.rates.input == 0.75
           && near(TokenPricing.cost(of: TokenUsage(output: 1_000_000, fast: true), model: "gpt-5.5"), 75))
 
+    // Codex 子代理文件开头分页复制父会话的历史（顺序打乱），之后才是自己的用量：只算后者。
+    func meta(_ id: String, forkedFrom parent: String? = nil) -> String {
+        let fork = parent.map { #","forked_from_id":"\#($0)""# } ?? ""
+        return #"{"timestamp":"\#(stamp)","type":"session_meta","payload":{"id":"\#(id)"\#(fork)}}"#
+    }
+    let parentID = "019f0000-0000-7000-8000-00000000aaaa", forkID = "019f0000-0000-7000-8000-00000000bbbb"
+    let parentFile = sandbox.appendingPathComponent("rollout-parent-\(parentID).jsonl")
+    let forkFile = sandbox.appendingPathComponent("rollout-fork-\(forkID).jsonl")
+    let parentLines = [meta(parentID), #"{"timestamp":"\#(stamp)","type":"turn_context","payload":{"model":"gpt-5.6-sol"}}"#,
+                       tokenCount((100_000, 0, 1_000), (100_000, 0, 1_000)), tokenCount((250_000, 0, 3_000), (150_000, 0, 2_000))]
+    let forkLines = [meta(forkID, forkedFrom: parentID), #"{"timestamp":"\#(stamp)","type":"turn_context","payload":{"model":"gpt-5.6-sol"}}"#,
+                     tokenCount((250_000, 0, 3_000), (150_000, 0, 2_000)), tokenCount((100_000, 0, 1_000), (100_000, 0, 1_000)),
+                     tokenCount((260_000, 0, 3_500), (10_000, 0, 500))]
+    try? Data((parentLines.joined(separator: "\n") + "\n").utf8).write(to: parentFile)
+    try? Data((forkLines.joined(separator: "\n") + "\n").utf8).write(to: forkFile)
+    var parentState = UsageFileState(source: .codex), forkState = UsageFileState(source: .codex), forkSeen = Set<String>()
+    try? UsageParsing.readNewLines(of: parentFile, into: &parentState, seen: &forkSeen)
+    let copiedTotals = UsageParsing.codexTotals(in: parentFile)
+    check("认出 Codex 子代理文件和它的父会话", UsageParsing.codexForkParent(of: forkFile) == parentID && UsageParsing.codexForkParent(of: parentFile) == nil && copiedTotals.count == 2)
+    try? UsageParsing.readNewLines(of: forkFile, into: &forkState, seen: &forkSeen, copiedCodexTotals: copiedTotals)
+    check("子代理只算自己的用量，复制来的父会话历史不重复算",
+          tokens(parentState.days[day]?["gpt-5.6-sol"]) == [250_000, 0, 0, 3_000] && tokens(forkState.days[day]?["gpt-5.6-sol"]) == [10_000, 0, 0, 500])
+
     let file = sandbox.appendingPathComponent("partial.jsonl")
     let second = #"{"type":"assistant","timestamp":"\#(stamp)","message":{"id":"msg_9","model":"m","usage":{"input_tokens":7,"output_tokens":3}}}"#
     let firstPart = opus + "\n" + second.prefix(40)

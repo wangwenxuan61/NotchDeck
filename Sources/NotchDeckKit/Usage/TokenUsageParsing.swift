@@ -31,7 +31,7 @@ enum UsageSource: String, Codable, CaseIterable {
 }
 
 /// Codex 记录里的原始累计值。
-struct CodexTotals: Codable, Equatable {
+struct CodexTotals: Codable, Hashable {
     var input = 0
     var cached = 0
     var cacheWrite = 0
@@ -273,9 +273,31 @@ enum UsageParsing {
         return ClaudeEntry(id: id, day: day, model: model, counts: counts)
     }
 
+    /// Codex 子代理的会话文件开头会把父会话的历史整段复制一遍，复制的累计值父会话里都有。
+    /// 返回父会话的 ID，不是子代理时返回 nil。只看第一行。
+    static func codexForkParent(of url: URL) -> String? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        guard let head = try? handle.read(upToCount: 64 << 10), let end = head.firstIndex(of: 0x0A),
+              let object = try? JSONSerialization.jsonObject(with: head[..<end]) as? [String: Any],
+              object["type"] as? String == "session_meta", let payload = object["payload"] as? [String: Any] else { return nil }
+        return payload["forked_from_id"] as? String
+    }
+
+    /// 父会话里出现过的全部累计值，用来认出子代理文件里复制过来的历史。
+    static func codexTotals(in url: URL) -> Set<CodexTotals> {
+        var state = UsageFileState(source: .codex)
+        var totals = Set<CodexTotals>()
+        var entries: [ClaudeEntry] = []
+        try? readNewLines(of: url, into: &state, entries: &entries) { totals.insert($0) }
+        return totals
+    }
+
     /// Codex 每次请求后记一条累计值。正常情况按累计的增量算，能补上中间没单独记录的请求；
     /// 累计值变小（会话重置）或是文件里的第一条时，用这一条的单次用量，避免把续接会话之前的用量再算一遍。
-    private static func consumeCodex(_ line: Data, into state: inout UsageFileState) {
+    /// copied 里的累计值是从父会话复制来的历史，只更新基准，不计入，不然父会话的用量会重复算。
+    private static func consumeCodex(_ line: Data, into state: inout UsageFileState, copied: Set<CodexTotals> = [],
+                                     onTotal: ((CodexTotals) -> Void)? = nil) {
         guard let object = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
               let payload = object["payload"] as? [String: Any] else { return }
         if object["type"] as? String == "turn_context" {
@@ -294,7 +316,14 @@ enum UsageParsing {
               let info = payload["info"] as? [String: Any],
               let totalDictionary = info["total_token_usage"] as? [String: Any] else { return }
         let total = CodexTotals(totalDictionary)
+        onTotal?(total)
         guard total != state.codexTotal else { return }
+        if copied.contains(total) {
+            // 复制的历史是分页写入的，不按时间顺序。子代理自己的累计值接着父会话在分叉时的累计值往上加，
+            // 也就是复制内容里最大的那个，所以基准只往大里更新。
+            if state.codexTotal.map({ total.isAtLeast($0) }) ?? true { state.codexTotal = total }
+            return
+        }
         let last = (info["last_token_usage"] as? [String: Any]).map(CodexTotals.init)
         let used: CodexTotals
         if let previous = state.codexTotal, total.isAtLeast(previous) {
@@ -322,7 +351,9 @@ enum UsageParsing {
 
     /// 从 offset 开始读文件里新增的完整行。最后一行如果还没写完就留到下次，offset 停在最后一个换行符之后。
     /// Claude Code 的用量放进 entries，之后由 apply 去重计入，这样多个文件可以同时读。
-    static func readNewLines(of url: URL, into state: inout UsageFileState, entries: inout [ClaudeEntry]) throws {
+    /// copiedCodexTotals 是 Codex 子代理文件里要跳过的父会话累计值。
+    static func readNewLines(of url: URL, into state: inout UsageFileState, entries: inout [ClaudeEntry],
+                             copiedCodexTotals: Set<CodexTotals> = [], onCodexTotal: ((CodexTotals) -> Void)? = nil) throws {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
         try handle.seek(toOffset: state.offset)
@@ -354,7 +385,8 @@ enum UsageParsing {
                         case .codex:
                             // 不复制这一行，直接在读到的数据上解析。
                             if isCodexUsage(line) {
-                                consumeCodex(Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: base + start), count: line.count, deallocator: .none), into: &state)
+                                consumeCodex(Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: base + start), count: line.count, deallocator: .none),
+                                             into: &state, copied: copiedCodexTotals, onTotal: onCodexTotal)
                             }
                         }
                         start = end + 1
@@ -368,9 +400,10 @@ enum UsageParsing {
     }
 
     /// 读完立即去重计入，检查程序用。
-    static func readNewLines(of url: URL, into state: inout UsageFileState, seen: inout Set<String>) throws {
+    static func readNewLines(of url: URL, into state: inout UsageFileState, seen: inout Set<String>,
+                             copiedCodexTotals: Set<CodexTotals> = []) throws {
         var entries: [ClaudeEntry] = []
         defer { apply(entries, to: &state, seen: &seen) }
-        try readNewLines(of: url, into: &state, entries: &entries)
+        try readNewLines(of: url, into: &state, entries: &entries, copiedCodexTotals: copiedCodexTotals)
     }
 }
