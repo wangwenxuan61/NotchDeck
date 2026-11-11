@@ -12,7 +12,7 @@ enum UpdateInstaller {
     }
 
     enum Failure: Error, Equatable {
-        case noAsset, download, checksum, mount, missingApp, wrongApp, signature, wrongSigner, notWritable, replace
+        case download, checksum, mount, missingApp, wrongApp, signature, wrongSigner, notWritable, replace
     }
 
     private static let appName = "NotchDeck.app"
@@ -86,15 +86,15 @@ enum UpdateInstaller {
     /// 只读挂载 DMG，用 ditto 原样复制 App（保留签名），然后卸载。
     static func copyApp(fromDMG dmg: URL, mountPoint: URL, to destination: URL) throws {
         try FileManager.default.createDirectory(at: mountPoint, withIntermediateDirectories: true)
-        guard run("/usr/bin/hdiutil", ["attach", dmg.path, "-nobrowse", "-readonly", "-noautoopen", "-noverify", "-mountpoint", mountPoint.path]) else {
+        guard Shell.succeeds("/usr/bin/hdiutil", ["attach", dmg.path, "-nobrowse", "-readonly", "-noautoopen", "-noverify", "-mountpoint", mountPoint.path]) else {
             throw Failure.mount
         }
-        defer { _ = run("/usr/bin/hdiutil", ["detach", mountPoint.path, "-force"]) }
+        defer { Shell.succeeds("/usr/bin/hdiutil", ["detach", mountPoint.path, "-force"]) }
         let app = mountPoint.appendingPathComponent(appName)
         guard FileManager.default.fileExists(atPath: app.path) else { throw Failure.missingApp }
-        guard run("/usr/bin/ditto", [app.path, destination.path]) else { throw Failure.missingApp }
+        guard Shell.succeeds("/usr/bin/ditto", [app.path, destination.path]) else { throw Failure.missingApp }
         // 自己下载的文件本来就没有隔离标记，这里再确认一次，免得新版本第一次打开被拦下。
-        _ = run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", destination.path])
+        Shell.succeeds("/usr/bin/xattr", ["-dr", "com.apple.quarantine", destination.path])
     }
 
     /// 必须是同一个 App、正好是要更新的版本，并且签名完整。
@@ -103,7 +103,7 @@ enum UpdateInstaller {
         guard let info = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist")) as? [String: Any],
               info["CFBundleIdentifier"] as? String == bundleID,
               info["CFBundleShortVersionString"] as? String == version else { throw Failure.wrongApp }
-        guard run("/usr/bin/codesign", ["--verify", "--deep", "--strict", app.path]) else { throw Failure.signature }
+        guard Shell.succeeds("/usr/bin/codesign", ["--verify", "--deep", "--strict", app.path]) else { throw Failure.signature }
         if let requirement {
             var code: SecStaticCode?
             guard SecStaticCodeCreateWithPath(app as CFURL, [], &code) == errSecSuccess, let code,
@@ -165,17 +165,5 @@ enum UpdateInstaller {
         for name in names where name.hasSuffix(".app") && (name.hasPrefix(".NotchDeck-update-") || name.hasPrefix(".NotchDeck-old-")) {
             try? FileManager.default.removeItem(at: folder.appendingPathComponent(name))
         }
-    }
-
-    @discardableResult
-    private static func run(_ tool: String, _ arguments: [String]) -> Bool {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: tool)
-        process.arguments = arguments
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        do { try process.run() } catch { return false }
-        process.waitUntilExit()
-        return process.terminationStatus == 0
     }
 }

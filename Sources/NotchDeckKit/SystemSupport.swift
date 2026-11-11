@@ -16,6 +16,19 @@ enum Shell {
         return data
     }
 
+    /// 运行命令并等待结束，返回是否成功（退出码为 0）。不要在主线程调用。
+    @discardableResult
+    static func succeeds(_ path: String, _ arguments: [String]) -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: path)
+        process.arguments = arguments
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        guard (try? process.run()) != nil else { return false }
+        process.waitUntilExit()
+        return process.terminationStatus == 0
+    }
+
     /// 启动命令后立即返回，不等待结果。
     static func launch(_ path: String, _ arguments: [String]) {
         let process = Process()
