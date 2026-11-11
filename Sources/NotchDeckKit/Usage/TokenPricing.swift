@@ -60,7 +60,7 @@ enum TokenPricing {
         ModelPrice(rates: .claude(input, read: read, output: output), fastMultiplier: fast)
     }
 
-    /// OpenAI 的 GPT-5.6 和 GPT-6：单次输入超过 27.2 万 token 按长上下文价格，快速模式全部翻倍。
+    /// OpenAI 的 GPT-5.6 和 GPT-6：单次输入超过 27.2 万 token 按长上下文价格，快速模式（Codex 里的 priority）全部翻倍。
     /// long 依次是输入、缓存读取、输出、30 分钟写入、12 小时写入。
     private static func openAI(_ input: Double, read: Double, output: Double, write: Double, writeLong: Double,
                                long: (Double, Double, Double, Double, Double)) -> ModelPrice {
@@ -105,10 +105,14 @@ enum TokenPricing {
             "gpt-6-sol": openAI(2, read: 0.2, output: 10, write: 2.5, writeLong: 5, long: (4, 0.4, 15, 5, 10)),
             "gpt-6-luna": openAI(0.1, read: 0.01, output: 0.5, write: 0.125, writeLong: 0.25, long: (0.2, 0.02, 0.75, 0.25, 0.5)),
             "gpt-5.5": ModelPrice(rates: .openAI(5, read: 0.5, output: 30),
-                                  longContext: (272_000, .openAI(10, read: 1, output: 45))),
+                                  longContext: (272_000, .openAI(10, read: 1, output: 45)), fastMultiplier: 2.5),
             "gpt-5.5-pro": ModelPrice(rates: .openAI(30, read: 30, output: 180),
                                       longContext: (272_000, .openAI(60, read: 60, output: 270))),
-            "gpt-5.3-codex": ModelPrice(rates: .openAI(1.75, read: 0.175, output: 14)),
+            "gpt-5.4": ModelPrice(rates: .openAI(2.5, read: 0.25, output: 15),
+                                  longContext: (272_000, .openAI(5, read: 0.5, output: 22.5)), fastMultiplier: 2),
+            // 单独列出，否则会按前缀匹配到 gpt-5.4 的价格。
+            "gpt-5.4-mini": ModelPrice(rates: .openAI(0.75, read: 0.075, output: 4.5), fastMultiplier: 2),
+            "gpt-5.3-codex": ModelPrice(rates: .openAI(1.75, read: 0.175, output: 14), fastMultiplier: 2),
         ]
     }()
 

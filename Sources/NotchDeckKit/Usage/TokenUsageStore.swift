@@ -7,8 +7,8 @@ final class TokenUsageStore: ObservableObject {
     static let retentionDays = 30
     private static let enabledKey = "tokenUsageEnabled"
     /// 保存格式或价格表变了就把版本号加一，旧的统计会删掉重新读取。
-    static let file = "token-usage-v2.json"
-    private static let legacyFiles = ["token-usage.json"]
+    static let file = "token-usage-v3.json"
+    private static let legacyFiles = ["token-usage.json", "token-usage-v2.json"]
 
     enum Range: CaseIterable {
         case today, week, month

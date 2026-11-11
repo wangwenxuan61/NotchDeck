@@ -278,7 +278,25 @@ section("Token 用量解析") {
     check("没有用量的行和空用量被忽略", claude.days[day]?.count == 2)
     var copied = UsageFileState(source: .claudeCode)
     UsageParsing.consume(Data(opus.utf8), into: &copied, seen: &claudeSeen)
-    check("复制到别的文件的请求不重复计算", copied.days.isEmpty && copied.ids.isEmpty && claude.ids == ["msg_1", "msg_2", "msg_3"])
+    check("复制到别的文件的请求不重复计算，全是 0 的记录不占用请求 ID", copied.days.isEmpty && copied.ids.isEmpty && claude.ids == ["msg_1", "msg_2"])
+
+    // 同一次请求先记一份 0 或没写完的，再记完整的：要算完整的那份。
+    func claudeLine(_ id: String, input: Int, read: Int, output: Int) -> String {
+        #"{"timestamp":"\#(stamp)","message":{"id":"\#(id)","model":"claude-opus-5-5","usage":{"input_tokens":\#(input),"cache_read_input_tokens":\#(read),"output_tokens":\#(output)}}}"#
+    }
+    var repeated = UsageFileState(source: .claudeCode)
+    var repeatedSeen = Set<String>()
+    var batch: [ClaudeEntry] = []
+    for line in [claudeLine("r1", input: 0, read: 0, output: 0), claudeLine("r1", input: 2, read: 800, output: 50),
+                 claudeLine("r2", input: 2, read: 500, output: 10), claudeLine("r2", input: 2, read: 500, output: 90), claudeLine("r2", input: 0, read: 0, output: 0)] {
+        UsageParsing.consume(Data(line.utf8), into: &repeated, entries: &batch)
+    }
+    UsageParsing.apply(batch, to: &repeated, seen: &repeatedSeen)
+    check("同一次请求记了几遍时算用量最多的那份", tokens(repeated.days[day]?["claude-opus-5-5"]) == [4, 1300, 0, 140] && repeated.ids == ["r1", "r2"])
+    var later = UsageFileState(source: .claudeCode)
+    UsageParsing.consume(Data(claudeLine("r3", input: 0, read: 0, output: 0).utf8), into: &later, seen: &repeatedSeen)
+    UsageParsing.consume(Data(claudeLine("r3", input: 1, read: 0, output: 7).utf8), into: &later, seen: &repeatedSeen)
+    check("先读到全是 0 的记录，下次读到的完整记录照样计入", tokens(later.days[day]?["claude-opus-5-5"]) == [1, 0, 0, 7])
 
     // 扫描器只认 message 里的 usage：对话内容里同名的键、转义的引号和反斜杠都不能干扰。
     var tricky = UsageFileState(source: .claudeCode)
@@ -320,6 +338,21 @@ section("Token 用量解析") {
     var resumed = UsageFileState(source: .codex)
     UsageParsing.consume(Data(tokenCount((1_000, 0, 100), (10, 0, 1)).utf8), into: &resumed, seen: &codexSeen)
     check("续接会话的第一条只算单次用量", tokens(resumed.days[day]?["unknown"]) == [10, 0, 0, 1])
+
+    // Codex 用 thread_settings_applied 记服务档位，priority 按快速价格（两倍）计。
+    func settings(_ model: String, _ tier: String) -> String {
+        #"{"timestamp":"\#(stamp)","type":"event_msg","payload":{"type":"thread_settings_applied","thread_settings":{"model":"\#(model)","model_provider_id":"openai","service_tier":"\#(tier)"}}}"#
+    }
+    var tiered = UsageFileState(source: .codex)
+    for line in [settings("gpt-5.6-terra", "priority"), tokenCount((100_000, 0, 0), (100_000, 0, 0)),
+                 settings("gpt-5.6-sol", "default"), tokenCount((200_000, 0, 0), (100_000, 0, 0))] {
+        UsageParsing.consume(Data(line.utf8), into: &tiered, seen: &codexSeen)
+    }
+    check("Codex 的 priority 按快速价格计，切回 default 恢复原价，并跟随模型切换",
+          near(tiered.days[day]?["gpt-5.6-terra"]?.cost, 0.4) && near(tiered.days[day]?["gpt-5.6-sol"]?.cost, 0.4))
+    check("gpt-5.4 和 gpt-5.4-mini 分开计价，gpt-5.5 快速模式 2.5 倍",
+          TokenPricing.price(for: "gpt-5.4")?.rates.input == 2.5 && TokenPricing.price(for: "gpt-5.4-mini")?.rates.input == 0.75
+          && near(TokenPricing.cost(of: TokenUsage(output: 1_000_000, fast: true), model: "gpt-5.5"), 75))
 
     let file = sandbox.appendingPathComponent("partial.jsonl")
     let second = #"{"type":"assistant","timestamp":"\#(stamp)","message":{"id":"msg_9","model":"m","usage":{"input_tokens":7,"output_tokens":3}}}"#

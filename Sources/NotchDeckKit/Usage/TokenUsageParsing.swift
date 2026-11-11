@@ -75,8 +75,9 @@ struct UsageFileState: Codable {
     /// 这个文件里计入的 Claude Code 请求 ID。同一次请求会在文件里记好几遍，恢复或分叉会话时还会复制到别的文件，
     /// 所以要跨文件去重；文件被删除或重写时，靠这份列表把它的 ID 从全局去重集合里移除。
     var ids: [String] = []
-    /// Codex 的当前模型和上一次的累计值。
+    /// Codex 的当前模型、是否快速模式和上一次的累计值。
     var codexModel: String?
+    var codexFast: Bool?
     var codexTotal: CodexTotals?
 
     init(source: UsageSource) { self.source = source }
@@ -103,6 +104,7 @@ struct ClaudeEntry {
 enum UsageParsing {
     private static let tokenCountNeedle = Array("\"token_count\"".utf8)
     private static let turnContextNeedle = Array("\"turn_context\"".utf8)
+    private static let threadSettingsNeedle = Array("\"thread_settings_applied\"".utf8)
 
     static func int(_ value: Any?) -> Int { (value as? NSNumber)?.intValue ?? 0 }
 
@@ -195,10 +197,22 @@ enum UsageParsing {
     }
 
     /// 按顺序计入 Claude Code 的用量，已经在任何文件里出现过的请求 ID 跳过。
+    /// 同一次请求会记好几遍，先写的那份可能全是 0，或者输出还没写完，所以同一批里只算用量最多的那份；
+    /// 全是 0 的不算，也不占用请求 ID，这样下次读到的完整记录还能计入。
     static func apply(_ entries: [ClaudeEntry], to state: inout UsageFileState, seen: inout Set<String>) {
-        for entry in entries {
+        var best: [String: Int] = [:]
+        for (index, entry) in entries.enumerated() {
+            guard let id = entry.id else { continue }
+            if let current = best[id] {
+                let kept = entries[current].counts
+                if (entry.counts.total, entry.counts.cost) > (kept.total, kept.cost) { best[id] = index }
+            } else {
+                best[id] = index
+            }
+        }
+        for (index, entry) in entries.enumerated() where entry.counts.total > 0 {
             if let id = entry.id {
-                guard seen.insert(id).inserted else { continue }
+                guard best[id] == index, seen.insert(id).inserted else { continue }
                 state.ids.append(id)
             }
             state.add(entry.counts, day: entry.day, model: entry.model)
@@ -268,6 +282,14 @@ enum UsageParsing {
             if let model = payload["model"] as? String { state.codexModel = model }
             return
         }
+        // 切换模型或服务档位时记一条。priority 就是 OpenAI 价格页上的快速模式（2026 年 7 月改名），按快速价格计。
+        if payload["type"] as? String == "thread_settings_applied" {
+            if let settings = payload["thread_settings"] as? [String: Any] {
+                if let model = settings["model"] as? String { state.codexModel = model }
+                if let tier = settings["service_tier"] as? String { state.codexFast = tier == "priority" || tier == "fast" }
+            }
+            return
+        }
         guard payload["type"] as? String == "token_count",
               let info = payload["info"] as? [String: Any],
               let totalDictionary = info["total_token_usage"] as? [String: Any] else { return }
@@ -283,8 +305,10 @@ enum UsageParsing {
         state.codexTotal = total
         guard let day = day(fromTimestamp: object["timestamp"] as? String) else { return }
         let model = state.codexModel ?? "unknown"
-        var counts = used.usage.counts
-        counts.cost = TokenPricing.cost(of: used.usage, model: model) ?? 0
+        var usage = used.usage
+        usage.fast = state.codexFast ?? false
+        var counts = usage.counts
+        counts.cost = TokenPricing.cost(of: usage, model: model) ?? 0
         state.add(counts, day: day, model: model)
     }
 
@@ -293,7 +317,7 @@ enum UsageParsing {
         func contains(_ needle: [UInt8]) -> Bool {
             needle.withUnsafeBytes { memmem(bytes.baseAddress, bytes.count, $0.baseAddress, $0.count) != nil }
         }
-        return contains(tokenCountNeedle) || contains(turnContextNeedle)
+        return contains(tokenCountNeedle) || contains(turnContextNeedle) || contains(threadSettingsNeedle)
     }
 
     /// 从 offset 开始读文件里新增的完整行。最后一行如果还没写完就留到下次，offset 停在最后一个换行符之后。
