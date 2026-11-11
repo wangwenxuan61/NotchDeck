@@ -61,10 +61,19 @@ final class UpdateChecker: ObservableObject {
         self.timer = timer
     }
 
-    func showUpdateNoticeIfNeeded() {
+    /// 更新后第一次打开面板时调用：这个版本写了新功能就打开新功能页，否则提示一下版本号。
+    /// 用快捷键直接打开某一页（比如剪贴板）时先不打扰，留到下次从首页打开。
+    func showUpdateNoticeIfNeeded(in model: PanelModel) {
         guard let version = updateNotice else { return }
+        guard ReleaseNotes.notes(for: version) != nil else {
+            updateNotice = nil
+            Toasts.shared.show(L("已更新到 %@", version), icon: "checkmark.seal")
+            return
+        }
+        guard model.page == .home else { return }
         updateNotice = nil
-        Toasts.shared.show(L("已更新到 %@", version), icon: "checkmark.seal")
+        model.whatsNewReturn = .home
+        model.page = .whatsNew
     }
 
     private func tick() {

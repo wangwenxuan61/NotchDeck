@@ -68,6 +68,16 @@ section("版本比较") {
     check("旧版本不算新", UpdateChecker.newerVersion(tag: "0.2.0", than: "0.10.0") == nil)
 }
 
+section("新功能") {
+    let all = ReleaseNotes.all
+    check("版本不重复", Set(all.map(\.version)).count == all.count)
+    check("最新的写在最前面", zip(all, all.dropFirst()).allSatisfy { $0.version.compare($1.version, options: .numeric) == .orderedDescending })
+    check("每个版本一到四条", all.allSatisfy { (1...4).contains($0.items.count) })
+    check("找当前版本的", ReleaseNotes.latest(upTo: "0.1.14")?.version == "0.1.14" && ReleaseNotes.notes(for: "0.1.14") != nil)
+    check("没写新功能的版本显示之前最近的一份", ReleaseNotes.latest(upTo: "0.1.20")?.version == "0.1.14" && ReleaseNotes.notes(for: "0.1.20") == nil)
+    check("按数字比较版本", ReleaseNotes.latest(upTo: "0.1.9") == nil && ReleaseNotes.latest(upTo: "0.1.13") == nil)
+}
+
 section("会议链接") {
     let link = { (text: String?) in AgendaStore.joinURL(in: [text])?.absoluteString }
     check("Zoom，去掉结尾标点", link("Join: https://acme.zoom.us/j/123?pwd=x.") == "https://acme.zoom.us/j/123?pwd=x")

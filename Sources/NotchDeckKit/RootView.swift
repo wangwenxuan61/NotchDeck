@@ -116,6 +116,7 @@ struct ExpandedContent: View {
         case .search: SearchPage(model: model)
         case .toggles: QuickControlsPage(model: model)
         case .usage: TokenUsagePage(model: model)
+        case .whatsNew: WhatsNewPage(model: model)
         }
     }
 

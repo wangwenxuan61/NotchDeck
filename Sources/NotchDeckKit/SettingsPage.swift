@@ -151,10 +151,27 @@ struct SettingsPage: View {
             }
             row(L("自动更新")) {
                 HStack(spacing: 8) {
-                    Text(verbatim: "v\(updates.currentVersion)")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Theme.secondary)
-                        .monospacedDigit()
+                    if ReleaseNotes.latest(upTo: updates.currentVersion) != nil {
+                        Button {
+                            model.whatsNewReturn = .settings
+                            model.page = .whatsNew
+                        } label: {
+                            HStack(spacing: 3) {
+                                Text(verbatim: "v\(updates.currentVersion)").monospacedDigit()
+                                Image(systemName: "sparkles").font(.system(size: 10))
+                            }
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.blue)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help(L("看看这个版本的新功能"))
+                    } else {
+                        Text(verbatim: "v\(updates.currentVersion)")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.secondary)
+                            .monospacedDigit()
+                    }
                     if let latest = updates.latestVersion {
                         if updates.phase == .downloading {
                             Text(L("正在下载 %@…", latest))

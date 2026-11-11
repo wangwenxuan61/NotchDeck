@@ -2,7 +2,7 @@ import AppKit
 import Combine
 import SwiftUI
 
-enum Page: String { case home, monitor, apps, pinned, settings, clipboard, timer, music, customize, search, toggles, usage }
+enum Page: String { case home, monitor, apps, pinned, settings, clipboard, timer, music, customize, search, toggles, usage, whatsNew }
 
 enum Metrics {
     static let contentWidth: CGFloat = 880
@@ -24,6 +24,8 @@ final class PanelModel: ObservableObject {
         didSet { AppDelegate.shared.refreshMonitorMode() }
     }
     @Published var homePage = 0
+    /// 新功能页从哪里打开的，看完回到那里。
+    var whatsNewReturn: Page = .home
 
     func turnHomePage(by delta: Int) {
         let count = CardLayoutStore.shared.visiblePages.count

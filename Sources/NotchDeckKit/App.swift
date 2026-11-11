@@ -136,7 +136,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 用户可能刚在系统设置里授权了日历，这种情况系统不会通知 App。
         AgendaStore.shared.refresh()
         TokenUsageStore.shared.refreshIfNeeded()
-        UpdateChecker.shared.showUpdateNoticeIfNeeded()
+        // 等这一轮里快捷键要打开的页面设好，再看要不要显示新功能。
+        DispatchQueue.main.async { UpdateChecker.shared.showUpdateNoticeIfNeeded(in: self.controller.model) }
         refreshMonitorMode()
         statusBar.syncHighlight()
     }
