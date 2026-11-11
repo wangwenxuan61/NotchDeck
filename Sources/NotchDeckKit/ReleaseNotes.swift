@@ -8,8 +8,6 @@ struct ReleaseNotes {
         let color: Color
         let title: String
         let detail: String
-        /// 点这一条跳到的页面，没有就不能点。
-        var page: Page?
     }
 
     let version: String
@@ -21,20 +19,16 @@ struct ReleaseNotes {
             ReleaseNotes(version: "0.1.14", items: [
                 Item(symbol: "clock.arrow.circlepath", color: Theme.teal,
                      title: L("剪贴板历史重启后还在"),
-                     detail: L("图片也会保存。只想留下置顶的内容，可以在剪贴板页关掉“保存历史”。"),
-                     page: .clipboard),
+                     detail: L("图片也会保存。只想留下置顶的内容，可以在剪贴板页关掉“保存历史”。")),
                 Item(symbol: "doc.text.magnifyingglass", color: Theme.blue,
                      title: L("查看全文"),
-                     detail: L("右键剪贴板里的一条选“查看”：长文字看全文，图片看大图和识别出的文字。"),
-                     page: .clipboard),
+                     detail: L("右键剪贴板里的一条选“查看”：长文字看全文，图片看大图和识别出的文字。")),
                 Item(symbol: "text.viewfinder", color: Theme.purple,
                      title: L("按图片里的文字搜索"),
-                     detail: L("在剪贴板的搜索框输入截图里的词，就能找到那张图。"),
-                     page: .clipboard),
+                     detail: L("在剪贴板的搜索框输入截图里的词，就能找到那张图。")),
                 Item(symbol: "person.and.background.dotted", color: Theme.orange,
                      title: L("抠出主体"),
-                     detail: L("右键图片选“抠出主体”，把人、宠物或物品复制成透明背景的图片。"),
-                     page: .clipboard),
+                     detail: L("右键图片选“抠出主体”，把人、宠物或物品复制成透明背景的图片。")),
             ]),
         ]
     }
@@ -65,7 +59,7 @@ struct WhatsNewPage: View {
             Card(padding: 10) {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                     ForEach(Array((notes?.items ?? []).enumerated()), id: \.offset) { _, item in
-                        WhatsNewRow(item: item) { model.page = $0 }
+                        WhatsNewRow(item: item)
                     }
                 }
             }
@@ -73,13 +67,12 @@ struct WhatsNewPage: View {
     }
 }
 
+/// 只是说明，不能点：看完新功能就回到原来的地方，不在这里跳去别的页面。
 private struct WhatsNewRow: View {
     let item: ReleaseNotes.Item
-    let open: (Page) -> Void
-    @State private var hovering = false
 
     var body: some View {
-        let content = HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 10) {
             Image(systemName: item.symbol)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(item.color)
@@ -98,24 +91,8 @@ private struct WhatsNewRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
-            if item.page != nil {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(hovering ? Theme.secondary : Theme.tertiary)
-                    .frame(height: 34)
-            }
         }
         .padding(8)
         .frame(maxWidth: .infinity, minHeight: 58, alignment: .topLeading)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(hovering && item.page != nil ? Theme.cardHover : Color.clear))
-        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-        if let page = item.page {
-            Button { open(page) } label: { content }
-                .buttonStyle(.plain)
-                .onHover { hovering = $0 }
-        } else {
-            content
-        }
     }
 }
