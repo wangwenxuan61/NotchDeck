@@ -605,6 +605,30 @@ section("剪贴板智能整理") {
     check("结果相同的推荐只留一个", Set(ids("1. a\n2. b\n3. c")).count == ids("1. a\n2. b\n3. c").count)
 }
 
+section("正在播放的辅助进程") {
+    // 读取正在播放的 osascript 只在面板打开时运行，关掉后不能留下进程，也不能因为很快关了又开而多出一个。
+    func helpers() -> Int {
+        let data = Shell.output("/usr/bin/pgrep", ["-P", String(getpid()), "osascript"]) ?? Data()
+        return String(decoding: data, as: UTF8.self).split(separator: "\n").count
+    }
+    let media = MediaController.shared
+    check("一开始没有运行", helpers() == 0)
+    media.start()
+    pump(0.5)
+    check("打开后运行一个", helpers() == 1)
+    media.stop()
+    pump(0.5)
+    check("关掉后退出", helpers() == 0)
+    media.start()
+    media.stop()
+    media.start()
+    pump(2)
+    check("很快关了又开，只留一个", helpers() == 1)
+    media.stop()
+    pump(1.5)
+    check("关掉后不会自己重启", helpers() == 0)
+}
+
 section("其他") {
     check("内存压力文字", [MemoryPressure.low, .medium, .high].map(\.title) == [L("压力低"), L("压力中"), L("压力高")])
     check("便签颜色编号不能变", NoteColor.allCases.map(\.rawValue) == [0, 1, 2, 3] && NoteColor(rawValue: 1) == .yellow)

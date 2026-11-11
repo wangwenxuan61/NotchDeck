@@ -2,6 +2,7 @@ import AppKit
 
 /// 普通 App 读不到系统“正在播放”信息，这里借助系统自带的 osascript 读取；
 /// 脚本循环一段时间后自动退出再重启，防止长期运行积累内存，App 崩溃时也不会留下常驻进程。
+/// 只有面板里用到这些信息，所以面板打开时才运行，收起后停掉。
 final class MediaController: ObservableObject {
     static let shared = MediaController()
 
@@ -21,7 +22,7 @@ final class MediaController: ObservableObject {
 
     private var process: Process?
     private var buffer = Data()
-    private var stopped = false
+    private var stopped = true
 
     private static let script = """
     ObjC.import('Foundation');
@@ -84,28 +85,44 @@ final class MediaController: ObservableObject {
         let artwork: String?
     }
 
-    func start() { launch() }
+    func start() {
+        stopped = false
+        launch()
+    }
 
+    /// 停掉后保留最后一次的信息，下次打开面板时先显示它，等新的一次上报再更新。
     func stop() {
         stopped = true
-        process?.terminate()
+        let running = process
+        process = nil
+        running?.terminate()
     }
 
     private func launch() {
-        guard !stopped else { return }
+        guard !stopped, process == nil else { return }
         let process = Process()
         let pipe = Pipe()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = ["-l", "JavaScript", "-e", Self.script]
         process.standardError = pipe
         process.standardOutput = FileHandle.nullDevice
-        pipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+        buffer.removeAll()
+        // 面板很快关了又开时，旧进程退出前可能还有输出，只接收当前这个进程的。
+        pipe.fileHandleForReading.readabilityHandler = { [weak self, weak process] handle in
             let data = handle.availableData
             guard !data.isEmpty else { handle.readabilityHandler = nil; return }
-            DispatchQueue.main.async { self?.consume(data) }
+            DispatchQueue.main.async {
+                guard let self, let process, self.process === process else { return }
+                self.consume(data)
+            }
         }
-        process.terminationHandler = { [weak self] _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self?.launch() }
+        // 脚本跑完一轮自己退出时接着重启；被 stop() 停掉的不再重启。
+        process.terminationHandler = { [weak self] finished in
+            DispatchQueue.main.async {
+                guard let self, self.process === finished else { return }
+                self.process = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.launch() }
+            }
         }
         guard (try? process.run()) != nil else { return }
         self.process = process

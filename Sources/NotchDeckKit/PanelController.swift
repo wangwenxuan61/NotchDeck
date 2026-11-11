@@ -107,6 +107,7 @@ final class PanelController {
         place(midX: midX, on: screen)
         if !panel.isVisible { panel.alphaValue = 0 }
         model.contentMounted = true
+        MediaController.shared.start()
         panel.orderFrontRegardless()
         panel.makeKey()
         // 窗口成为 key 后系统会自动聚焦第一个输入框，这里清掉，等用户点击时再输入。搜索页例外，打开就要能打字。
@@ -134,6 +135,7 @@ final class PanelController {
             guard let self else { return }
             self.panel.orderOut(nil)
             self.model.contentMounted = false
+            MediaController.shared.stop()
             self.model.page = .home
             self.model.homePage = 0
         }

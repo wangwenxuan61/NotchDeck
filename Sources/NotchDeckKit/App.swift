@@ -25,7 +25,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         SystemMonitor.shared.start()
-        MediaController.shared.start()
         ClipboardStore.shared.start()
         KeepAwake.shared.restoreAfterRestart()
         ReminderSync.shared.restore()
