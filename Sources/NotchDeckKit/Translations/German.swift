@@ -264,4 +264,8 @@ let germanStrings: [String: String] = [
     "以后每次更新，打开面板就会先看到这一页；在设置里点版本号可以再看。": "Ab jetzt zeigt das Panel nach einem Update zuerst diese Seite. In den Einstellungen auf die Versionsnummer klicken, um sie erneut zu sehen.",
     "后台更省电": "Sparsamer im Hintergrund",
     "面板收起后不再刷新里面的内容，正在播放的信息也只在打开面板时读取，后台占用降到原来的七分之一左右。": "Ist das Panel zu, wird nichts mehr aktualisiert und die Wiedergabe nicht abgefragt – die Hintergrundlast sinkt auf etwa ein Siebtel.",
+    "时间挪到了顶栏": "Uhrzeit jetzt in der oberen Leiste",
+    "日期和时间显示在电池旁边，点一下打开日历。时钟卡片不再放在首页，可以在设置的“首页卡片”里加回来。": "Datum und Uhrzeit stehen neben dem Akku; ein Klick öffnet den Kalender. Die Uhr-Karte gibt es weiter unter Startkarten.",
+    "待办和短记更宽": "Breitere Aufgaben und Notiz",
+    "时钟空出来的位置给了待办和短记，长一点的待办和短记也能看全。": "Der Platz der Uhr geht an Aufgaben und Notiz, damit längere Einträge hineinpassen.",
 ]

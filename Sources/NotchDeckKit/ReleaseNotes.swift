@@ -16,6 +16,14 @@ struct ReleaseNotes {
     /// 文字在用到时才取，这样换语言后显示的也是新语言。
     static var all: [ReleaseNotes] {
         [
+            ReleaseNotes(version: "0.1.16", items: [
+                Item(symbol: "clock", color: Theme.blue,
+                     title: L("时间挪到了顶栏"),
+                     detail: L("日期和时间显示在电池旁边，点一下打开日历。时钟卡片不再放在首页，可以在设置的“首页卡片”里加回来。")),
+                Item(symbol: "arrow.left.and.right", color: Theme.teal,
+                     title: L("待办和短记更宽"),
+                     detail: L("时钟空出来的位置给了待办和短记，长一点的待办和短记也能看全。")),
+            ]),
             ReleaseNotes(version: "0.1.15", items: [
                 Item(symbol: "sparkles", color: Theme.purple,
                      title: L("更新后看看有什么新功能"),

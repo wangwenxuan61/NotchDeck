@@ -264,4 +264,8 @@ let frenchStrings: [String: String] = [
     "以后每次更新，打开面板就会先看到这一页；在设置里点版本号可以再看。": "Après une mise à jour, le panneau affiche d’abord cette page. Cliquez sur le numéro de version dans les Réglages pour la revoir.",
     "后台更省电": "Plus léger en arrière-plan",
     "面板收起后不再刷新里面的内容，正在播放的信息也只在打开面板时读取，后台占用降到原来的七分之一左右。": "Fermé, le panneau ne se rafraîchit plus et ne lit plus la lecture en cours : l’usage en arrière-plan tombe à environ un septième.",
+    "时间挪到了顶栏": "L’heure passe dans la barre du haut",
+    "日期和时间显示在电池旁边，点一下打开日历。时钟卡片不再放在首页，可以在设置的“首页卡片”里加回来。": "La date et l’heure s’affichent près de la batterie ; un clic ouvre Calendrier. La carte Horloge reste dans Cartes d’accueil.",
+    "待办和短记更宽": "À faire et Note plus larges",
+    "时钟空出来的位置给了待办和短记，长一点的待办和短记也能看全。": "La place de l’horloge revient à À faire et à Note : les textes longs tiennent.",
 ]

@@ -264,4 +264,8 @@ let spanishStrings: [String: String] = [
     "以后每次更新，打开面板就会先看到这一页；在设置里点版本号可以再看。": "Tras una actualización, el panel muestra primero esta página. Haz clic en el número de versión en Ajustes para volver a verla.",
     "后台更省电": "Más ligero en segundo plano",
     "面板收起后不再刷新里面的内容，正在播放的信息也只在打开面板时读取，后台占用降到原来的七分之一左右。": "Cerrado, el panel ya no se actualiza ni consulta lo que suena: el uso en segundo plano baja a una séptima parte aproximadamente.",
+    "时间挪到了顶栏": "La hora pasa a la barra superior",
+    "日期和时间显示在电池旁边，点一下打开日历。时钟卡片不再放在首页，可以在设置的“首页卡片”里加回来。": "La fecha y la hora aparecen junto a la batería y abren Calendario. La tarjeta Reloj sigue disponible en Tarjetas de inicio.",
+    "待办和短记更宽": "Tareas y nota más anchas",
+    "时钟空出来的位置给了待办和短记，长一点的待办和短记也能看全。": "El espacio del reloj pasa a las tareas y la nota, así caben textos más largos.",
 ]

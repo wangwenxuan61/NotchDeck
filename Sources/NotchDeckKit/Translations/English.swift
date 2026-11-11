@@ -264,4 +264,8 @@ let englishStrings: [String: String] = [
     "以后每次更新，打开面板就会先看到这一页；在设置里点版本号可以再看。": "From now on, opening the panel after an update shows this page first. Click the version number in Settings to see it again.",
     "后台更省电": "Lighter in the background",
     "面板收起后不再刷新里面的内容，正在播放的信息也只在打开面板时读取，后台占用降到原来的七分之一左右。": "The closed panel no longer refreshes or checks what's playing, cutting background use to about a seventh.",
+    "时间挪到了顶栏": "The time moved to the top bar",
+    "日期和时间显示在电池旁边，点一下打开日历。时钟卡片不再放在首页，可以在设置的“首页卡片”里加回来。": "The date and time sit next to the battery and open Calendar. The clock card is still available under Home Cards.",
+    "待办和短记更宽": "Wider To-Dos and Note",
+    "时钟空出来的位置给了待办和短记，长一点的待办和短记也能看全。": "The clock's space went to To-Dos and Note, so longer items fit.",
 ]
