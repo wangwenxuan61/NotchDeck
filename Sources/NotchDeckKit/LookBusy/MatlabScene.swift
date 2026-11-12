@@ -51,6 +51,8 @@ final class MatlabSim: BusySim {
     private var rng: SplitMix64
     private(set) var iteration = 0
     let total = 2000
+    /// 残差曲线一共有多少个点（每 20 步记一个）。
+    static let residualPoints = 100
     private(set) var simTime = 0.0
     private(set) var command: [String] = []
     private(set) var residual = History(capacity: 120)
@@ -105,9 +107,10 @@ final class MatlabSim: BusySim {
                 }
             }
         }
+        // 编辑器底部：等一会儿，打一段代码，停留一会儿，清掉，换下一段。
         typeWait -= dt
         if typeWait <= 0 && !typist.isActive {
-            if typist.isDone && !typist.text.isEmpty {
+            if !typist.text.isEmpty {
                 typist.clear()
                 block = (block + 1) % Self.blocks.count
                 typeWait = rng.range(3, 6)
@@ -127,7 +130,7 @@ final class MatlabSim: BusySim {
     }
 
     /// 波场：从声源发出的圆形波，碰到内含物有一部分反射。返回 -1...1。
-    func field(x: Double, y: Double, t: Double) -> Double {
+    func field(x: Double, y: Double) -> Double {
         // 声源发出的是一个短脉冲：只有波前附近一圈有起伏，往外传时慢慢变弱。
         let front = Double(iteration) / Double(total) * 1.15 + 0.05
         func pulse(_ r: Double, _ at: Double) -> Double {
@@ -337,22 +340,16 @@ struct MatlabView: View {
 
     private var commandWindow: some View {
         pane("Command Window") {
-            GeometryReader { geo in
-                let n = max(1, Int(geo.size.height / 18) - 1)
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(sim.command.suffix(n).enumerated()), id: \.offset) { _, line in
-                        Text(line).font(ML.mono).foregroundColor(ML.text).lineLimit(1).frame(height: 18)
-                    }
-                    HStack(spacing: 2) {
-                        Text("fx").font(.system(size: 11, weight: .bold).italic()).foregroundColor(ML.dim)
-                        Text(">>").font(ML.mono)
-                    }
-                    .frame(height: 18)
+            LogTail(lines: sim.command, lineHeight: 18, footerLines: 1) { line in
+                Text(line).font(ML.mono).foregroundColor(ML.text)
+            } footer: {
+                HStack(spacing: 2) {
+                    Text("fx").font(.system(size: 11, weight: .bold).italic()).foregroundColor(ML.dim)
+                    Text(">>").font(ML.mono)
                 }
-                .padding(.horizontal, 8)
-                .frame(width: geo.size.width, height: geo.size.height, alignment: .bottomLeading)
+                .frame(height: 18)
             }
-            .clipped()
+            .padding(.horizontal, 8)
         }
     }
 
@@ -392,7 +389,7 @@ struct MatlabView: View {
                     let cellSize = side / Double(n)
                     for j in 0..<n {
                         for i in 0..<n {
-                            let v = sim.field(x: Double(i) / Double(n), y: Double(j) / Double(n), t: t)
+                            let v = sim.field(x: Double(i) / Double(n), y: Double(j) / Double(n))
                             let rect = CGRect(x: origin.x + Double(i) * cellSize, y: origin.y + Double(j) * cellSize,
                                               width: cellSize + 0.6, height: cellSize + 0.6)
                             ctx.fill(Path(rect), with: .color(ML.color((v + 1) / 2)))
@@ -418,7 +415,7 @@ struct MatlabView: View {
                     }
                     var path = Path()
                     for (i, v) in points.enumerated() {
-                        let p = CGPoint(x: plot.minX + plot.width * Double(i) / Double(max(MatlabSim.total() - 1, 1)),
+                        let p = CGPoint(x: plot.minX + plot.width * Double(i) / Double(MatlabSim.residualPoints - 1),
                                         y: plot.minY + plot.height * (-v) / -lo)
                         i == 0 ? path.move(to: p) : path.addLine(to: p)
                     }
@@ -429,9 +426,4 @@ struct MatlabView: View {
             .padding(8)
         }
     }
-}
-
-extension MatlabSim {
-    /// 残差曲线一共有多少个点（每 20 步一个）。
-    static func total() -> Int { 2000 / 20 }
 }

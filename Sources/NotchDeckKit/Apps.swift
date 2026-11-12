@@ -83,10 +83,6 @@ struct DockRow: View {
     @ObservedObject private var store = DockStore.shared
     @State private var dragging: String?
 
-    private func collapse() {
-        AppDelegate.shared.closePanel()
-    }
-
     private var divider: some View {
         Rectangle().fill(Theme.track).frame(width: 1, height: 30)
     }
@@ -100,7 +96,7 @@ struct DockRow: View {
             divider
             HStack(spacing: 0) {
                 ForEach(store.items.prefix(DockStore.visibleCount)) { app in
-                    AppIcon(app: app, size: 38) { collapse() }
+                    AppIcon(app: app, size: 38) { AppDelegate.shared.closePanel() }
                         .frame(maxWidth: .infinity)
                         .onDrag {
                             dragging = app.path
@@ -163,10 +159,6 @@ struct AllAppsPage: View {
     @ObservedObject var model: PanelModel
     @ObservedObject private var store = DockStore.shared
 
-    private func collapse() {
-        AppDelegate.shared.closePanel()
-    }
-
     var body: some View {
         VStack(spacing: 6) {
             PageHeader(title: L("所有应用"), model: model)
@@ -174,7 +166,7 @@ struct AllAppsPage: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 11), spacing: 10) {
                     ForEach(store.allApps) { app in
                         VStack(spacing: 3) {
-                            AppIcon(app: app, size: 40) { collapse() }
+                            AppIcon(app: app, size: 40) { AppDelegate.shared.closePanel() }
                             Text(app.name).font(.system(size: 10)).lineLimit(1)
                         }
                         .contextMenu {
@@ -198,10 +190,6 @@ struct PinnedAppsPage: View {
     @ObservedObject var model: PanelModel
     @ObservedObject private var store = DockStore.shared
 
-    private func collapse() {
-        AppDelegate.shared.closePanel()
-    }
-
     var body: some View {
         VStack(spacing: 6) {
             PageHeader(title: L("快捷栏"), model: model) {
@@ -216,7 +204,7 @@ struct PinnedAppsPage: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 11), spacing: 10) {
                     ForEach(store.items) { app in
                         VStack(spacing: 3) {
-                            AppIcon(app: app, size: 40) { collapse() }
+                            AppIcon(app: app, size: 40) { AppDelegate.shared.closePanel() }
                             Text(app.name).font(.system(size: 10)).lineLimit(1)
                         }
                         .contextMenu { Button(L("从快捷栏移除")) { store.unpin(app.path) } }

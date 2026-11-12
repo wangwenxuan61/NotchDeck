@@ -39,14 +39,7 @@ struct TrainingView: View {
                     Panel(title: "GPU utilization · mean of 4") { utilChart }
                 }
                 .frame(height: size.height * 0.13)
-                Panel(title: "nvidia-smi") {
-                    Text(sim.nvidiaSMI())
-                        .font(.system(size: 10.5, design: .monospaced))
-                        .foregroundColor(Dash.text)
-                        .fixedSize()
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                }
-                .fixedSize(horizontal: false, vertical: true)
+                smiPanel
                 logPanel.frame(height: size.height * 0.2)
             }
             .padding(14)
@@ -69,14 +62,7 @@ struct TrainingView: View {
                         .frame(height: size.height * 0.2)
                     }
                     VStack(spacing: 14) {
-                        Panel(title: "nvidia-smi") {
-                            Text(sim.nvidiaSMI())
-                                .font(.system(size: 10.5, design: .monospaced))
-                                .foregroundColor(Dash.text)
-                                .fixedSize()
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                        }
-                        .fixedSize(horizontal: false, vertical: true)
+                        smiPanel
                         Panel(title: "processes") { processes }
                     }
                     .frame(width: 640)
@@ -88,6 +74,17 @@ struct TrainingView: View {
             }
             .background(Dash.bg)
         }
+    }
+
+    private var smiPanel: some View {
+        Panel(title: "nvidia-smi") {
+            Text(sim.nvidiaSMI())
+                .font(.system(size: 10.5, design: .monospaced))
+                .foregroundColor(Dash.text)
+                .fixedSize()
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var header: some View {
@@ -271,19 +268,11 @@ struct TrainingView: View {
 
     private var logPanel: some View {
         Panel(title: "stdout · train.log") {
-            GeometryReader { geo in
-                let n = max(1, Int(geo.size.height / 17))
-                VStack(alignment: .leading, spacing: 0) {
-                    Spacer(minLength: 0)
-                    ForEach(Array(sim.log.suffix(n).enumerated()), id: \.offset) { _, line in
-                        Text(line)
-                            .foregroundColor(line.contains("eval") ? Dash.val : line.contains("checkpoint") ? Dash.good : Dash.text)
-                            .font(Dash.mono).lineLimit(1).frame(height: 17, alignment: .leading)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            LogTail(lines: sim.log, lineHeight: 17) { line in
+                Text(line)
+                    .foregroundColor(line.contains("eval") ? Dash.val : line.contains("checkpoint") ? Dash.good : Dash.text)
+                    .font(Dash.mono)
             }
-            .clipped()
         }
     }
 }

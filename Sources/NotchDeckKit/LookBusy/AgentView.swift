@@ -248,17 +248,7 @@ private struct TerminalPane: View {
                 }
                 .font(IDE.monoSmall)
 
-                GeometryReader { geo in
-                    let n = max(1, Int(geo.size.height / 19))
-                    VStack(alignment: .leading, spacing: 0) {
-                        Spacer(minLength: 0)
-                        ForEach(sim.log.suffix(n)) { line in
-                            logText(line).frame(height: 19, alignment: .leading)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                }
-                .clipped()
+                LogTail(lines: sim.log, lineHeight: 19) { logText($0) }
 
                 statusLine
                 inputBox

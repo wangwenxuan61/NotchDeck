@@ -30,11 +30,16 @@ extension Color {
     }
 }
 
-func grouped(_ n: Int) -> String {
+/// 场景每帧都要格式化很多数字，格式器只建一次。
+private let groupedFormatter: NumberFormatter = {
     let f = NumberFormatter()
     f.numberStyle = .decimal
     f.groupingSeparator = ","
-    return f.string(from: NSNumber(value: n)) ?? "\(n)"
+    return f
+}()
+
+func grouped(_ n: Int) -> String {
+    groupedFormatter.string(from: NSNumber(value: n)) ?? "\(n)"
 }
 
 func duration(_ seconds: Double) -> String {

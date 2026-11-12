@@ -73,9 +73,9 @@ section("新功能") {
     check("版本不重复", Set(all.map(\.version)).count == all.count)
     check("最新的写在最前面", zip(all, all.dropFirst()).allSatisfy { $0.version.compare($1.version, options: .numeric) == .orderedDescending })
     check("每个版本一到四条", all.allSatisfy { (1...4).contains($0.items.count) })
-    check("找当前版本的", ReleaseNotes.latest(upTo: "0.1.14")?.version == "0.1.14" && ReleaseNotes.notes(for: "0.1.15") != nil)
+    check("找当前版本的", ReleaseNotes.latest(upTo: "0.1.18")?.version == "0.1.18" && ReleaseNotes.notes(for: "0.1.18") != nil)
     check("没写新功能的版本显示之前最近的一份", ReleaseNotes.latest(upTo: "0.1.20")?.version == "0.1.18" && ReleaseNotes.notes(for: "0.1.20") == nil)
-    check("按数字比较版本", ReleaseNotes.latest(upTo: "0.1.9") == nil && ReleaseNotes.latest(upTo: "0.1.13") == nil)
+    check("按数字比较版本", ReleaseNotes.latest(upTo: "0.1.9") == nil && ReleaseNotes.latest(upTo: "0.1.17") == nil)
 }
 
 section("会议链接") {
@@ -808,7 +808,7 @@ section("装忙场景和多屏幕") {
 
     let matlab = MatlabSim(seed: 4)
     check("波场数值在范围内", stride(from: 0.0, through: 1, by: 0.05).allSatisfy { x in
-        stride(from: 0.0, through: 1, by: 0.05).allSatisfy { abs(matlab.field(x: x, y: $0, t: 0)) <= 1 } })
+        stride(from: 0.0, through: 1, by: 0.05).allSatisfy { abs(matlab.field(x: x, y: $0)) <= 1 } })
     for _ in 0..<(600 * 20) { matlab.advance(1.0 / 20) }
     check("仿真跑完后重新开始", matlab.command.contains { $0.hasPrefix("Elapsed time") } && matlab.command.last(where: { $0.hasPrefix(">>") }) != nil && matlab.iteration < matlab.total)
 

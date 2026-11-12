@@ -204,10 +204,7 @@ struct SpreadsheetView: View {
         HStack(spacing: 12) { ForEach(symbols, id: \.self) { Image(systemName: $0).font(.system(size: 13)) } }
     }
 
-    private var cellName: String {
-        let c = sim.cursor
-        return "\(Character(UnicodeScalar(65 + c.col)!))\(c.row)"
-    }
+    private var cellName: String { "\(letter(sim.cursor.col))\(sim.cursor.row)" }
 
     private var formulaBar: some View {
         HStack(spacing: 0) {

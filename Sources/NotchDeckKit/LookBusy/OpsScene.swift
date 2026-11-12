@@ -248,18 +248,10 @@ struct OpsView: View {
     private var logs: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("deploy@prod-bastion-01:~$ tail -f /var/log/nginx/access.log").font(Tmux.mono).foregroundColor(Tmux.green)
-            GeometryReader { geo in
-                let n = max(1, Int(geo.size.height / 16))
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(sim.log.suffix(n).enumerated()), id: \.offset) { _, line in
-                        Text(line).font(.system(size: 11.5, design: .monospaced))
-                            .foregroundColor(line.contains("\" 502 ") ? Tmux.red : line.contains("\" 404 ") ? Tmux.yellow : Tmux.text)
-                            .lineLimit(1).frame(height: 16, alignment: .leading)
-                    }
-                }
-                .frame(width: geo.size.width, height: geo.size.height, alignment: .bottomLeading)
+            LogTail(lines: sim.log, lineHeight: 16) { line in
+                Text(line).font(.system(size: 11.5, design: .monospaced))
+                    .foregroundColor(line.contains("\" 502 ") ? Tmux.red : line.contains("\" 404 ") ? Tmux.yellow : Tmux.text)
             }
-            .clipped()
         }
         .padding(8)
     }

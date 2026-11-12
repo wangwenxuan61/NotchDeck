@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// 每个版本的新功能，写在 App 里，跟着界面语言翻译，不用联网。
-/// 发新版本时在 all 最前面加一项，只写用户能感受到的变化，最多四条。
+/// 发新版本时把 all 里的换成新版本的，只写用户能感受到的变化，最多四条。
+/// App 只显示当前版本（没写的话是之前最近一版）的新功能，更早的不会再显示，所以只留最新一份。
 struct ReleaseNotes {
     struct Item {
         let symbol: String
@@ -29,50 +30,6 @@ struct ReleaseNotes {
                 Item(symbol: "eyedropper", color: Theme.orange,
                      title: L("取色"),
                      detail: L("点“取色”或按 ⌃⌥C，再点屏幕上任意位置，复制它的色值。")),
-            ]),
-            ReleaseNotes(version: "0.1.17", items: [
-                Item(symbol: "calendar", color: Theme.coral,
-                     title: L("日程卡片"),
-                     detail: L("本周日期和接下来几天的日程放在一起，今天的过完了会接着显示明天的。")),
-                Item(symbol: "tray.full", color: Theme.orange,
-                     title: L("暂存架"),
-                     detail: L("把文件拖到面板上先放着，要用时再拖出去或点开。")),
-                Item(symbol: "hourglass", color: Theme.teal,
-                     title: L("今日用时"),
-                     detail: L("看看今天在哪些 App 上花了多久，只算正在用的 App，只存在本机。")),
-                Item(symbol: "briefcase.fill", color: Theme.purple,
-                     title: L("装忙换场景"),
-                     detail: L("装忙按钮旁的箭头可以换场景。月历和计时器卡片可在“首页卡片”里加回。")),
-            ]),
-            ReleaseNotes(version: "0.1.16", items: [
-                Item(symbol: "clock", color: Theme.blue,
-                     title: L("时间挪到了顶栏"),
-                     detail: L("日期和时间显示在电池旁边，点一下打开日历。时钟卡片不再放在首页，可以在设置的“首页卡片”里加回来。")),
-                Item(symbol: "arrow.left.and.right", color: Theme.teal,
-                     title: L("待办和短记更宽"),
-                     detail: L("时钟空出来的位置给了待办和短记，长一点的待办和短记也能看全。")),
-            ]),
-            ReleaseNotes(version: "0.1.15", items: [
-                Item(symbol: "sparkles", color: Theme.purple,
-                     title: L("更新后看看有什么新功能"),
-                     detail: L("以后每次更新，打开面板就会先看到这一页；在设置里点版本号可以再看。")),
-                Item(symbol: "leaf", color: Theme.teal,
-                     title: L("后台更省电"),
-                     detail: L("面板收起后不再刷新里面的内容，正在播放的信息也只在打开面板时读取，后台占用降到原来的七分之一左右。")),
-            ]),
-            ReleaseNotes(version: "0.1.14", items: [
-                Item(symbol: "clock.arrow.circlepath", color: Theme.teal,
-                     title: L("剪贴板历史重启后还在"),
-                     detail: L("图片也会保存。只想留下置顶的内容，可以在剪贴板页关掉“保存历史”。")),
-                Item(symbol: "doc.text.magnifyingglass", color: Theme.blue,
-                     title: L("查看全文"),
-                     detail: L("右键剪贴板里的一条选“查看”：长文字看全文，图片看大图和识别出的文字。")),
-                Item(symbol: "text.viewfinder", color: Theme.purple,
-                     title: L("按图片里的文字搜索"),
-                     detail: L("在剪贴板的搜索框输入截图里的词，就能找到那张图。")),
-                Item(symbol: "person.and.background.dotted", color: Theme.orange,
-                     title: L("抠出主体"),
-                     detail: L("右键图片选“抠出主体”，把人、宠物或物品复制成透明背景的图片。")),
             ]),
         ]
     }

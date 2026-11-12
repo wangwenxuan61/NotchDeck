@@ -99,6 +99,36 @@ func drawLineChart(_ ctx: GraphicsContext, size: CGSize, series: [[Double]], col
     }
 }
 
+/// 终端、日志一类往上滚的文字：只画放得下的最后几行，最新的一行在最下面。
+/// footerLines 是下面 footer 占的行数，比如命令提示符。
+struct LogTail<Line, Row: View, Footer: View>: View {
+    let lines: [Line]
+    let lineHeight: CGFloat
+    var footerLines = 0
+    @ViewBuilder let row: (Line) -> Row
+    @ViewBuilder let footer: () -> Footer
+
+    var body: some View {
+        GeometryReader { geo in
+            let n = max(1, Int(geo.size.height / lineHeight) - footerLines)
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(lines.suffix(n).enumerated()), id: \.offset) { _, line in
+                    row(line).lineLimit(1).frame(height: lineHeight, alignment: .leading)
+                }
+                footer()
+            }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .bottomLeading)
+        }
+        .clipped()
+    }
+}
+
+extension LogTail where Footer == EmptyView {
+    init(lines: [Line], lineHeight: CGFloat, @ViewBuilder row: @escaping (Line) -> Row) {
+        self.init(lines: lines, lineHeight: lineHeight, row: row, footer: { EmptyView() })
+    }
+}
+
 /// 按竖屏还是横屏排列：横屏左右放，竖屏上下放。
 struct AdaptiveStack<Content: View>: View {
     let portrait: Bool

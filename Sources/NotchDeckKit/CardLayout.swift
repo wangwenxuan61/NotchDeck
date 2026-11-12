@@ -67,13 +67,12 @@ final class CardLayoutStore: ObservableObject {
         [.todo, .note, .monitor, .music],
         [.agenda, .clipboard, .shelf, .appTime],
     ]
-    private static let lookBusyAddedKey = "cardsAddedLookBusy"
     private static let agendaAddedKey = "cardsAddedAgenda"
     private static let clockMovedKey = "cardsMovedClockToTopBar"
     private static let scheduleShelfKey = "cardsScheduleAndShelf"
     private static let appTimeKey = "cardsAppTimeInsteadOfTimer"
     /// 只对已有布局做一次的调整。全新安装直接用默认布局，这些都算做过了。
-    private static let oneTimeKeys = [lookBusyAddedKey, agendaAddedKey, clockMovedKey, scheduleShelfKey, appTimeKey]
+    private static let oneTimeKeys = [agendaAddedKey, clockMovedKey, scheduleShelfKey, appTimeKey]
 
     @Published private(set) var pages: [[CardKind]]
 
@@ -91,10 +90,6 @@ final class CardLayoutStore: ObservableObject {
         while cleaned.count < 2 { cleaned.append([]) }
         let before = cleaned
         // 已经自定义过布局的用户，新卡片只自动加入一次；之后隐藏了也不再加回来。
-        if !defaults.bool(forKey: Self.lookBusyAddedKey) {
-            defaults.set(true, forKey: Self.lookBusyAddedKey)
-            if !seen.contains(.lookBusy), cleaned[1].count < Self.maxPerPage { cleaned[1].append(.lookBusy) }
-        }
         if !defaults.bool(forKey: Self.agendaAddedKey) {
             defaults.set(true, forKey: Self.agendaAddedKey)
             if !seen.contains(.agenda), cleaned[1].count < Self.maxPerPage { cleaned[1].insert(.agenda, at: 0) }

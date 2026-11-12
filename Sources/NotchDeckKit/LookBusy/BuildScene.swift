@@ -149,10 +149,10 @@ final class BuildSim: BusySim {
 
     private func emit(_ dt: Double, rate: Double, _ line: () -> Void) {
         acc += dt * rate * rng.range(0.4, 1.6)
+        // 一个阶段结束时会设置 pause，循环就停在这一行。
         while acc >= 1 && pause <= 0 {
             acc -= 1
             line()
-            if phase != .compiling && phase != .testing { break }
         }
     }
 
@@ -302,24 +302,17 @@ struct BuildView: View {
     }
 
     private var log: some View {
-        GeometryReader { geo in
-            let n = max(1, Int((geo.size.height - 20) / 18))
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(sim.lines.suffix(n).enumerated()), id: \.offset) { _, line in
-                    Text(line.text).font(Term.mono).foregroundColor(color(line.kind))
-                        .fontWeight(line.kind == .success ? .bold : .regular)
-                        .lineLimit(1).frame(height: 18, alignment: .leading)
-                }
-                HStack(spacing: 0) {
-                    Text(sim.phase == .done ? "$ " : "").font(Term.mono).foregroundColor(Term.text)
-                    Rectangle().fill(Int(t * 2) % 2 == 0 ? Term.text : .clear).frame(width: 8, height: 15)
-                }
-                .frame(height: 18)
+        LogTail(lines: sim.lines, lineHeight: 18, footerLines: 1) { line in
+            Text(line.text).font(Term.mono).foregroundColor(color(line.kind))
+                .fontWeight(line.kind == .success ? .bold : .regular)
+        } footer: {
+            HStack(spacing: 0) {
+                Text(sim.phase == .done ? "$ " : "").font(Term.mono).foregroundColor(Term.text)
+                Rectangle().fill(Int(t * 2) % 2 == 0 ? Term.text : .clear).frame(width: 8, height: 15)
             }
-            .padding(10)
-            .frame(width: geo.size.width, height: geo.size.height, alignment: .bottomLeading)
+            .frame(height: 18)
         }
-        .clipped()
+        .padding(10)
     }
 
     private func side(portrait: Bool) -> some View {
