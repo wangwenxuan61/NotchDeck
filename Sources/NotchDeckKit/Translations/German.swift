@@ -278,4 +278,10 @@ let germanStrings: [String: String] = [
     "今日用时": "Heutige Nutzung",
     "只记录 App 名称和使用时长，保存在本机": "Nur App-Namen und Nutzungsdauer werden auf diesem Mac gespeichert",
     "从现在开始记录，用一会儿再来看": "Die Aufzeichnung beginnt. Schau später wieder vorbei",
+    "日程卡片": "Terminkarte",
+    "本周日期和接下来几天的日程放在一起，今天的过完了会接着显示明天的。": "Diese Woche und die nächsten Termine zusammen; sind heutige vorbei, folgen die von morgen.",
+    "把文件拖到面板上先放着，要用时再拖出去或点开。": "Dateien auf dem Panel ablegen und später herausziehen oder öffnen.",
+    "看看今天在哪些 App 上花了多久，只算正在用的 App，只存在本机。": "Wie lange du heute welche App genutzt hast – nur die vorderste zählt, gespeichert auf diesem Mac.",
+    "装忙换场景": "Szene wählen",
+    "装忙按钮旁的箭头可以换场景。月历和计时器卡片可在“首页卡片”里加回。": "Der Pfeil neben dem Busy-Knopf wählt die Szene. Kalender und Timer lassen sich in Startkarten zurückholen.",
 ]

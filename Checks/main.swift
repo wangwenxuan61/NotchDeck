@@ -74,7 +74,7 @@ section("新功能") {
     check("最新的写在最前面", zip(all, all.dropFirst()).allSatisfy { $0.version.compare($1.version, options: .numeric) == .orderedDescending })
     check("每个版本一到四条", all.allSatisfy { (1...4).contains($0.items.count) })
     check("找当前版本的", ReleaseNotes.latest(upTo: "0.1.14")?.version == "0.1.14" && ReleaseNotes.notes(for: "0.1.15") != nil)
-    check("没写新功能的版本显示之前最近的一份", ReleaseNotes.latest(upTo: "0.1.20")?.version == "0.1.16" && ReleaseNotes.notes(for: "0.1.20") == nil)
+    check("没写新功能的版本显示之前最近的一份", ReleaseNotes.latest(upTo: "0.1.20")?.version == "0.1.17" && ReleaseNotes.notes(for: "0.1.20") == nil)
     check("按数字比较版本", ReleaseNotes.latest(upTo: "0.1.9") == nil && ReleaseNotes.latest(upTo: "0.1.13") == nil)
 }
 

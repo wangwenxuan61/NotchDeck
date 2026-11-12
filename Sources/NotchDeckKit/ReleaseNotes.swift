@@ -16,6 +16,20 @@ struct ReleaseNotes {
     /// 文字在用到时才取，这样换语言后显示的也是新语言。
     static var all: [ReleaseNotes] {
         [
+            ReleaseNotes(version: "0.1.17", items: [
+                Item(symbol: "calendar", color: Theme.coral,
+                     title: L("日程卡片"),
+                     detail: L("本周日期和接下来几天的日程放在一起，今天的过完了会接着显示明天的。")),
+                Item(symbol: "tray.full", color: Theme.orange,
+                     title: L("暂存架"),
+                     detail: L("把文件拖到面板上先放着，要用时再拖出去或点开。")),
+                Item(symbol: "hourglass", color: Theme.teal,
+                     title: L("今日用时"),
+                     detail: L("看看今天在哪些 App 上花了多久，只算正在用的 App，只存在本机。")),
+                Item(symbol: "briefcase.fill", color: Theme.purple,
+                     title: L("装忙换场景"),
+                     detail: L("装忙按钮旁的箭头可以换场景。月历和计时器卡片可在“首页卡片”里加回。")),
+            ]),
             ReleaseNotes(version: "0.1.16", items: [
                 Item(symbol: "clock", color: Theme.blue,
                      title: L("时间挪到了顶栏"),
