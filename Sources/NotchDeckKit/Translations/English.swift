@@ -288,4 +288,6 @@ let englishStrings: [String: String] = [
     "框选识字": "Capture text",
     "在快捷开关页点“识字”或按 ⌃⌥T，框选屏幕上的文字直接复制。": "Click Text in Quick Controls or press ⌃⌥T, then select text on screen to copy it.",
     "点“取色”或按 ⌃⌥C，再点屏幕上任意位置，复制它的色值。": "Click Color or press ⌃⌥C, then click anywhere on screen to copy its color.",
+    "更新提示": "Updates",
+    "有新版本时在图标旁显示 ⬆︎": "Show ⬆︎ next to the icon when a new version is available",
 ]

@@ -89,6 +89,8 @@ struct SettingsPage: View {
                     menuBarChip("CPU", $settings.showMenuBarCPU)
                     menuBarChip(L("网速"), $settings.showMenuBarNetwork)
                     menuBarChip(L("电池"), $settings.showMenuBarBattery)
+                    menuBarChip(L("更新提示"), $settings.showMenuBarUpdate)
+                        .help(L("有新版本时在图标旁显示 ⬆︎"))
                 }
             }
             row(L("剪贴板点击时复制为")) {

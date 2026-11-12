@@ -47,6 +47,10 @@ final class AppSettings: ObservableObject {
     @Published var showMenuBarBattery: Bool {
         didSet { defaults.set(showMenuBarBattery, forKey: "showMenuBarBattery") }
     }
+    /// 有新版本时图标旁的 ⬆︎。关掉后只在右键菜单和设置里能看到更新。
+    @Published var showMenuBarUpdate: Bool {
+        didSet { defaults.set(showMenuBarUpdate, forKey: "showMenuBarUpdate") }
+    }
     @Published var launchError: String?
 
     private init() {
@@ -55,6 +59,7 @@ final class AppSettings: ObservableObject {
         showMenuBarCPU = defaults.bool(forKey: "showMenuBarCPU")
         showMenuBarNetwork = defaults.bool(forKey: "showMenuBarNetwork")
         showMenuBarBattery = defaults.bool(forKey: "showMenuBarBattery")
+        showMenuBarUpdate = defaults.object(forKey: "showMenuBarUpdate") as? Bool ?? true
         appearance = defaults.string(forKey: "appAppearance").flatMap(AppearanceMode.init(rawValue:)) ?? .light
     }
 

@@ -41,6 +41,7 @@ final class StatusItemController: NSObject {
             changes(AppSettings.shared.$showMenuBarCPU),
             changes(AppSettings.shared.$showMenuBarNetwork),
             changes(AppSettings.shared.$showMenuBarBattery),
+            changes(AppSettings.shared.$showMenuBarUpdate),
             changes(UpdateChecker.shared.$latestVersion),
             changes(KeepAwake.shared.$isOn),
             changes(KeepAwake.shared.$minutesLeft),
@@ -71,7 +72,7 @@ final class StatusItemController: NSObject {
         } else {
             let timer = (FocusTimer.shared.remaining ?? CountdownTimer.shared.remaining).map(FocusTimer.format)
             // 用粗箭头表示有更新，避免和网速的上传箭头混淆。
-            let update = UpdateChecker.shared.latestVersion == nil ? nil : "⬆︎"
+            let update = UpdateChecker.shared.latestVersion == nil || !AppSettings.shared.showMenuBarUpdate ? nil : "⬆︎"
             text = ([keepAwakeText].compactMap { $0 } + monitorParts + [timer, update].compactMap { $0 }).joined(separator: "  ")
         }
         if !text.isEmpty { text = " \(text)" }

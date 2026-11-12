@@ -833,6 +833,7 @@ section("装忙场景和多屏幕") {
 }
 
 section("其他") {
+    check("菜单栏默认显示更新提示", AppSettings.shared.showMenuBarUpdate)
     check("内存压力文字", [MemoryPressure.low, .medium, .high].map(\.title) == [L("压力低"), L("压力中"), L("压力高")])
     check("便签颜色编号不能变", NoteColor.allCases.map(\.rawValue) == [0, 1, 2, 3] && NoteColor(rawValue: 1) == .yellow)
     check("外部命令", Shell.output("/bin/echo", ["hi"]) == Data("hi\n".utf8) && Shell.output("/no/such/command", []) == nil)

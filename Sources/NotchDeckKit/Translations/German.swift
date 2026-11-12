@@ -288,4 +288,6 @@ let germanStrings: [String: String] = [
     "框选识字": "Text erkennen",
     "在快捷开关页点“识字”或按 ⌃⌥T，框选屏幕上的文字直接复制。": "Im Schnellzugriff auf Text klicken oder ⌃⌥T, dann Text am Bildschirm auswählen.",
     "点“取色”或按 ⌃⌥C，再点屏幕上任意位置，复制它的色值。": "Auf Farbe klicken oder ⌃⌥C, dann irgendwo klicken, um die Farbe zu kopieren.",
+    "更新提示": "Updates",
+    "有新版本时在图标旁显示 ⬆︎": "⬆︎ neben dem Symbol zeigen, wenn eine neue Version verfügbar ist",
 ]

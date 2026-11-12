@@ -288,4 +288,6 @@ let frenchStrings: [String: String] = [
     "框选识字": "Copier du texte",
     "在快捷开关页点“识字”或按 ⌃⌥T，框选屏幕上的文字直接复制。": "Cliquez sur Texte dans Commandes rapides ou ⌃⌥T, puis sélectionnez du texte à l’écran.",
     "点“取色”或按 ⌃⌥C，再点屏幕上任意位置，复制它的色值。": "Cliquez sur Couleur ou ⌃⌥C, puis n’importe où pour copier la couleur.",
+    "更新提示": "Mises à jour",
+    "有新版本时在图标旁显示 ⬆︎": "Afficher ⬆︎ à côté de l’icône quand une nouvelle version est disponible",
 ]
