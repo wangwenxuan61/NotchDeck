@@ -74,7 +74,7 @@ section("新功能") {
     check("最新的写在最前面", zip(all, all.dropFirst()).allSatisfy { $0.version.compare($1.version, options: .numeric) == .orderedDescending })
     check("每个版本一到四条", all.allSatisfy { (1...4).contains($0.items.count) })
     check("找当前版本的", ReleaseNotes.latest(upTo: "0.1.14")?.version == "0.1.14" && ReleaseNotes.notes(for: "0.1.15") != nil)
-    check("没写新功能的版本显示之前最近的一份", ReleaseNotes.latest(upTo: "0.1.20")?.version == "0.1.17" && ReleaseNotes.notes(for: "0.1.20") == nil)
+    check("没写新功能的版本显示之前最近的一份", ReleaseNotes.latest(upTo: "0.1.20")?.version == "0.1.18" && ReleaseNotes.notes(for: "0.1.20") == nil)
     check("按数字比较版本", ReleaseNotes.latest(upTo: "0.1.9") == nil && ReleaseNotes.latest(upTo: "0.1.13") == nil)
 }
 
@@ -760,6 +760,76 @@ section("暂存架") {
     check("可以单独移除", !shelf.paths.contains(files[3].path))
     shelf.clear()
     check("清空", shelf.paths.isEmpty)
+}
+
+section("识字和取色") {
+    check("色值转成 #RRGGBB", ScreenTools.hex(NSColor(srgbRed: 55 / 255, green: 138 / 255, blue: 221 / 255, alpha: 1)) == "#378ADD")
+    check("超出范围的颜色取到边界", ScreenTools.hex(NSColor(srgbRed: 1.2, green: -0.1, blue: 0, alpha: 1)) == "#FF0000")
+    check("灰度颜色也能转换", ScreenTools.hex(NSColor(white: 1, alpha: 1)) == "#FFFFFF")
+    let parsed = ScreenTools.color(fromHex: " #378add\n")
+    check("识别剪贴板里的色值", parsed.map { [$0.red, $0.green, $0.blue].map { Int(($0 * 255).rounded()) } } == [55, 138, 221])
+    check("三位色值展开", ScreenTools.color(fromHex: "#fff").map { $0.red == 1 && $0.green == 1 && $0.blue == 1 } == true)
+    check("普通文字不算色值", ["378ADD", "#378AD", "#GGGGGG", "#+12345", "颜色 #378ADD", "#378ADD99"].allSatisfy { ScreenTools.color(fromHex: $0) == nil })
+    check("识别结果的行数", ScreenTools.lineCount("第一行\n\n第二行\n") == 2 && ScreenTools.lineCount("one") == 1)
+}
+
+section("装忙场景和多屏幕") {
+    let engine = Engine(project: Project.demo, seed: 7, kinds: [.build], warmup: 1)
+    check("只创建要显示的场景", Set(engine.sims.keys) == [.build])
+    engine.add([.ops, .build])
+    check("接上新屏幕时补上场景", Set(engine.sims.keys) == [.build, .ops])
+    for kind in SceneKind.allCases {
+        let sim = Engine.make(kind, project: Project.demo, seed: 11)
+        for _ in 0..<(120 * 20) { sim.advance(1.0 / 20) }
+        sim.boost()
+        check("\(kind.rawValue) 场景能连续运行", true)
+    }
+
+    let build = BuildSim(project: Project.demo, seed: 3)
+    let before = build.history.count
+    for _ in 0..<(240 * 20) { build.advance(1.0 / 20) }
+    check("编译和测试跑完一轮后记入最近构建", build.history.count > before || build.history.count == 5)
+    check("编译日志用项目里的文件名", build.lines.contains { line in Project.demo.editable.contains { line.text.contains($0) || line.text.contains(Names(path: $0).camel) } })
+
+    let sheet = SpreadsheetSim(seed: 5)
+    check("毛利率公式", sheet.input(row: 6, col: 4) == "=D6/B6" && sheet.input(row: 4, col: 7) == "=\"\"")
+    let filled = sheet.filled
+    for _ in 0..<(20 * 20) { sheet.advance(1.0 / 20) }
+    check("表格一格格往下填", sheet.filled > filled || sheet.sheet > 0)
+
+    let ops = OpsSim(projectName: "orbit api", seed: 9)
+    for _ in 0..<(120 * 20) { ops.advance(1.0 / 20) }
+    check("滚动更新能完成", ops.events.contains { $0.contains("successfully rolled out") })
+    check("Pod 数量保持在 6 到 7 个", (6...7).contains(ops.pods.count))
+
+    let dashboard = DashboardSim(projectName: "orbit-api", seed: 2)
+    for _ in 0..<(200 * 20) { dashboard.advance(1.0 / 20) }
+    check("监控曲线只保留最近的点", dashboard.requests.allSatisfy { $0.points.count == DashboardSim.points })
+
+    let matlab = MatlabSim(seed: 4)
+    check("波场数值在范围内", stride(from: 0.0, through: 1, by: 0.05).allSatisfy { x in
+        stride(from: 0.0, through: 1, by: 0.05).allSatisfy { abs(matlab.field(x: x, y: $0, t: 0)) <= 1 } })
+    for _ in 0..<(600 * 20) { matlab.advance(1.0 / 20) }
+    check("仿真跑完后重新开始", matlab.command.contains { $0.hasPrefix("Elapsed time") } && matlab.command.last(where: { $0.hasPrefix(">>") }) != nil && matlab.iteration < matlab.total)
+
+    let reading = ReadingSim(seed: 8)
+    let read = reading.readSentences
+    for _ in 0..<(60 * 20) { reading.advance(1.0 / 20) }
+    check("文献往下读并且有高亮", reading.readSentences > read && reading.highlighted.allSatisfy { $0 < reading.totalSentences })
+
+    func screen(_ id: String, main: Bool = false, portrait: Bool = false) -> BusyScreen {
+        BusyScreen(id: id, name: id, isMain: main, isBuiltIn: main, portrait: portrait)
+    }
+    let screens = [screen("Built-in", main: true), screen("LG", portrait: true), screen("DELL")]
+    var rng = SplitMix64(state: 1)
+    let chosen = LookBusyController.assign(screens, choices: { $0.isMain ? "agent" : LookBusyController.randomChoice }, rng: &rng)
+    check("主屏幕用选好的场景", chosen["Built-in"] == .agent)
+    check("竖屏随机到竖着排得开的场景", chosen["LG"]?.suitsPortrait == true)
+    check("各屏幕的场景不重复", Set(chosen.values).count == 3)
+    let pinned = LookBusyController.assign(screens, choices: { $0.id == "DELL" ? "matlab" : LookBusyController.randomChoice }, rng: &rng)
+    check("给屏幕指定的场景照用", pinned["DELL"] == .matlab)
+    let kept = LookBusyController.assign([screens[0], screens[2]], choices: { _ in LookBusyController.randomChoice }, keeping: chosen, rng: &rng)
+    check("拔掉一块屏幕后其他屏幕的场景不变", kept["Built-in"] == chosen["Built-in"] && kept["DELL"] == chosen["DELL"] && kept["LG"] == nil)
 }
 
 section("其他") {

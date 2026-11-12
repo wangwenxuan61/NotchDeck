@@ -517,8 +517,16 @@ struct ClipboardRow: View {
 
     @ViewBuilder private var thumbnail: some View {
         switch item.content {
-        case .text:
-            Image(systemName: "text.alignleft").foregroundStyle(Theme.secondary)
+        case .text(let text):
+            // 只是一个色值（比如取色得到的 #378ADD）时显示色块。
+            if let rgb = ScreenTools.color(fromHex: text) {
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(Color(.sRGB, red: rgb.red, green: rgb.green, blue: rgb.blue))
+                    .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Theme.tertiary.opacity(0.5), lineWidth: 0.5))
+                    .frame(width: thumbnailSize - 6, height: thumbnailSize - 6)
+            } else {
+                Image(systemName: "text.alignleft").foregroundStyle(Theme.secondary)
+            }
         case .image(let thumbnail, _, _, _):
             Image(nsImage: thumbnail).resizable().scaledToFill().frame(width: thumbnailSize, height: thumbnailSize)
                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))

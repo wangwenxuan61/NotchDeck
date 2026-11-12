@@ -400,9 +400,13 @@ struct QuickControlsPage: View {
                             action(L("截图"), "camera.viewfinder") {
                                 NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Screenshot.app"))
                             }
+                            action(L("识字"), "text.viewfinder") { ScreenTools.captureText() }
+                                .help(L("框选屏幕上的文字并复制（⌃⌥T）"))
+                            action(L("取色"), "eyedropper") { ScreenTools.pickColor() }
+                                .help(L("点屏幕上的任意位置，复制色值（⌃⌥C）"))
                             action(L("息屏"), "moon.fill") { controls.sleepDisplay() }
                             action(L("锁屏"), "lock.fill") { controls.lockScreen() }
-                            action(L("设置"), "gearshape") {
+                            action(L("系统设置"), "gearshape") {
                                 NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
                             }
                         }

@@ -28,12 +28,21 @@ struct PaperView: View {
         GeometryReader { geo in
             VStack(spacing: 0) {
                 topBar
-                HStack(spacing: 0) {
-                    fileTree.frame(width: 230)
-                    Rectangle().fill(Tex.border).frame(width: 1)
-                    editorPane.frame(width: (geo.size.width - 231) * 0.5)
-                    Rectangle().fill(Tex.border).frame(width: 1)
-                    pdfPane
+                if geo.size.height > geo.size.width {
+                    // 竖屏：源码在上，PDF 预览在下。
+                    VStack(spacing: 0) {
+                        editorPane.frame(height: geo.size.height * 0.5)
+                        Rectangle().fill(Tex.border).frame(height: 1)
+                        pdfPane
+                    }
+                } else {
+                    HStack(spacing: 0) {
+                        fileTree.frame(width: 230)
+                        Rectangle().fill(Tex.border).frame(width: 1)
+                        editorPane.frame(width: (geo.size.width - 231) * 0.5)
+                        Rectangle().fill(Tex.border).frame(width: 1)
+                        pdfPane
+                    }
                 }
             }
             .background(Tex.editor)

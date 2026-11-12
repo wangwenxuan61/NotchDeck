@@ -19,6 +19,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panelHotKey: HotKey?
     private var busyHotKey: HotKey?
     private var clipboardHotKey: HotKey?
+    private var textHotKey: HotKey?
+    private var colorHotKey: HotKey?
     private var swipeDistance: CGFloat = 0
     private var swipeConsumed = false
     var modalOpen = false
@@ -214,6 +216,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 不用 ⌥⌘V：那是 Finder 移动文件的快捷键。
         clipboardHotKey = register("⌃⌥V", kVK_ANSI_V, controlKey | optionKey, id: 3) { [weak self] in
             self?.togglePage(.clipboard)
+        }
+        textHotKey = register("⌃⌥T", kVK_ANSI_T, controlKey | optionKey, id: 4) {
+            ScreenTools.captureText()
+        }
+        colorHotKey = register("⌃⌥C", kVK_ANSI_C, controlKey | optionKey, id: 5) {
+            ScreenTools.pickColor()
         }
         if !taken.isEmpty {
             Toasts.shared.show(L("%@ 已被占用", taken.joined(separator: " ")), icon: "exclamationmark.triangle")

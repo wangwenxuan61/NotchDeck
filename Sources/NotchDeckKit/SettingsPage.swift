@@ -23,7 +23,7 @@ struct SettingsPage: View {
         VStack(spacing: 6) {
             PageHeader(title: L("设置"), model: model) {
                 HStack(spacing: 12) {
-                    Text(L("⌥⌘N 面板  ·  ⌃⌥V 剪贴板  ·  ⌃⌥B 装忙"))
+                    Text(L("⌥⌘N 面板  ·  ⌃⌥V 剪贴板  ·  ⌃⌥B 装忙  ·  ⌃⌥T 识字  ·  ⌃⌥C 取色"))
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.secondary)
                     Button(L("退出 NotchDeck")) { NSApp.terminate(nil) }.controlSize(.small)

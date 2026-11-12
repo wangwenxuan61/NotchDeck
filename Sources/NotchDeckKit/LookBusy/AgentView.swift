@@ -29,14 +29,26 @@ struct AgentView: View {
     var body: some View {
         GeometryReader { geo in
             VStack(spacing: 0) {
-                HStack(spacing: 0) {
-                    activityBar
-                    sidebar.frame(width: 250)
-                    Rectangle().fill(IDE.border).frame(width: 1)
-                    editor
-                    Rectangle().fill(IDE.border).frame(width: 1)
-                    TerminalPane(sim: sim, t: t)
-                        .frame(width: min(760, max(460, geo.size.width * 0.38)))
+                if geo.size.height > geo.size.width {
+                    // 竖屏：收起文件列表，编辑器在上，终端在下。
+                    HStack(spacing: 0) {
+                        activityBar
+                        VStack(spacing: 0) {
+                            editor.frame(height: geo.size.height * 0.42)
+                            Rectangle().fill(IDE.border).frame(height: 1)
+                            TerminalPane(sim: sim, t: t)
+                        }
+                    }
+                } else {
+                    HStack(spacing: 0) {
+                        activityBar
+                        sidebar.frame(width: 250)
+                        Rectangle().fill(IDE.border).frame(width: 1)
+                        editor
+                        Rectangle().fill(IDE.border).frame(width: 1)
+                        TerminalPane(sim: sim, t: t)
+                            .frame(width: min(760, max(460, geo.size.width * 0.38)))
+                    }
                 }
                 statusBar
             }

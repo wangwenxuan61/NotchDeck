@@ -68,7 +68,7 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 - **Quick controls**: Wi-Fi, Bluetooth, dark mode, Night Shift, keep awake (indefinitely or for 15 minutes to 12 hours), mute, audio output, volume, built-in display
   brightness, screenshot, display sleep and lock screen, plus battery levels for connected Bluetooth devices.
 - **Reminders sync** (optional): use a list from the system Reminders app as your todo card.
-- **Look Busy**: four convincing full-screen work scenes for demos and screenshots. Nothing they show is real.
+- **Look Busy**: ten convincing full-screen work scenes (AI coding, model training, paper writing, data analysis, a monitoring dashboard, build and test, server ops, a spreadsheet, a MATLAB simulation and paper reading) for demos and screenshots. Nothing they show is real. With several displays you can pick a scene for each one, portrait displays get a stacked layout, and a display plugged in while the scene is showing is covered too.
 - **Appearance**: light, dark or follow the system.
 - **Languages**: Simplified and Traditional Chinese, English, Japanese, Korean, French, German and Spanish. Switch in Settings without restarting.
 - **Automatic updates**: checks GitHub for a new release every few hours, downloads it in the background, verifies its
@@ -83,6 +83,8 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 | ⌥⌘N | Open or close the panel |
 | ⌃⌥V | Open or close the clipboard page |
 | ⌃⌥B | Start or stop Look Busy |
+| ⌃⌥T | Select text on screen, recognize it and copy it |
+| ⌃⌥C | Pick a color with the magnifier and copy its HEX value |
 | Esc | Close the panel or leave Look Busy |
 
 Right-click or Control-click the menu bar icon to open the shortcut menu.

@@ -19,6 +19,43 @@ struct TrainingView: View {
 
     var body: some View {
         GeometryReader { geo in
+            if geo.size.height > geo.size.width {
+                portrait(geo.size)
+            } else {
+                landscape(geo.size)
+            }
+        }
+    }
+
+    /// 竖屏：图表、nvidia-smi 和日志上下排。
+    private func portrait(_ size: CGSize) -> some View {
+        VStack(spacing: 0) {
+            header
+            VStack(spacing: 14) {
+                cards
+                Panel(title: "train/loss  ·  val/loss") { lossChart }
+                HStack(spacing: 14) {
+                    Panel(title: "learning rate (cosine, warmup 2k)") { lrChart }
+                    Panel(title: "GPU utilization · mean of 4") { utilChart }
+                }
+                .frame(height: size.height * 0.13)
+                Panel(title: "nvidia-smi") {
+                    Text(sim.nvidiaSMI())
+                        .font(.system(size: 10.5, design: .monospaced))
+                        .foregroundColor(Dash.text)
+                        .fixedSize()
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                logPanel.frame(height: size.height * 0.2)
+            }
+            .padding(14)
+        }
+        .background(Dash.bg)
+    }
+
+    private func landscape(_ size: CGSize) -> some View {
+        Group {
             VStack(spacing: 0) {
                 header
                 HStack(alignment: .top, spacing: 14) {
@@ -29,7 +66,7 @@ struct TrainingView: View {
                             Panel(title: "learning rate (cosine, warmup 2k)") { lrChart }
                             Panel(title: "GPU utilization · mean of 4 · last 90 s") { utilChart }
                         }
-                        .frame(height: geo.size.height * 0.2)
+                        .frame(height: size.height * 0.2)
                     }
                     VStack(spacing: 14) {
                         Panel(title: "nvidia-smi") {
@@ -46,7 +83,7 @@ struct TrainingView: View {
                 }
                 .padding(14)
                 logPanel
-                    .frame(height: geo.size.height * 0.24)
+                    .frame(height: size.height * 0.24)
                     .padding([.horizontal, .bottom], 14)
             }
             .background(Dash.bg)
