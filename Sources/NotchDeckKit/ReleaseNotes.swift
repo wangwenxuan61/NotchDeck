@@ -17,19 +17,10 @@ struct ReleaseNotes {
     /// 文字在用到时才取，这样换语言后显示的也是新语言。
     static var all: [ReleaseNotes] {
         [
-            ReleaseNotes(version: "0.1.18", items: [
-                Item(symbol: "briefcase.fill", color: Theme.purple,
-                     title: L("装忙多了六个场景"),
-                     detail: L("监控大屏、编译和测试、服务器运维、做表格、MATLAB 仿真和读文献。")),
-                Item(symbol: "display.2", color: Theme.blue,
-                     title: L("每块屏幕分别选场景"),
-                     detail: L("接了外接显示器时，每块屏幕可以选不同的场景；竖屏会改成上下排。")),
-                Item(symbol: "text.viewfinder", color: Theme.teal,
-                     title: L("框选识字"),
-                     detail: L("在快捷开关页点“识字”或按 ⌃⌥T，框选屏幕上的文字直接复制。")),
-                Item(symbol: "eyedropper", color: Theme.orange,
-                     title: L("取色"),
-                     detail: L("点“取色”或按 ⌃⌥C，再点屏幕上任意位置，复制它的色值。")),
+            ReleaseNotes(version: "0.1.19", items: [
+                Item(symbol: "eye.slash", color: Theme.blue,
+                     title: L("可以隐藏更新箭头"),
+                     detail: L("在设置的“菜单栏显示”里关掉“更新提示”，有新版本时图标旁就不再显示 ⬆︎，更新照样会自动安装。")),
             ]),
         ]
     }
