@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 enum CardKind: String, Codable, CaseIterable, Identifiable {
-    case todo, note, clock, monitor, music, clipboard, timer, calendar, lookBusy, agenda, tokenUsage
+    case todo, note, clock, monitor, music, clipboard, timer, calendar, lookBusy, agenda, tokenUsage, shelf, appTime
 
     var id: String { rawValue }
 
@@ -17,8 +17,10 @@ enum CardKind: String, Codable, CaseIterable, Identifiable {
         case .timer: return L("计时器")
         case .calendar: return L("月历")
         case .lookBusy: return L("装忙")
-        case .agenda: return L("今日日程")
+        case .agenda: return L("日程")
         case .tokenUsage: return L("Token 用量")
+        case .shelf: return L("暂存架")
+        case .appTime: return L("今日用时")
         }
     }
 
@@ -35,6 +37,8 @@ enum CardKind: String, Codable, CaseIterable, Identifiable {
         case .lookBusy: return "briefcase"
         case .agenda: return "list.bullet.below.rectangle"
         case .tokenUsage: return "chart.bar.xaxis"
+        case .shelf: return "tray.full"
+        case .appTime: return "hourglass"
         }
     }
 
@@ -46,8 +50,8 @@ enum CardKind: String, Codable, CaseIterable, Identifiable {
         case .clock, .music, .timer: return 0.95
         case .monitor: return 1.75
         case .clipboard, .calendar, .lookBusy: return 1.1
-        case .agenda: return 1.35
-        case .tokenUsage: return 1.1
+        case .agenda: return 1.6
+        case .tokenUsage, .shelf, .appTime: return 1.1
         }
     }
 }
@@ -61,41 +65,77 @@ final class CardLayoutStore: ObservableObject {
     private static let file = "cards.json"
     private static let defaultPages: [[CardKind]] = [
         [.todo, .note, .monitor, .music],
-        [.agenda, .clipboard, .timer, .calendar, .lookBusy],
+        [.agenda, .clipboard, .shelf, .appTime],
     ]
     private static let lookBusyAddedKey = "cardsAddedLookBusy"
     private static let agendaAddedKey = "cardsAddedAgenda"
     private static let clockMovedKey = "cardsMovedClockToTopBar"
+    private static let scheduleShelfKey = "cardsScheduleAndShelf"
+    private static let appTimeKey = "cardsAppTimeInsteadOfTimer"
+    /// 只对已有布局做一次的调整。全新安装直接用默认布局，这些都算做过了。
+    private static let oneTimeKeys = [lookBusyAddedKey, agendaAddedKey, clockMovedKey, scheduleShelfKey, appTimeKey]
 
     @Published private(set) var pages: [[CardKind]]
 
     private init() {
+        let defaults = UserDefaults.standard
+        guard let saved = Storage.load([[CardKind]].self, from: Self.file) else {
+            Self.oneTimeKeys.forEach { defaults.set(true, forKey: $0) }
+            pages = Self.defaultPages
+            return
+        }
         var seen = Set<CardKind>()
-        let saved = Storage.load([[CardKind]].self, from: Self.file) ?? Self.defaultPages
         var cleaned = saved.prefix(2).map { page in
             Array(page.filter { seen.insert($0).inserted }.prefix(Self.maxPerPage))
         }
         while cleaned.count < 2 { cleaned.append([]) }
+        let before = cleaned
         // 已经自定义过布局的用户，新卡片只自动加入一次；之后隐藏了也不再加回来。
-        if !UserDefaults.standard.bool(forKey: Self.lookBusyAddedKey) {
-            UserDefaults.standard.set(true, forKey: Self.lookBusyAddedKey)
+        if !defaults.bool(forKey: Self.lookBusyAddedKey) {
+            defaults.set(true, forKey: Self.lookBusyAddedKey)
             if !seen.contains(.lookBusy), cleaned[1].count < Self.maxPerPage { cleaned[1].append(.lookBusy) }
         }
-        if !UserDefaults.standard.bool(forKey: Self.agendaAddedKey) {
-            UserDefaults.standard.set(true, forKey: Self.agendaAddedKey)
+        if !defaults.bool(forKey: Self.agendaAddedKey) {
+            defaults.set(true, forKey: Self.agendaAddedKey)
             if !seen.contains(.agenda), cleaned[1].count < Self.maxPerPage { cleaned[1].insert(.agenda, at: 0) }
         }
         // 时间挪到了顶栏，时钟卡片对已有布局也只自动拿掉一次，想要的话可以在“首页卡片”里加回来。
-        var changed = false
-        if !UserDefaults.standard.bool(forKey: Self.clockMovedKey) {
-            UserDefaults.standard.set(true, forKey: Self.clockMovedKey)
-            for index in cleaned.indices where cleaned[index].contains(.clock) {
-                cleaned[index].removeAll { $0 == .clock }
-                changed = true
+        if !defaults.bool(forKey: Self.clockMovedKey) {
+            defaults.set(true, forKey: Self.clockMovedKey)
+            for index in cleaned.indices { cleaned[index].removeAll { $0 == .clock } }
+        }
+        if !defaults.bool(forKey: Self.scheduleShelfKey) {
+            defaults.set(true, forKey: Self.scheduleShelfKey)
+            cleaned = Self.useScheduleAndShelf(cleaned)
+        }
+        // 计时器在顶栏的计时页里也能一键开始，它的位置换成今日用时，同样只换一次。
+        if !defaults.bool(forKey: Self.appTimeKey) {
+            defaults.set(true, forKey: Self.appTimeKey)
+            if !cleaned.joined().contains(.appTime) {
+                cleaned = cleaned.map { $0.map { $0 == .timer ? .appTime : $0 } }
             }
         }
         pages = cleaned
-        if changed { persist() }
+        if cleaned != before { persist() }
+    }
+
+    /// 日程卡片已经包含本周日期，装忙的场景挪到了底部按钮，这两张卡片拿掉一次；空出来的位置放暂存架，
+    /// 优先放在剪贴板后面。都可以在“首页卡片”里加回来或者再隐藏。
+    static func useScheduleAndShelf(_ pages: [[CardKind]]) -> [[CardKind]] {
+        var pages = pages
+        var freed: (page: Int, index: Int)?
+        for page in pages.indices {
+            if let index = pages[page].firstIndex(where: { $0 == .calendar || $0 == .lookBusy }), freed == nil { freed = (page, index) }
+            pages[page].removeAll { $0 == .calendar || $0 == .lookBusy }
+        }
+        guard !pages.joined().contains(.shelf) else { return pages }
+        if let page = pages.firstIndex(where: { $0.contains(.clipboard) }), pages[page].count < maxPerPage,
+           let index = pages[page].firstIndex(of: .clipboard) {
+            pages[page].insert(.shelf, at: index + 1)
+        } else if let freed, pages[freed.page].count < maxPerPage {
+            pages[freed.page].insert(.shelf, at: min(freed.index, pages[freed.page].count))
+        }
+        return pages
     }
 
     var hidden: [CardKind] { CardKind.allCases.filter { kind in !pages.contains { $0.contains(kind) } } }

@@ -2,7 +2,7 @@ import AppKit
 import EventKit
 import SwiftUI
 
-/// 读取系统日历里今天的日程。启动时只读取已授权的数据，绝不主动弹权限窗口。
+/// 读取系统日历里本周和接下来一周的日程。启动时只读取已授权的数据，绝不主动弹权限窗口。
 final class AgendaStore: ObservableObject {
     static let shared = AgendaStore()
 
@@ -56,9 +56,11 @@ final class AgendaStore: ObservableObject {
         let store = store
         queue.async { [weak self] in
             guard let self else { return }
+            // 从本周第一天读到 7 天后：本周的日期条要标出哪天有日程，列表要能接着显示之后几天的。
             let calendar = Calendar.current
-            let start = calendar.startOfDay(for: Date())
-            guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return }
+            let today = calendar.startOfDay(for: Date())
+            let start = calendar.dateInterval(of: .weekOfYear, for: today)?.start ?? today
+            guard let end = calendar.date(byAdding: .day, value: Self.lookAheadDays + 1, to: today) else { return }
             let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
             let loaded = store.events(matching: predicate)
                 .filter { $0.attendees?.first(where: \.isCurrentUser)?.participantStatus != .declined }
@@ -109,11 +111,46 @@ final class AgendaStore: ObservableObject {
         return nil
     }
 
-    /// 还没结束的日程，有具体时间的排在全天日程前面。
+    /// 列表往后看几天。
+    static let lookAheadDays = 7
+
+    /// 还没结束的日程，按日期排；同一天里有具体时间的排在全天日程前面。已经开始的算在今天。
     static func upcoming(_ items: [Item], at date: Date) -> [Item] {
-        items.filter { $0.end > date }.sorted {
-            $0.isAllDay != $1.isAllDay ? !$0.isAllDay : $0.start < $1.start
+        let calendar = Calendar.current
+        func day(_ item: Item) -> Date { calendar.startOfDay(for: max(item.start, date)) }
+        return items.filter { $0.end > date }.sorted {
+            let (a, b) = (day($0), day($1))
+            if a != b { return a < b }
+            return $0.isAllDay != $1.isAllDay ? !$0.isAllDay : $0.start < $1.start
         }
+    }
+
+    /// 今天的日程只写时间，之后的前面加上“明天”或星期几。
+    static func whenLabel(_ item: Item, at date: Date) -> String {
+        let calendar = Calendar.current
+        let day = calendar.startOfDay(for: max(item.start, date))
+        let today = calendar.startOfDay(for: date)
+        guard day > today else { return timeLabel(item, at: date) }
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)
+        let name = day == tomorrow ? L("明天") : localizedDateFormatter("EEE").string(from: day)
+        return name + " " + (item.isAllDay ? L("全天") : formatClockTime(item.start))
+    }
+
+    /// 有日程的日子，用来在日期条上标一个点。跨天的日程每一天都算。
+    static func busyDays(_ items: [Item]) -> Set<Date> {
+        let calendar = Calendar.current
+        var days = Set<Date>()
+        for item in items {
+            var day = calendar.startOfDay(for: item.start)
+            // 全天日程的结束时间是第二天零点，不算那一天。
+            let last = item.end.addingTimeInterval(-1)
+            while day <= last, days.count < 400 {
+                days.insert(day)
+                guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+                day = next
+            }
+        }
+        return days
     }
 
     /// 今天之前开始的日程显示今天的结束时间；整天都在进行中的按全天显示。
@@ -126,21 +163,23 @@ final class AgendaStore: ObservableObject {
         return item.end < startOfTomorrow ? L("至 %@", formatClockTime(item.end)) : L("全天")
     }
 
+    /// 一天以内才显示倒计时，更远的看列表里的日期就够了。
     static func countdown(to item: Item, at date: Date) -> String? {
-        guard !item.isAllDay else { return nil }
+        guard !item.isAllDay, item.start.timeIntervalSince(date) < 24 * 3600 else { return nil }
         guard item.start > date else { return L("进行中") }
         let minutes = Int((item.start.timeIntervalSince(date) / 60).rounded(.up))
         return minutes < 60 ? L("%d 分钟后", minutes) : L("%d 小时后", minutes / 60)
     }
 }
 
+/// 日程卡片：上面是本周的日期条，下面是接下来的日程。今天的过完了就接着显示之后几天的，不会空着。
 struct AgendaCard: View {
     @ObservedObject private var store = AgendaStore.shared
-    private static let maxRows = 3
+    private static let maxRows = 2
 
     private func header(countdown: String?) -> some View {
         Button(action: openCalendarApp) {
-            CardHeader(L("今日日程"), symbol: "list.bullet.below.rectangle", color: Theme.coral) {
+            CardHeader(L("日程"), symbol: "calendar", color: Theme.coral) {
                 if let countdown {
                     Text(countdown).font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.teal).lineLimit(1).fixedSize()
                 }
@@ -151,10 +190,35 @@ struct AgendaCard: View {
         .help(L("打开日历"))
     }
 
+    private func weekStrip(at date: Date) -> some View {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: date)
+        let start = calendar.dateInterval(of: .weekOfYear, for: today)?.start ?? today
+        let days = (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
+        let busy = AgendaStore.busyDays(store.items)
+        let symbols = localizedDateFormatter("EEEEE")
+        return HStack(spacing: 0) {
+            ForEach(days, id: \.self) { day in
+                let isToday = day == today
+                VStack(spacing: 1) {
+                    Text(symbols.string(from: day)).font(.system(size: 9, weight: .medium)).foregroundStyle(Theme.secondary)
+                    Text("\(calendar.component(.day, from: day))")
+                        .font(.system(size: 11, weight: isToday ? .bold : .regular))
+                        .monospacedDigit()
+                        .foregroundStyle(isToday ? Color.white : (day < today ? Theme.tertiary : Theme.primary))
+                        .frame(width: 20, height: 16)
+                        .background(RoundedRectangle(cornerRadius: 5).fill(isToday ? Theme.coral : Color.clear))
+                    Circle().fill(busy.contains(day) && !isToday ? Theme.coral : Color.clear).frame(width: 3, height: 3)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
     private func row(_ item: AgendaStore.Item, at date: Date) -> some View {
         HStack(spacing: 6) {
             Capsule().fill(Color(cgColor: item.color)).frame(width: 3, height: 14)
-            Text(AgendaStore.timeLabel(item, at: date))
+            Text(AgendaStore.whenLabel(item, at: date))
                 .font(.system(size: 10))
                 .monospacedDigit()
                 .foregroundStyle(Theme.secondary)
@@ -180,7 +244,7 @@ struct AgendaCard: View {
                 .help(url.host ?? "")
             }
         }
-        .frame(height: 22)
+        .frame(height: 20)
     }
 
     private func message(_ text: String) -> some View {
@@ -201,12 +265,14 @@ struct AgendaCard: View {
         Card {
             TimelineView(.everyMinute) { timeline in
                 let upcoming = AgendaStore.upcoming(store.items, at: timeline.date)
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     header(countdown: upcoming.first.flatMap { AgendaStore.countdown(to: $0, at: timeline.date) })
+                    weekStrip(at: timeline.date)
+                    Rectangle().fill(Theme.hairline).frame(height: 1)
                     if store.status != .fullAccess {
                         permissionPrompt
                     } else if upcoming.isEmpty {
-                        message(L("今天没有更多日程"))
+                        message(L("接下来 7 天没有日程"))
                     } else {
                         ForEach(upcoming.prefix(Self.maxRows)) { row($0, at: timeline.date) }
                         Spacer(minLength: 0)

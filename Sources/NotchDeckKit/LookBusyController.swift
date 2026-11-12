@@ -180,3 +180,82 @@ struct LookBusyCard: View {
         }
     }
 }
+
+/// 底部的装忙按钮：点左边用当前场景开始，点箭头换场景。
+struct LookBusyButton: View {
+    @ObservedObject private var busy = LookBusyController.shared
+    @State private var choosing = false
+
+    private var sceneTitle: String { SceneKind(rawValue: busy.sceneChoice)?.shortTitle ?? L("随机") }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Button { busy.show() } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "briefcase.fill").foregroundStyle(Theme.purple)
+                    Text(L("装忙")).font(.system(size: 13, weight: .medium))
+                    Text(sceneTitle).font(.system(size: 12)).foregroundStyle(Theme.secondary)
+                }
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.leading, 14)
+                .padding(.trailing, 4)
+                .frame(height: 36)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(L("全屏装忙（⌃⌥B）"))
+            Button { choosing.toggle() } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Theme.secondary)
+                    .padding(.leading, 4)
+                    .padding(.trailing, 12)
+                    .frame(height: 36)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(L("换一个装忙场景"))
+            .popover(isPresented: $choosing, arrowEdge: .bottom) {
+                LookBusyChooser { choosing = false }
+            }
+        }
+        .capsuleFill(Theme.control)
+    }
+}
+
+/// 选一个场景并立即开始装忙。
+private struct LookBusyChooser: View {
+    @ObservedObject private var busy = LookBusyController.shared
+    let dismiss: () -> Void
+
+    private func row(_ title: String, _ value: String) -> some View {
+        Button {
+            dismiss()
+            busy.start(choice: value)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.blue)
+                    .opacity(busy.sceneChoice == value ? 1 : 0)
+                Text(title).font(.system(size: 13))
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 26)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(SceneKind.allCases, id: \.self) { row($0.shortTitle, $0.rawValue) }
+            Divider().padding(.vertical, 2)
+            row(L("随机"), LookBusyController.randomChoice)
+        }
+        .padding(6)
+        .frame(width: 180)
+    }
+}

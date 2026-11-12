@@ -103,6 +103,14 @@ enum Theme {
 struct ExpandedContent: View {
     @ObservedObject var model: PanelModel
     @ObservedObject private var toasts = Toasts.shared
+    @State private var fileHovering = false
+
+    /// 拖着文件进入面板时，翻到有暂存架的那一页，省得先松手再去找。
+    private func showShelf() {
+        guard let index = CardLayoutStore.shared.visiblePages.firstIndex(where: { $0.contains(.shelf) }) else { return }
+        if model.page != .home { model.page = .home }
+        if model.homePage != index { withAnimation(.easeInOut(duration: 0.2)) { model.homePage = index } }
+    }
 
     @ViewBuilder private var detailPage: some View {
         switch model.page {
@@ -145,6 +153,10 @@ struct ExpandedContent: View {
                     .padding(.bottom, 16)
                     .transition(.opacity)
             }
+        }
+        .onDrop(of: [.fileURL], isTargeted: $fileHovering) { _ in false }
+        .onChange(of: fileHovering) { _, hovering in
+            if hovering { showShelf() }
         }
     }
 }

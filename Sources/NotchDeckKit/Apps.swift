@@ -87,20 +87,6 @@ struct DockRow: View {
         AppDelegate.shared.closePanel()
     }
 
-    private var busyButton: some View {
-        Button { LookBusyController.shared.show() } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "briefcase.fill").foregroundStyle(Theme.purple)
-                Text(L("装忙")).font(.system(size: 13, weight: .medium)).lineLimit(1).fixedSize()
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 36)
-            .capsuleFill(Theme.control)
-        }
-        .buttonStyle(.plain)
-        .help(L("全屏装忙（⌃⌥B）"))
-    }
-
     private var divider: some View {
         Rectangle().fill(Theme.track).frame(width: 1, height: 30)
     }
@@ -108,7 +94,7 @@ struct DockRow: View {
     var body: some View {
         HStack(spacing: 12) {
             HStack(spacing: 8) {
-                busyButton
+                LookBusyButton()
                 KeepAwakeButton()
             }
             divider

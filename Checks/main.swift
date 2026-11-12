@@ -90,9 +90,10 @@ section("会议链接") {
 }
 
 section("今日日程") {
-    let now = Date()
+    // 固定在今天中午，前后几小时都还在今天，结果不会随运行时间变。
     let calendar = Calendar.current
-    let today = calendar.startOfDay(for: now)
+    let today = calendar.startOfDay(for: Date())
+    let now = calendar.date(byAdding: .hour, value: 12, to: today)!
     func at(day: Int, hour: Int) -> Date {
         calendar.date(byAdding: .hour, value: hour, to: calendar.date(byAdding: .day, value: day, to: today)!)!
     }
@@ -116,6 +117,20 @@ section("今日日程") {
     check("昨天开始今天结束显示结束时间", AgendaStore.timeLabel(item("x", at(day: -1, hour: 22), at(day: 0, hour: 9)), at: now) == L("至 %@", formatClockTime(at(day: 0, hour: 9))))
     check("占满今天显示全天", AgendaStore.timeLabel(item("x", at(day: -1, hour: 22), at(day: 1, hour: 9)), at: now) == L("全天"))
     check("今天开始显示开始时间", AgendaStore.timeLabel(item("x", at(day: 0, hour: 14), at(day: 0, hour: 15)), at: now) == formatClockTime(at(day: 0, hour: 14)))
+
+    let today15 = item("today15", at(day: 0, hour: 15), at(day: 0, hour: 16))
+    let tomorrow10 = item("tomorrow10", at(day: 1, hour: 10), at(day: 1, hour: 11))
+    let tomorrowAllDay = item("tomorrowAllDay", at(day: 1, hour: 0), at(day: 2, hour: 0), allDay: true)
+    let later = item("later", at(day: 3, hour: 9), at(day: 3, hour: 10))
+    let week = AgendaStore.upcoming([later, tomorrowAllDay, tomorrow10, item("todayAllDay", today, at(day: 1, hour: 0), allDay: true), today15], at: now)
+    check("之后几天的日程按日期排在今天后面", week.map(\.title) == ["today15", "todayAllDay", "tomorrow10", "tomorrowAllDay", "later"])
+    check("今天只写时间，明天和之后写上哪天", AgendaStore.whenLabel(today15, at: now) == formatClockTime(today15.start)
+          && AgendaStore.whenLabel(tomorrow10, at: now) == L("明天") + " " + formatClockTime(tomorrow10.start)
+          && AgendaStore.whenLabel(tomorrowAllDay, at: now) == L("明天") + " " + L("全天")
+          && AgendaStore.whenLabel(later, at: now) == localizedDateFormatter("EEE").string(from: at(day: 3, hour: 0)) + " " + formatClockTime(later.start))
+    check("一天以后的日程不显示倒计时", AgendaStore.countdown(to: later, at: now) == nil && AgendaStore.countdown(to: today15, at: now) == L("%d 小时后", 3))
+    let busy = AgendaStore.busyDays([item("trip", at(day: 1, hour: 0), at(day: 3, hour: 0), allDay: true)])
+    check("跨天的日程每一天都标出来，结束那天零点不算", busy == [at(day: 1, hour: 0), at(day: 2, hour: 0)])
 }
 
 section("读数平滑") {
@@ -689,6 +704,62 @@ section("首页卡片") {
     let layout = CardLayoutStore.shared
     check("时间在顶栏，默认不放时钟卡片", !layout.pages.joined().contains(.clock) && layout.hidden.contains(.clock))
     check("待办和短记默认在第一页最前面", Array(layout.pages[0].prefix(2)) == [.todo, .note])
+    check("第二页默认是日程、剪贴板、暂存架、今日用时", layout.pages[1] == [.agenda, .clipboard, .shelf, .appTime]
+          && layout.hidden.contains(.calendar) && layout.hidden.contains(.lookBusy) && layout.hidden.contains(.timer))
+    let old: [[CardKind]] = [[.todo, .note, .monitor, .music], [.agenda, .clipboard, .timer, .calendar, .lookBusy]]
+    check("已有布局拿掉月历和装忙卡片，暂存架放在剪贴板后面",
+          CardLayoutStore.useScheduleAndShelf(old) == [[.todo, .note, .monitor, .music], [.agenda, .clipboard, .shelf, .timer]])
+    check("剪贴板那页满了就放到空出来的位置，已经有暂存架就不再加",
+          CardLayoutStore.useScheduleAndShelf([[.clipboard, .todo, .note, .monitor, .music], [.timer, .calendar]]) == [[.clipboard, .todo, .note, .monitor, .music], [.timer, .shelf]]
+          && CardLayoutStore.useScheduleAndShelf([[.shelf, .calendar], [.lookBusy]]) == [[.shelf], []])
+}
+
+section("今日用时") {
+    let usage = AppUsageStore.shared
+    usage.reset()
+    let base = Calendar.current.date(byAdding: .hour, value: 10, to: Calendar.current.startOfDay(for: Date()))!
+    func at(_ seconds: Double) -> Date { base.addingTimeInterval(seconds) }
+    func seconds(_ app: String) -> Double { usage.usage(on: base).first { $0.app == app }?.seconds ?? 0 }
+    usage.unpause(at: at(0))
+    usage.activate("com.example.a", at: at(0), idle: 0)
+    usage.record(until: at(60), idle: 3)
+    usage.activate("com.example.b", at: at(90), idle: 0)
+    check("切换 App 时把之前的时间算给上一个", seconds("com.example.a") == 90)
+    usage.record(until: at(990), idle: 900)
+    check("很久没操作只算到停下后 5 分钟", seconds("com.example.b") == 300)
+    usage.record(until: at(1_050), idle: 0)
+    usage.pause(at: at(1_110))
+    usage.record(until: at(5_000), idle: 0)
+    usage.unpause(at: at(5_000))
+    usage.record(until: at(5_060), idle: 0)
+    check("锁屏或休眠期间不算", seconds("com.example.b") == 300 + 120 + 60)
+    usage.activate("com.apple.loginwindow", at: at(5_100), idle: 0)
+    usage.record(until: at(5_400), idle: 0)
+    check("锁屏界面不算 App，用得多的排前面", seconds("com.apple.loginwindow") == 0 && usage.usage(on: base).map(\.app) == ["com.example.b", "com.example.a"])
+    usage.reset()
+}
+
+section("暂存架") {
+    let shelf = ShelfStore.shared
+    shelf.clear()
+    let folder = sandbox.appendingPathComponent("shelf", isDirectory: true)
+    try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    let files = (0..<14).map { folder.appendingPathComponent("f\($0).txt") }
+    for file in files { try? Data("x".utf8).write(to: file) }
+    shelf.add([files[0], files[1]])
+    shelf.add([files[0]])
+    check("重复放进来的移到最前面，不重复", shelf.paths == [files[0].path, files[1].path])
+    shelf.add([URL(string: "https://example.com")!])
+    check("只收文件", shelf.paths.count == 2)
+    shelf.add(Array(files[2...]))
+    check("最多留 12 个，最近的在前面", shelf.paths.count == ShelfStore.limit && shelf.paths.first == files[2].path)
+    try? FileManager.default.removeItem(at: files[2])
+    shelf.pruneMissing()
+    check("文件被删掉后自动去掉", !shelf.paths.contains(files[2].path) && shelf.paths.count == ShelfStore.limit - 1)
+    shelf.remove(files[3].path)
+    check("可以单独移除", !shelf.paths.contains(files[3].path))
+    shelf.clear()
+    check("清空", shelf.paths.isEmpty)
 }
 
 section("其他") {

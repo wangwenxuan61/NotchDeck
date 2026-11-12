@@ -17,6 +17,8 @@ struct HomeCards: View {
         case .lookBusy: LookBusyCard()
         case .agenda: AgendaCard()
         case .tokenUsage: TokenUsageCard(model: model)
+        case .shelf: ShelfCard()
+        case .appTime: AppTimeCard()
         }
     }
 

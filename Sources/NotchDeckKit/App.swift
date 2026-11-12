@@ -22,6 +22,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var swipeDistance: CGFloat = 0
     private var swipeConsumed = false
     var modalOpen = false
+    private var pendingClose: DispatchWorkItem?
+    private var dragCountAtPress = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         SystemMonitor.shared.start()
@@ -30,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ReminderSync.shared.restore()
         AgendaStore.shared.refresh()
         TokenUsageStore.shared.refreshIfNeeded()
+        AppUsageStore.shared.start()
         UpdateChecker.shared.start()
         statusBar = StatusItemController(app: self)
         refreshMonitorMode()
@@ -37,9 +40,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             self?.closePanel()
         }
-        NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+        // 点到面板外面就收起。左键按下时先等一下：如果是从访达拖文件到暂存架，拖动开始后就不收起；
+        // 普通点击松开时立即收起，按住不放超过 0.3 秒也收起。
+        NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
             guard let self, !self.modalOpen else { return }
-            self.closePanel()
+            switch event.type {
+            case .leftMouseDown:
+                guard self.controller.model.expanded else { return }
+                self.dragCountAtPress = NSPasteboard(name: .drag).changeCount
+                self.pendingClose?.cancel()
+                let work = DispatchWorkItem { [weak self] in self?.closePanel() }
+                self.pendingClose = work
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+            case .leftMouseDragged:
+                // 拖动开始后，系统会把拖的内容放进拖放剪贴板；只是拖着选文字之类的不会。
+                guard let pending = self.pendingClose, NSPasteboard(name: .drag).changeCount != self.dragCountAtPress else { return }
+                pending.cancel()
+                self.pendingClose = nil
+            case .leftMouseUp:
+                guard let pending = self.pendingClose else { return }
+                pending.cancel()
+                self.pendingClose = nil
+                self.closePanel()
+            default:
+                self.closePanel()
+            }
         }
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             // 确认框和文件选择框打开时，Esc 要留给它们自己。
@@ -71,6 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         MediaController.shared.stop()
         ClipboardStore.shared.persistNow()
+        AppUsageStore.shared.saveNow()
     }
 
     func toggleFromHotKey() {
