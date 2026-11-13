@@ -283,6 +283,6 @@ let englishStrings: [String: String] = [
     "开始装忙": "Start",
     "更新提示": "Updates",
     "有新版本时在图标旁显示 ⬆︎": "Show ⬆︎ next to the icon when a new version is available",
-    "用电脑时更省电": "Lighter while you work",
-    "面板收起后不再接收全系统的点击和拖动。之前你用电脑时 NotchDeck 会多占几个百分点的 CPU，现在降到 0.2% 左右。": "With the panel closed, NotchDeck no longer receives every click and drag on the Mac. It used a few percent of CPU while you worked; now it's about 0.2%.",
+    "内存占用更少": "Uses less memory",
+    "识别图片文字和抠出主体改在用完就退出的子进程里做，不再一直占着约 30 MB 内存。": "Text recognition and subject cut-out now run in a helper that quits when done, instead of keeping about 30 MB loaded.",
 ]

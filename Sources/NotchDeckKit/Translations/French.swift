@@ -283,6 +283,6 @@ let frenchStrings: [String: String] = [
     "开始装忙": "Lancer",
     "更新提示": "Mises à jour",
     "有新版本时在图标旁显示 ⬆︎": "Afficher ⬆︎ à côté de l’icône quand une nouvelle version est disponible",
-    "用电脑时更省电": "Plus léger pendant que vous travaillez",
-    "面板收起后不再接收全系统的点击和拖动。之前你用电脑时 NotchDeck 会多占几个百分点的 CPU，现在降到 0.2% 左右。": "Panneau fermé, NotchDeck ne reçoit plus chaque clic et glisser du Mac. Il prenait quelques pour cent du processeur ; c’est désormais environ 0,2 %.",
+    "内存占用更少": "Moins de mémoire",
+    "识别图片文字和抠出主体改在用完就退出的子进程里做，不再一直占着约 30 MB 内存。": "La reconnaissance de texte et le détourage passent par un processus qui se ferme ensuite, au lieu de garder environ 30 Mo.",
 ]

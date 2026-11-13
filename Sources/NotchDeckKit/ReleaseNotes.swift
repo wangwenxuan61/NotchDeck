@@ -17,10 +17,10 @@ struct ReleaseNotes {
     /// 文字在用到时才取，这样换语言后显示的也是新语言。
     static var all: [ReleaseNotes] {
         [
-            ReleaseNotes(version: "0.1.20", items: [
-                Item(symbol: "leaf", color: Theme.teal,
-                     title: L("用电脑时更省电"),
-                     detail: L("面板收起后不再接收全系统的点击和拖动。之前你用电脑时 NotchDeck 会多占几个百分点的 CPU，现在降到 0.2% 左右。")),
+            ReleaseNotes(version: "0.1.21", items: [
+                Item(symbol: "memorychip", color: Theme.teal,
+                     title: L("内存占用更少"),
+                     detail: L("识别图片文字和抠出主体改在用完就退出的子进程里做，不再一直占着约 30 MB 内存。")),
             ]),
         ]
     }
