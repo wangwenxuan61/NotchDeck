@@ -17,10 +17,10 @@ struct ReleaseNotes {
     /// 文字在用到时才取，这样换语言后显示的也是新语言。
     static var all: [ReleaseNotes] {
         [
-            ReleaseNotes(version: "0.1.19", items: [
-                Item(symbol: "eye.slash", color: Theme.blue,
-                     title: L("可以隐藏更新箭头"),
-                     detail: L("在设置的“菜单栏显示”里关掉“更新提示”，有新版本时图标旁就不再显示 ⬆︎，更新照样会自动安装。")),
+            ReleaseNotes(version: "0.1.20", items: [
+                Item(symbol: "leaf", color: Theme.teal,
+                     title: L("用电脑时更省电"),
+                     detail: L("面板收起后不再接收全系统的点击和拖动。之前你用电脑时 NotchDeck 会多占几个百分点的 CPU，现在降到 0.2% 左右。")),
             ]),
         ]
     }

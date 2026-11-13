@@ -283,6 +283,6 @@ let frenchStrings: [String: String] = [
     "开始装忙": "Lancer",
     "更新提示": "Mises à jour",
     "有新版本时在图标旁显示 ⬆︎": "Afficher ⬆︎ à côté de l’icône quand une nouvelle version est disponible",
-    "可以隐藏更新箭头": "Masquer la flèche de mise à jour",
-    "在设置的“菜单栏显示”里关掉“更新提示”，有新版本时图标旁就不再显示 ⬆︎，更新照样会自动安装。": "Désactivez Mises à jour dans Barre des menus des réglages : la flèche ⬆︎ n’apparaît plus. Les mises à jour s’installent toujours seules.",
+    "用电脑时更省电": "Plus léger pendant que vous travaillez",
+    "面板收起后不再接收全系统的点击和拖动。之前你用电脑时 NotchDeck 会多占几个百分点的 CPU，现在降到 0.2% 左右。": "Panneau fermé, NotchDeck ne reçoit plus chaque clic et glisser du Mac. Il prenait quelques pour cent du processeur ; c’est désormais environ 0,2 %.",
 ]

@@ -283,6 +283,6 @@ let spanishStrings: [String: String] = [
     "开始装忙": "Empezar",
     "更新提示": "Actualización",
     "有新版本时在图标旁显示 ⬆︎": "Mostrar ⬆︎ junto al icono cuando hay una versión nueva",
-    "可以隐藏更新箭头": "Ocultar la flecha de actualización",
-    "在设置的“菜单栏显示”里关掉“更新提示”，有新版本时图标旁就不再显示 ⬆︎，更新照样会自动安装。": "Desactiva Actualización en Barra de menús, en Ajustes, y la flecha ⬆︎ deja de aparecer. Las actualizaciones se siguen instalando solas.",
+    "用电脑时更省电": "Más ligero mientras trabajas",
+    "面板收起后不再接收全系统的点击和拖动。之前你用电脑时 NotchDeck 会多占几个百分点的 CPU，现在降到 0.2% 左右。": "Con el panel cerrado, NotchDeck ya no recibe cada clic y arrastre del Mac. Usaba un pequeño porcentaje de CPU; ahora es un 0,2 %.",
 ]

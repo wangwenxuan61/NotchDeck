@@ -283,6 +283,6 @@ let germanStrings: [String: String] = [
     "开始装忙": "Starten",
     "更新提示": "Updates",
     "有新版本时在图标旁显示 ⬆︎": "⬆︎ neben dem Symbol zeigen, wenn eine neue Version verfügbar ist",
-    "可以隐藏更新箭头": "Update-Pfeil ausblenden",
-    "在设置的“菜单栏显示”里关掉“更新提示”，有新版本时图标旁就不再显示 ⬆︎，更新照样会自动安装。": "In den Einstellungen unter Menüleiste Updates ausschalten, dann erscheint kein ⬆︎ mehr. Updates werden weiter automatisch installiert.",
+    "用电脑时更省电": "Sparsamer bei der Arbeit",
+    "面板收起后不再接收全系统的点击和拖动。之前你用电脑时 NotchDeck 会多占几个百分点的 CPU，现在降到 0.2% 左右。": "Bei geschlossenem Panel empfängt NotchDeck nicht mehr jeden Klick und jedes Ziehen. Statt einiger Prozent CPU sind es jetzt etwa 0,2 %.",
 ]
