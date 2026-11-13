@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var modalOpen = false
     private var pendingClose: DispatchWorkItem?
     private var dragCountAtPress = 0
+    private var clickMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         SystemMonitor.shared.start()
@@ -41,32 +42,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             self?.closePanel()
-        }
-        // 点到面板外面就收起。左键按下时先等一下：如果是从访达拖文件到暂存架，拖动开始后就不收起；
-        // 普通点击松开时立即收起，按住不放超过 0.3 秒也收起。
-        NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
-            guard let self, !self.modalOpen else { return }
-            switch event.type {
-            case .leftMouseDown:
-                guard self.controller.model.expanded else { return }
-                self.dragCountAtPress = NSPasteboard(name: .drag).changeCount
-                self.pendingClose?.cancel()
-                let work = DispatchWorkItem { [weak self] in self?.closePanel() }
-                self.pendingClose = work
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
-            case .leftMouseDragged:
-                // 拖动开始后，系统会把拖的内容放进拖放剪贴板；只是拖着选文字之类的不会。
-                guard let pending = self.pendingClose, NSPasteboard(name: .drag).changeCount != self.dragCountAtPress else { return }
-                pending.cancel()
-                self.pendingClose = nil
-            case .leftMouseUp:
-                guard let pending = self.pendingClose else { return }
-                pending.cancel()
-                self.pendingClose = nil
-                self.closePanel()
-            default:
-                self.closePanel()
-            }
         }
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             // 确认框和文件选择框打开时，Esc 要留给它们自己。
@@ -160,6 +135,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func openPanel(midX: CGFloat, on screen: NSScreen) {
         controller.open(midX: midX, on: screen)
+        startClickMonitor()
         // 用户可能刚在系统设置里授权了日历，这种情况系统不会通知 App。
         AgendaStore.shared.refresh()
         TokenUsageStore.shared.refreshIfNeeded()
@@ -172,8 +148,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func closePanel() {
         guard controller.model.expanded else { return }
         controller.close()
+        stopClickMonitor()
         refreshMonitorMode()
         statusBar.syncHighlight()
+    }
+
+    /// 点到面板外面就收起。左键按下时先等一下：如果是从访达拖文件到暂存架，拖动开始后就不收起；
+    /// 普通点击松开时立即收起，按住不放超过 0.3 秒也收起。
+    /// 只在面板打开时监听：全系统的点击和拖动事件很多，面板关着时一直收会白白占用 CPU。
+    private func startClickMonitor() {
+        guard clickMonitor == nil else { return }
+        clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
+            guard let self, !self.modalOpen else { return }
+            switch event.type {
+            case .leftMouseDown:
+                guard self.controller.model.expanded else { return }
+                self.dragCountAtPress = NSPasteboard(name: .drag).changeCount
+                self.pendingClose?.cancel()
+                let work = DispatchWorkItem { [weak self] in self?.closePanel() }
+                self.pendingClose = work
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+            case .leftMouseDragged:
+                // 拖动开始后，系统会把拖的内容放进拖放剪贴板；只是拖着选文字之类的不会。
+                guard let pending = self.pendingClose, NSPasteboard(name: .drag).changeCount != self.dragCountAtPress else { return }
+                pending.cancel()
+                self.pendingClose = nil
+            case .leftMouseUp:
+                guard let pending = self.pendingClose else { return }
+                pending.cancel()
+                self.pendingClose = nil
+                self.closePanel()
+            default:
+                self.closePanel()
+            }
+        }
+    }
+
+    private func stopClickMonitor() {
+        pendingClose?.cancel()
+        pendingClose = nil
+        if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
+        clickMonitor = nil
     }
 
     func refreshMonitorMode() {
