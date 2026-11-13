@@ -10,71 +10,66 @@ English · [简体中文](README.zh-CN.md)
 
 </div>
 
-NotchDeck is a small native macOS menu bar app written in Swift and SwiftUI. Click its menu bar icon, or press
-**⌥⌘N**, and a panel opens with your todos, today's agenda, system stats, clipboard history, timers, music controls
-and quick system toggles. It has no Dock icon and needs no account.
+Click the menu bar icon or press **⌥⌘N** and a panel opens with your todos, schedule, system stats, clipboard,
+timers, music and quick toggles. It is written in Swift and SwiftUI, has no Dock icon, needs no account and keeps
+your data on your Mac.
 
 ![NotchDeck home page](docs/media/home.png)
 
 ## Screenshots
 
-**Clipboard smart cleanups**: right-click an item and NotchDeck suggests only what fits it, such as formatting JSON or turning a copied table into Markdown. Ordinary text gets no suggestions.
+| Second home page | Quick controls |
+| --- | --- |
+| ![Second home page](docs/media/home2.png) | ![Quick controls](docs/media/controls.png) |
+| **System monitor** | **Clipboard history** |
+| ![System monitor](docs/media/monitor.png) | ![Clipboard history](docs/media/clipboard.png) |
+| **Search** | **Music** |
+| ![Search](docs/media/search.png) | ![Music](docs/media/music.png) |
+| **Timers** | **AI token usage** |
+| ![Timers](docs/media/timer.png) | ![AI token usage](docs/media/usage.png) |
+
+**Clipboard smart cleanups**: right-click an item and NotchDeck suggests only the cleanups that fit it.
 
 ![Clipboard smart cleanups](docs/media/clipboard-demo.gif)
 
-| System monitor | Clipboard history |
-| --- | --- |
-| ![System monitor](docs/media/monitor.png) | ![Clipboard history](docs/media/clipboard.png) |
-| **Quick controls** | **Search** |
-| ![Quick controls](docs/media/controls.png) | ![Search](docs/media/search.png) |
-| **Music** | **Timers** |
-| ![Music](docs/media/music.png) | ![Timers](docs/media/timer.png) |
-| **Second home page** | **AI token usage** |
-| ![Second home page](docs/media/home2.png) | ![AI token usage](docs/media/usage.png) |
+**Look Busy**: switch to a convincing full-screen work scene in one keystroke.
 
-**Look Busy**
+![Look Busy: AI coding](docs/media/lookbusy.png)
 
-![Look Busy scene](docs/media/lookbusy.png)
+![Look Busy: dashboard, spreadsheet, MATLAB simulation and server ops](docs/media/lookbusy-scenes.png)
 
-The screenshots use made-up demo data and show the Chinese interface. Other languages are available in Settings.
+The screenshots use made-up demo data and the Chinese interface.
 
 ## Features
 
-- **Home cards**: todos, today's agenda, sticky note, clock, system monitor, music, clipboard, timer, month calendar
-  and Look Busy. Reorder, hide or move them across two pages. Double-click a to-do to edit it, hover it to delete it, or clear all completed ones at once.
-- **Today's agenda**: upcoming events from the system Calendar, a countdown to the next one, and a join button for
-  Zoom, Google Meet, Teams, Webex, Tencent Meeting, Feishu and DingTalk links.
-- **System monitor**: CPU, GPU, battery and SSD temperatures, power draw, memory pressure, swap, disk usage, upload
-  and download speed, battery health and cycle count, top processes, and 10-minute history charts. CPU, GPU and temperature readings are smoothed so
-  they are easier to read.
-- **Menu bar**: show any mix of temperature, CPU load, network speed and battery next to the icon. Right-click the
-  icon for search, clipboard, the monitor, audio output, a quick countdown, keep awake, Look Busy, display sleep, screen
-  lock and update checks. A cup appears next to the icon while keep awake is on.
-- **AI token usage** (optional, off by default): token counts per model for Claude Code and Codex, for today, 7 days or 30 days, split into input, cache reads, cache writes and output, with the cost in US dollars estimated at official API prices. NotchDeck reads only the usage fields of their local records on your Mac, never your conversations.
-- **Clipboard history**: text, images and files, with search and pinning. Items marked as sensitive by password
-  managers are skipped. Right-click an item and choose View to read long text in full, or to see an image large next to the text recognized in it on your Mac. Search also finds images by the text in them. Right-click an image for Copy Text from Image, or Copy Subject to copy the person, pet or object in it with a transparent background. Text over about 1 MB is not recorded. History, images included, is saved on your Mac
-  and is still there after a restart; turn off Save History to keep only pinned items.
-  - **Formatting**: text keeps the bold, links and tables it was copied with (marked **Aa**). Choose whether a click
-    copies the original or plain text, hold Shift to copy the other way, or right-click for Clean Formatting, which
-    keeps the structure but drops fonts, sizes and colors so the document's own style applies.
-  - **Smart cleanups**: right-click an item and NotchDeck suggests only the cleanups that fit it: format or compact
-    JSON, format XML, turn a copied table into Markdown, LaTeX or CSV, unescape text, decode URLs, convert timestamps,
-    keep only the link from a share text, remove tracking parameters, join lines broken by PDFs, remove line numbers,
-    list markers, blank or duplicate lines, space out Chinese and English, fix mixed punctuation, and title-case an
-    English paper title. The cleaned text is added to the history and the original stays.
-- **Timers**: countdown, stopwatch with laps, and a 25-minute focus timer.
-- **Music**: now-playing title, artwork, progress, playback controls and system volume.
-- **Search**: apps, files (through Spotlight), todos, notes and clipboard history, with a web search fallback.
-- **Quick controls**: Wi-Fi, Bluetooth, dark mode, Night Shift, keep awake (indefinitely or for 15 minutes to 12 hours), mute, audio output, volume, built-in display
-  brightness, screenshot, display sleep and lock screen, plus battery levels for connected Bluetooth devices.
-- **Reminders sync** (optional): use a list from the system Reminders app as your todo card.
-- **Look Busy**: ten convincing full-screen work scenes (AI coding, model training, paper writing, data analysis, a monitoring dashboard, build and test, server ops, a spreadsheet, a MATLAB simulation and paper reading) for demos and screenshots. Nothing they show is real. With several displays you can pick a scene for each one, portrait displays get a stacked layout, and a display plugged in while the scene is showing is covered too.
-- **Appearance**: light, dark or follow the system.
-- **Languages**: Simplified and Traditional Chinese, English, Japanese, Korean, French, German and Spanish. Switch in Settings without restarting.
-- **Automatic updates**: checks GitHub for a new release every few hours, downloads it in the background, verifies its
-  checksum, bundle ID and signature, and installs it and reopens NotchDeck while you are not using it (the panel is
-  closed and no timer or Look Busy is running). Keep awake stays on across the update, with the same end time. It sends nothing about you, and you can turn it off in
-  Settings; then you get a button to update by hand.
+**Home**
+- **Cards**: todos, sticky note, system monitor, music, schedule, clipboard, shelf and today's time, plus optional clock, month calendar, timer, token usage and Look Busy cards. Reorder, hide or spread them over two pages.
+- **Schedule**: this week's dates and the events of the next 7 days, with a join button for Zoom, Teams, Google Meet, Tencent Meeting, Feishu and other meeting links.
+- **Shelf**: drop files on the panel to keep them for later, then drag them out or open them.
+- **Today's time**: how long each app has been in front today.
+
+**Menu bar**
+- The top bar shows the date and time; next to the icon you can show temperature, CPU, network speed, battery and an update arrow.
+- Right-click the icon for search, clipboard, the monitor, audio output, a quick countdown, keep awake, Look Busy, display sleep, screen lock and update checks.
+
+**Clipboard**
+- Text, images and files, with search and pinning, kept across restarts. Items marked sensitive by password managers are skipped.
+- Keeps bold, links and tables; a click copies the original, plain text, or clean formatting without fonts and colors.
+- Right-click for smart cleanups: format JSON, turn a table into Markdown, LaTeX or CSV, strip tracking parameters, join lines broken by PDFs and more.
+- Recognize the text in an image, or cut out its subject, on your Mac.
+
+**Tools**
+- **System monitor**: temperatures, power draw, memory, disk, network speed, battery health, top processes and 10-minute charts.
+- **Quick controls**: Wi-Fi, Bluetooth, dark mode, Night Shift, keep awake, mute, volume, brightness and Bluetooth device batteries.
+- **Capture text** and **color picker**: select text on screen to copy it, or pick a HEX color with the magnifier.
+- **Timers**: countdown, stopwatch and a 25-minute focus timer.
+- **Search**: apps, files, todos, notes and clipboard history.
+- **AI token usage** (optional): token counts and estimated cost per model for Claude Code and Codex, read from usage fields only, never your conversations.
+- **Reminders sync** (optional): use a list from Reminders as your todo card.
+
+**Look Busy**: ten full-screen work scenes, including AI coding, model training, paper writing, a monitoring dashboard, build and test and a MATLAB simulation. Nothing they show is real. With several displays each one can show its own scene, and portrait displays get a stacked layout.
+
+**Other**: light or dark appearance; Simplified and Traditional Chinese, English, Japanese, Korean, French, German and Spanish; automatic updates that install while you are not using NotchDeck and can be turned off.
 
 ## Keyboard shortcuts
 
@@ -83,27 +78,37 @@ The screenshots use made-up demo data and show the Chinese interface. Other lang
 | ⌥⌘N | Open or close the panel |
 | ⌃⌥V | Open or close the clipboard page |
 | ⌃⌥B | Start or stop Look Busy |
-| ⌃⌥T | Select text on screen, recognize it and copy it |
-| ⌃⌥C | Pick a color with the magnifier and copy its HEX value |
+| ⌃⌥T | Select text on screen and copy it |
+| ⌃⌥C | Pick a color and copy its HEX value |
 | Esc | Close the panel or leave Look Busy |
-
-Right-click or Control-click the menu bar icon to open the shortcut menu.
 
 ## Install
 
-### Download
+Download the latest `.dmg` from [Releases](https://github.com/wangwenxuan61/NotchDeck/releases) and drag NotchDeck to Applications. It needs macOS 14 or later on an Apple silicon Mac.
 
-Download the latest `.dmg` from [Releases](https://github.com/wangwenxuan61/NotchDeck/releases), open it and drag
-NotchDeck to Applications. It requires macOS 14 or later on an Apple silicon Mac.
+NotchDeck is not notarized by Apple, so macOS blocks the first launch: open it once and dismiss the warning, then go to **System Settings → Privacy & Security** and click **Open Anyway** next to NotchDeck. Later versions update themselves.
 
-NotchDeck is not notarized by Apple, so macOS blocks it the first time:
+## Permissions
 
-1. Open NotchDeck once and dismiss the warning.
-2. Go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to NotchDeck.
+NotchDeck only asks when you turn on a feature that needs it:
 
-### Build from source
+- **Calendar**: the schedule card. Events are only read.
+- **Reminders**: Reminders sync. Turning it on moves your unfinished local todos into the chosen list.
+- **Bluetooth**: the Bluetooth toggle and device batteries.
+- **Notifications**: countdown and focus alerts, asked the first time you start a timer.
+- **Screen Recording**: capture text, asked the first time you use it. The screenshot is read on your Mac and deleted right away.
 
-You only need the Xcode Command Line Tools (`xcode-select --install`).
+From 0.1.11 on, permissions are kept across updates.
+
+## Limitations
+
+- Temperatures, now-playing data, dark mode, Night Shift, brightness, Bluetooth power and screen lock rely on private macOS interfaces. They can stop working after a system update, and the app cannot ship on the Mac App Store.
+- The brightness slider only controls the built-in display.
+- So far it has only been tested on one Apple silicon Mac with macOS 27 and a single display.
+
+## Development
+
+You only need the Xcode Command Line Tools (`xcode-select --install`):
 
 ```bash
 git clone https://github.com/wangwenxuan61/NotchDeck.git
@@ -112,31 +117,11 @@ cd NotchDeck
 open build/NotchDeck.app
 ```
 
-To keep it around, and before you enable *Launch at login*, move `build/NotchDeck.app` to your Applications folder.
+Before committing, run `swift run NotchDeckChecks` and `python3 scripts/check-translations.py`. GitHub runs both on every push.
 
-Before committing, run the checks. `swift run NotchDeckChecks` covers the logic that needs no UI or permissions, and `python3 scripts/check-translations.py` makes sure every language has every string. GitHub runs both on each push.
+Releases are signed with a fixed self-signed certificate, and automatic updates only install versions signed with it. When you build it yourself without that certificate in your keychain, the app is ad-hoc signed and macOS may ask for permissions again after each rebuild.
 
-## Permissions
-
-NotchDeck only asks when you turn on a feature that needs it:
-
-- **Bluetooth**: for the Bluetooth toggle and device battery levels.
-- **Reminders**: for Reminders sync. Turning sync on moves your unfinished local todos into the selected list.
-- **Calendar**: for the agenda card. NotchDeck only reads your events.
-- **Notifications**: for countdown and focus alerts, so you see them even when you are away. NotchDeck asks the first time you start a timer.
-
-From 0.1.11, releases are signed with a fixed self-signed certificate, so permissions you grant are kept when NotchDeck updates. Updating from 0.1.10 or earlier asks for them once more, because those versions were ad-hoc signed. Automatic updates only install versions signed with the same certificate. If you build it yourself, `build.sh` uses the certificate when it is in your keychain and an ad-hoc signature otherwise, so macOS may ask again after each rebuild.
-
-Do Not Disturb has no public API. To link it with the focus timer, create two Shortcuts named `NotchDeck 专注开始` and
-`NotchDeck 专注结束`, and NotchDeck will run them when a focus session starts and ends.
-
-## Limitations
-
-- Temperatures, now-playing data, dark mode, Night Shift, brightness, Bluetooth power and screen lock rely on private
-  macOS interfaces. They can stop working after a system update, and the app cannot be distributed through the Mac App
-  Store.
-- The brightness slider only controls the built-in display.
-- So far it has only been run on an Apple silicon Mac with macOS 27. Sensor names can differ on other models.
+Do Not Disturb has no public API. To link it with the focus timer, create two Shortcuts named `NotchDeck 专注开始` and `NotchDeck 专注结束`; NotchDeck runs them when a focus session starts and ends.
 
 ## License
 
