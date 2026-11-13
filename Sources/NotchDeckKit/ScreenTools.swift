@@ -18,12 +18,13 @@ enum ScreenTools {
         // -i 框选（按空格可以选窗口），-x 不播放快门声。按 Esc 取消时不会生成文件。
         process.arguments = ["-i", "-x", file.path]
         process.terminationHandler = { _ in
-            let image = NSImage(contentsOf: file)?.cgImage(forProposedRect: nil, context: nil, hints: nil)
+            // 按 Esc 取消时不会生成截图文件。
+            let captured = FileManager.default.fileExists(atPath: file.path)
+            let text = captured ? VisionWorker.recognizeText(atPaths: [file.path]).first ?? "" : ""
             try? FileManager.default.removeItem(at: file)
-            let text = image.flatMap(ClipboardStore.recognizeText) ?? ""
             DispatchQueue.main.async {
                 capturing = false
-                guard image != nil else { return }
+                guard captured else { return }
                 guard !text.isEmpty else {
                     Toasts.shared.show(L("没有识别到文字"), icon: "text.viewfinder")
                     return

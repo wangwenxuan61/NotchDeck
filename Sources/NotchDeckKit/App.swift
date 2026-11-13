@@ -3,6 +3,8 @@ import Carbon
 
 /// App 的入口。代码都在 NotchDeckKit 库里，启动程序只调用这一个函数，这样检查程序也能直接引用库里的逻辑。
 public func runNotchDeck() -> Never {
+    // 作为识别图片的子进程启动时，做完就退出，不打开界面。
+    VisionWorker.runIfRequested()
     Storage.migrateLegacySettings()
     let app = NSApplication.shared
     app.delegate = AppDelegate.shared

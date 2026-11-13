@@ -770,6 +770,8 @@ section("识字和取色") {
     check("识别剪贴板里的色值", parsed.map { [$0.red, $0.green, $0.blue].map { Int(($0 * 255).rounded()) } } == [55, 138, 221])
     check("三位色值展开", ScreenTools.color(fromHex: "#fff").map { $0.red == 1 && $0.green == 1 && $0.blue == 1 } == true)
     check("普通文字不算色值", ["378ADD", "#378AD", "#GGGGGG", "#+12345", "颜色 #378ADD", "#378ADD99"].allSatisfy { ScreenTools.color(fromHex: $0) == nil })
+    check("识别空列表不启动子进程", VisionWorker.recognizeText(in: []).isEmpty)
+    check("不是 App 时在本进程里识别，结果条数不变", VisionWorker.recognizeText(in: [Data("not an image".utf8)]) == [""])
     check("识别结果的行数", ScreenTools.lineCount("第一行\n\n第二行\n") == 2 && ScreenTools.lineCount("one") == 1)
 }
 

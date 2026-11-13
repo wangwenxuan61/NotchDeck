@@ -92,8 +92,10 @@ final class ClipboardStore: ObservableObject {
         /// 图片存在 imageFolder 里，这里只记文件名和类型。
         var image: String?
         var imageType: String?
+        /// 图片里识别出的文字。存下来，下次启动不用再识别一遍。
+        var recognizedText: String?
 
-        init(_ item: Item) {
+        init(_ item: Item, recognizedText: String? = nil) {
             switch item.content {
             case .text(let value):
                 text = value
@@ -103,6 +105,7 @@ final class ClipboardStore: ObservableObject {
             case .image(_, _, let type, _):
                 image = item.id.uuidString
                 imageType = type.rawValue
+                self.recognizedText = recognizedText
             }
             id = item.id
             date = item.date
@@ -171,8 +174,11 @@ final class ClipboardStore: ObservableObject {
         copiesPlainByDefault = UserDefaults.standard.bool(forKey: Self.copyPlainKey)
         if let data = try? Data(contentsOf: fileURL), let saved = try? JSONDecoder().decode([SavedItem].self, from: data) {
             items = saved.compactMap(\.item)
+            let ids = Set(items.map(\.id))
+            imageText = Dictionary(saved.compactMap { entry in entry.recognizedText.map { (entry.id, $0) } }.filter { ids.contains($0.0) },
+                                   uniquingKeysWith: { first, _ in first })
             prepareSuggestions(for: items)
-            items.forEach(analyze)
+            analyze(items)
         }
         if UserDefaults.standard.bool(forKey: Self.keptForRestartKey) {
             UserDefaults.standard.removeObject(forKey: Self.keptForRestartKey)
@@ -218,7 +224,7 @@ final class ClipboardStore: ObservableObject {
     private var snapshot: Snapshot {
         var result = Snapshot()
         for item in items where saveHistory || keepAllForRestart || item.isPinned {
-            let saved = SavedItem(item)
+            let saved = SavedItem(item, recognizedText: imageText[item.id])
             result.items.append(saved)
             if case .image(_, let data, _, _) = item.content, let name = saved.image { result.images[name] = data }
         }
@@ -330,15 +336,25 @@ final class ClipboardStore: ObservableObject {
         analyze(item)
     }
 
-    /// 图片进来就在后台识别文字，之后可以按图里的文字搜索。
-    func analyze(_ item: Item) {
-        guard case .image(_, let data, _, _) = item.content, imageText[item.id] == nil, analyzing.insert(item.id).inserted else { return }
+    func analyze(_ item: Item) { analyze([item]) }
+
+    /// 图片进来就在后台识别文字，之后可以按图里的文字搜索。识别在子进程里做，几张图一起识别只启动一次。
+    /// 识别结果和历史一起保存，已经识别过的不再重复。
+    func analyze(_ items: [Item]) {
+        let pending = items.compactMap { item -> (UUID, Data)? in
+            guard case .image(_, let data, _, _) = item.content, imageText[item.id] == nil, analyzing.insert(item.id).inserted else { return nil }
+            return (item.id, data)
+        }
+        guard !pending.isEmpty else { return }
         imageQueue.async { [weak self] in
-            let text = Self.fullImage(data).flatMap(Self.recognizeText) ?? ""
+            let texts = VisionWorker.recognizeText(in: pending.map(\.1))
             DispatchQueue.main.async {
                 guard let self else { return }
-                self.analyzing.remove(item.id)
-                if self.items.contains(where: { $0.id == item.id }) { self.imageText[item.id] = text }
+                for ((id, _), text) in zip(pending, texts) {
+                    self.analyzing.remove(id)
+                    if self.items.contains(where: { $0.id == id }) { self.imageText[id] = text }
+                }
+                self.schedulePersist()
             }
         }
     }
@@ -449,7 +465,7 @@ final class ClipboardStore: ObservableObject {
     func copySubject(of item: Item) {
         guard case .image(_, let data, _, _) = item.content else { return }
         DispatchQueue.global(qos: .userInitiated).async {
-            let content = Self.fullImage(data).flatMap(Self.liftSubject).flatMap { Self.imageContent($0, type: .png) }
+            let content = VisionWorker.liftSubject(in: data).flatMap { Self.imageContent($0, type: .png) }
             DispatchQueue.main.async {
                 guard let content else {
                     Toasts.shared.show(L("没有找到可以抠出的主体"), icon: "person.and.background.dotted")
@@ -475,7 +491,7 @@ final class ClipboardStore: ObservableObject {
         guard case .image(_, let data, _, _) = item.content else { return }
         if let text = imageText[item.id] { copyRecognized(text, from: item); return }
         DispatchQueue.global(qos: .userInitiated).async {
-            let text = Self.fullImage(data).flatMap(Self.recognizeText) ?? ""
+            let text = VisionWorker.recognizeText(in: [data]).first ?? ""
             DispatchQueue.main.async { self.copyRecognized(text, from: item) }
         }
     }
