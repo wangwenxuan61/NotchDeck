@@ -263,12 +263,10 @@ struct LookBusyCard: View {
     }
 }
 
-/// 底部的装忙按钮：点左边用当前场景开始，点箭头换场景。
+/// 底部的装忙按钮：点左边用当前场景开始，点箭头换场景，当前场景在选择框里打勾。
 struct LookBusyButton: View {
     @ObservedObject private var busy = LookBusyController.shared
     @State private var choosing = false
-
-    private var sceneTitle: String { SceneKind(rawValue: busy.sceneChoice)?.shortTitle ?? L("随机") }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -276,7 +274,6 @@ struct LookBusyButton: View {
                 HStack(spacing: 6) {
                     Image(systemName: "briefcase.fill").foregroundStyle(Theme.purple)
                     Text(L("装忙")).font(.system(size: 13, weight: .medium))
-                    Text(sceneTitle).font(.system(size: 12)).foregroundStyle(Theme.secondary)
                 }
                 .lineLimit(1)
                 .fixedSize()
