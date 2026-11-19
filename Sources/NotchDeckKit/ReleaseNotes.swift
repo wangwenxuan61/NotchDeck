@@ -17,10 +17,13 @@ struct ReleaseNotes {
     /// 文字在用到时才取，这样换语言后显示的也是新语言。
     static var all: [ReleaseNotes] {
         [
-            ReleaseNotes(version: "0.1.21", items: [
-                Item(symbol: "memorychip", color: Theme.teal,
-                     title: L("内存占用更少"),
-                     detail: L("识别图片文字和抠出主体改在用完就退出的子进程里做，不再一直占着约 30 MB 内存。")),
+            ReleaseNotes(version: "0.1.22", items: [
+                Item(symbol: "translate", color: Theme.teal,
+                     title: L("截图翻译"),
+                     detail: L("点首页底部的“翻译”或按 ⌃⌥Y，框选屏幕上的一块，用系统自带的翻译在本机翻译里面的文字。")),
+                Item(symbol: "briefcase.fill", color: Theme.purple,
+                     title: L("装忙按钮更简洁"),
+                     detail: L("底部的装忙按钮只留下箭头，换场景还是点箭头，空出的位置可以多放几个 App。")),
             ]),
         ]
     }
