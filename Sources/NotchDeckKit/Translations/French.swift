@@ -106,7 +106,7 @@ let frenchStrings: [String: String] = [
     "已用 %@/%@  Swap %@": "Utilisé %@/%@  Swap %@",
     "已接电源 %d%%": "Sur secteur %d%%",
     "使用电池 %d%%": "Sur batterie %d%%",
-    "⌥⌘N 面板  ·  ⌃⌥V 剪贴板  ·  ⌃⌥B 装忙  ·  ⌃⌥T 识字  ·  ⌃⌥C 取色": "⌥⌘N Panneau  ·  ⌃⌥V Presse-papiers  ·  ⌃⌥B Air occupé  ·  ⌃⌥T Texte  ·  ⌃⌥C Couleur",
+    "⌥⌘N 面板  ·  ⌃⌥V 剪贴板  ·  ⌃⌥B 装忙  ·  ⌃⌥T 识字  ·  ⌃⌥C 取色  ·  ⌃⌥Y 翻译": "⌥⌘N Panneau  ·  ⌃⌥V Presse-papiers  ·  ⌃⌥B Air occupé  ·  ⌃⌥T Texte  ·  ⌃⌥C Couleur  ·  ⌃⌥Y Traduire",
     "退出 NotchDeck": "Quitter NotchDeck",
     "开机自动启动": "Ouvrir à la connexion",
     "设置失败：%@": "Échec : %@",
@@ -285,4 +285,8 @@ let frenchStrings: [String: String] = [
     "有新版本时在图标旁显示 ⬆︎": "Afficher ⬆︎ à côté de l’icône quand une nouvelle version est disponible",
     "内存占用更少": "Moins de mémoire",
     "识别图片文字和抠出主体改在用完就退出的子进程里做，不再一直占着约 30 MB 内存。": "La reconnaissance de texte et le détourage passent par un processus qui se ferme ensuite, au lieu de garder environ 30 Mo.",
+    "翻译": "Traduire",
+    "识别出的文字": "Texte reconnu",
+    "复制原文": "Copier l’original",
+    "框选屏幕上的文字并翻译（⌃⌥Y）": "Sélectionner du texte à l’écran et le traduire (⌃⌥Y)",
 ]

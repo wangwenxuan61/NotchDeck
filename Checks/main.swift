@@ -772,6 +772,11 @@ section("识字和取色") {
     check("普通文字不算色值", ["378ADD", "#378AD", "#GGGGGG", "#+12345", "颜色 #378ADD", "#378ADD99"].allSatisfy { ScreenTools.color(fromHex: $0) == nil })
     check("识别空列表不启动子进程", VisionWorker.recognizeText(in: []).isEmpty)
     check("不是 App 时在本进程里识别，结果条数不变", VisionWorker.recognizeText(in: [Data("not an image".utf8)]) == [""])
+    let screen = NSRect(x: 0, y: 0, width: 1512, height: 945)
+    let size = NSSize(width: 380, height: 200)
+    check("翻译小窗放在鼠标右下方", TranslateWindow.origin(for: size, near: NSPoint(x: 400, y: 600), in: screen) == NSPoint(x: 412, y: 388))
+    check("翻译小窗靠右边时放到鼠标左边", TranslateWindow.origin(for: size, near: NSPoint(x: 1400, y: 600), in: screen).x == 1008)
+    check("翻译小窗靠底边时放到鼠标上方", TranslateWindow.origin(for: size, near: NSPoint(x: 400, y: 100), in: screen).y == 112)
     check("识别结果的行数", ScreenTools.lineCount("第一行\n\n第二行\n") == 2 && ScreenTools.lineCount("one") == 1)
 }
 

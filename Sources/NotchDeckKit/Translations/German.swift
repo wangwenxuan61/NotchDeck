@@ -106,7 +106,7 @@ let germanStrings: [String: String] = [
     "已用 %@/%@  Swap %@": "Belegt %@/%@  Swap %@",
     "已接电源 %d%%": "Am Netz %d%%",
     "使用电池 %d%%": "Akkubetrieb %d%%",
-    "⌥⌘N 面板  ·  ⌃⌥V 剪贴板  ·  ⌃⌥B 装忙  ·  ⌃⌥T 识字  ·  ⌃⌥C 取色": "⌥⌘N Panel  ·  ⌃⌥V Zwischenablage  ·  ⌃⌥B Busy-Modus  ·  ⌃⌥T Text  ·  ⌃⌥C Farbe",
+    "⌥⌘N 面板  ·  ⌃⌥V 剪贴板  ·  ⌃⌥B 装忙  ·  ⌃⌥T 识字  ·  ⌃⌥C 取色  ·  ⌃⌥Y 翻译": "⌥⌘N Panel  ·  ⌃⌥V Zwischenablage  ·  ⌃⌥B Busy-Modus  ·  ⌃⌥T Text  ·  ⌃⌥C Farbe  ·  ⌃⌥Y Übersetzen",
     "退出 NotchDeck": "NotchDeck beenden",
     "开机自动启动": "Beim Anmelden starten",
     "设置失败：%@": "Fehlgeschlagen: %@",
@@ -285,4 +285,8 @@ let germanStrings: [String: String] = [
     "有新版本时在图标旁显示 ⬆︎": "⬆︎ neben dem Symbol zeigen, wenn eine neue Version verfügbar ist",
     "内存占用更少": "Weniger Speicher",
     "识别图片文字和抠出主体改在用完就退出的子进程里做，不再一直占着约 30 MB 内存。": "Texterkennung und Freistellen laufen in einem Hilfsprozess, der sich danach beendet, statt dauerhaft etwa 30 MB zu belegen.",
+    "翻译": "Übersetzen",
+    "识别出的文字": "Erkannter Text",
+    "复制原文": "Original kopieren",
+    "框选屏幕上的文字并翻译（⌃⌥Y）": "Text auf dem Bildschirm auswählen und übersetzen (⌃⌥Y)",
 ]

@@ -92,24 +92,35 @@ struct DockRow: View {
             HStack(spacing: 8) {
                 LookBusyButton()
                 KeepAwakeButton()
+                TranslateButton()
             }
             divider
-            HStack(spacing: 0) {
-                ForEach(store.items.prefix(DockStore.visibleCount)) { app in
-                    AppIcon(app: app, size: 38) { AppDelegate.shared.closePanel() }
-                        .frame(maxWidth: .infinity)
-                        .onDrag {
-                            dragging = app.path
-                            return NSItemProvider(object: app.path as NSString)
-                        }
-                        .onDrop(of: [.text], delegate: DockDropDelegate(target: app.path, dragging: $dragging))
-                        .contextMenu { Button(L("从快捷栏移除")) { store.unpin(app.path) } }
+            // 左边按钮多了以后放不下那么多 App，按剩下的宽度决定显示几个，其余的在“…”里。
+            GeometryReader { geo in
+                HStack(spacing: 0) {
+                    dockApps(fitting: geo.size.width)
+                    IconButton(symbol: "ellipsis", help: L("全部快捷 App")) { model.page = .pinned }
+                        .padding(.horizontal, 8)
                 }
-                IconButton(symbol: "ellipsis", help: L("全部快捷 App")) { model.page = .pinned }
-                    .padding(.horizontal, 8)
+                .frame(width: geo.size.width, height: geo.size.height)
             }
+            .frame(height: 44)
             divider
             IconButton(symbol: "circle.grid.3x3.fill", help: L("所有应用")) { model.page = .apps }
+        }
+    }
+
+    private func dockApps(fitting width: CGFloat) -> some View {
+        let count = max(1, min(DockStore.visibleCount, Int((width - 44) / 46)))
+        return ForEach(store.items.prefix(count)) { app in
+            AppIcon(app: app, size: 38) { AppDelegate.shared.closePanel() }
+                .frame(maxWidth: .infinity)
+                .onDrag {
+                    dragging = app.path
+                    return NSItemProvider(object: app.path as NSString)
+                }
+                .onDrop(of: [.text], delegate: DockDropDelegate(target: app.path, dragging: $dragging))
+                .contextMenu { Button(L("从快捷栏移除")) { store.unpin(app.path) } }
         }
     }
 }

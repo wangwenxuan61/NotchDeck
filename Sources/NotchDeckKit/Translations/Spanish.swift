@@ -106,7 +106,7 @@ let spanishStrings: [String: String] = [
     "已用 %@/%@  Swap %@": "Usada %@/%@  Swap %@",
     "已接电源 %d%%": "Conectado %d%%",
     "使用电池 %d%%": "Con batería %d%%",
-    "⌥⌘N 面板  ·  ⌃⌥V 剪贴板  ·  ⌃⌥B 装忙  ·  ⌃⌥T 识字  ·  ⌃⌥C 取色": "⌥⌘N Panel  ·  ⌃⌥V Portapapeles  ·  ⌃⌥B Parecer ocupado  ·  ⌃⌥T Texto  ·  ⌃⌥C Color",
+    "⌥⌘N 面板  ·  ⌃⌥V 剪贴板  ·  ⌃⌥B 装忙  ·  ⌃⌥T 识字  ·  ⌃⌥C 取色  ·  ⌃⌥Y 翻译": "⌥⌘N Panel  ·  ⌃⌥V Portapapeles  ·  ⌃⌥B Parecer ocupado  ·  ⌃⌥T Texto  ·  ⌃⌥C Color  ·  ⌃⌥Y Traducir",
     "退出 NotchDeck": "Salir de NotchDeck",
     "开机自动启动": "Abrir al iniciar sesión",
     "设置失败：%@": "Error: %@",
@@ -285,4 +285,8 @@ let spanishStrings: [String: String] = [
     "有新版本时在图标旁显示 ⬆︎": "Mostrar ⬆︎ junto al icono cuando hay una versión nueva",
     "内存占用更少": "Usa menos memoria",
     "识别图片文字和抠出主体改在用完就退出的子进程里做，不再一直占着约 30 MB 内存。": "El reconocimiento de texto y el recorte de sujetos usan un proceso auxiliar que se cierra al terminar, en vez de ocupar unos 30 MB.",
+    "翻译": "Traducir",
+    "识别出的文字": "Texto reconocido",
+    "复制原文": "Copiar original",
+    "框选屏幕上的文字并翻译（⌃⌥Y）": "Seleccionar texto en pantalla y traducirlo (⌃⌥Y)",
 ]

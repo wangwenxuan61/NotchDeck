@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var clipboardHotKey: HotKey?
     private var textHotKey: HotKey?
     private var colorHotKey: HotKey?
+    private var translateHotKey: HotKey?
     private var swipeDistance: CGFloat = 0
     private var swipeConsumed = false
     var modalOpen = false
@@ -239,6 +240,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         colorHotKey = register("⌃⌥C", kVK_ANSI_C, controlKey | optionKey, id: 5) {
             ScreenTools.pickColor()
+        }
+        if TranslateWindow.isAvailable {
+            translateHotKey = register("⌃⌥Y", kVK_ANSI_Y, controlKey | optionKey, id: 6) {
+                TranslateWindow.captureAndTranslate()
+            }
         }
         if !taken.isEmpty {
             Toasts.shared.show(L("%@ 已被占用", taken.joined(separator: " ")), icon: "exclamationmark.triangle")

@@ -9,6 +9,15 @@ enum ScreenTools {
     private static let requestedKey = "screenCaptureRequested"
 
     static func captureText() {
+        captureRegion { text in
+            copy(text)
+            let lines = lineCount(text)
+            Toasts.shared.show(lines > 1 ? L("已复制 %d 行文字", lines) : L("已复制识别出的文字"), icon: "text.viewfinder")
+        }
+    }
+
+    /// 框选屏幕上的一块并识别文字，识别出来时在主线程调用 done；取消或没识别到文字时不调用。
+    static func captureRegion(_ done: @escaping (String) -> Void) {
         AppDelegate.shared.closePanel()
         guard !capturing, hasScreenAccess() else { return }
         capturing = true
@@ -29,9 +38,7 @@ enum ScreenTools {
                     Toasts.shared.show(L("没有识别到文字"), icon: "text.viewfinder")
                     return
                 }
-                copy(text)
-                let lines = lineCount(text)
-                Toasts.shared.show(lines > 1 ? L("已复制 %d 行文字", lines) : L("已复制识别出的文字"), icon: "text.viewfinder")
+                done(text)
             }
         }
         do {

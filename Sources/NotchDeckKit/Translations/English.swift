@@ -106,7 +106,7 @@ let englishStrings: [String: String] = [
     "已用 %@/%@  Swap %@": "Used %@/%@  Swap %@",
     "已接电源 %d%%": "Plugged in %d%%",
     "使用电池 %d%%": "On battery %d%%",
-    "⌥⌘N 面板  ·  ⌃⌥V 剪贴板  ·  ⌃⌥B 装忙  ·  ⌃⌥T 识字  ·  ⌃⌥C 取色": "⌥⌘N Panel  ·  ⌃⌥V Clipboard  ·  ⌃⌥B Look Busy  ·  ⌃⌥T Text  ·  ⌃⌥C Color",
+    "⌥⌘N 面板  ·  ⌃⌥V 剪贴板  ·  ⌃⌥B 装忙  ·  ⌃⌥T 识字  ·  ⌃⌥C 取色  ·  ⌃⌥Y 翻译": "⌥⌘N Panel  ·  ⌃⌥V Clipboard  ·  ⌃⌥B Look Busy  ·  ⌃⌥T Text  ·  ⌃⌥C Color  ·  ⌃⌥Y Translate",
     "退出 NotchDeck": "Quit NotchDeck",
     "开机自动启动": "Launch at Login",
     "设置失败：%@": "Failed: %@",
@@ -285,4 +285,8 @@ let englishStrings: [String: String] = [
     "有新版本时在图标旁显示 ⬆︎": "Show ⬆︎ next to the icon when a new version is available",
     "内存占用更少": "Uses less memory",
     "识别图片文字和抠出主体改在用完就退出的子进程里做，不再一直占着约 30 MB 内存。": "Text recognition and subject cut-out now run in a helper that quits when done, instead of keeping about 30 MB loaded.",
+    "翻译": "Translate",
+    "识别出的文字": "Recognized text",
+    "复制原文": "Copy Original",
+    "框选屏幕上的文字并翻译（⌃⌥Y）": "Select text on screen and translate it (⌃⌥Y)",
 ]

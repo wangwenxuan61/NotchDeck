@@ -62,6 +62,7 @@ The screenshots use made-up demo data and the Chinese interface.
 - **System monitor**: temperatures, power draw, memory, disk, network speed, battery health, top processes and 10-minute charts.
 - **Quick controls**: Wi-Fi, Bluetooth, dark mode, Night Shift, keep awake, mute, volume, brightness and Bluetooth device batteries.
 - **Capture text** and **color picker**: select text on screen to copy it, or pick a HEX color with the magnifier.
+- **Screenshot translation**: select part of the screen and translate its text on your Mac with the built-in system translation (macOS 14.4 or later).
 - **Timers**: countdown, stopwatch and a 25-minute focus timer.
 - **Search**: apps, files, todos, notes and clipboard history.
 - **AI token usage** (optional): token counts and estimated cost per model for Claude Code and Codex, read from usage fields only, never your conversations.
@@ -80,6 +81,7 @@ The screenshots use made-up demo data and the Chinese interface.
 | ⌃⌥B | Start or stop Look Busy |
 | ⌃⌥T | Select text on screen and copy it |
 | ⌃⌥C | Pick a color and copy its HEX value |
+| ⌃⌥Y | Select text on screen and translate it |
 | Esc | Close the panel or leave Look Busy |
 
 ## Install
@@ -96,7 +98,7 @@ NotchDeck only asks when you turn on a feature that needs it:
 - **Reminders**: Reminders sync. Turning it on moves your unfinished local todos into the chosen list.
 - **Bluetooth**: the Bluetooth toggle and device batteries.
 - **Notifications**: countdown and focus alerts, asked the first time you start a timer.
-- **Screen Recording**: capture text, asked the first time you use it. The screenshot is read on your Mac and deleted right away.
+- **Screen Recording**: capture text and screenshot translation, asked the first time you use either. The screenshot is read on your Mac and deleted right away.
 
 From 0.1.11 on, permissions are kept across updates.
 
