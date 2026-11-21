@@ -92,18 +92,31 @@ final class ReminderSync: ObservableObject {
     /// 写入失败的待办留在本机，关闭同步后还能看到，下次开启时会再试一次。
     private func moveLocalTodos(to list: EKCalendar) {
         let pending = TodoStore.shared.localPendingItems()
-        let moved = pending.filter { (try? createReminder($0.title, in: list)) != nil }
+        let moved = pending.filter { (try? createReminder($0.title, due: $0.due, in: list)) != nil }
         TodoStore.shared.removeLocalItems(Set(moved.map(\.id)))
         if moved.count < pending.count {
             Toasts.shared.show(L("%d 条待办未能同步，已保留在本机", pending.count - moved.count), icon: "exclamationmark.triangle")
         }
     }
 
-    private func createReminder(_ title: String, in list: EKCalendar) throws {
+    private func createReminder(_ title: String, due: Date?, in list: EKCalendar) throws {
         let reminder = EKReminder(eventStore: store)
         reminder.title = title
         reminder.calendar = list
+        reminder.dueDateComponents = Self.components(due)
         try store.save(reminder, commit: true)
+    }
+
+    /// 只写截止时间，不加闹钟：提醒由 NotchDeck 弹，系统“提醒事项”不会再响一次。
+    private static func components(_ due: Date?) -> DateComponents? {
+        due.map { Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: $0) }
+    }
+
+    /// 在“提醒事项”里只设了日期没设时间的，按当天早上 9 点提醒。
+    private static func dueDate(_ reminder: EKReminder) -> Date? {
+        guard var components = reminder.dueDateComponents else { return nil }
+        if components.hour == nil { components.hour = 9 }
+        return Calendar.current.date(from: components)
     }
 
     private var currentList: EKCalendar? { store.calendar(withIdentifier: selectedListID) }
@@ -127,9 +140,9 @@ final class ReminderSync: ObservableObject {
             self.store.fetchReminders(matching: done) { [weak self] completed in
                 let pendingItems = (incomplete ?? [])
                     .sorted { ($0.creationDate ?? .distantPast) < ($1.creationDate ?? .distantPast) }
-                    .map { TodoStore.Item(id: $0.calendarItemIdentifier, title: $0.title ?? "", done: false) }
+                    .map { TodoStore.Item(id: $0.calendarItemIdentifier, title: $0.title ?? "", done: false, due: Self.dueDate($0)) }
                 let doneItems = (completed ?? [])
-                    .map { TodoStore.Item(id: $0.calendarItemIdentifier, title: $0.title ?? "", done: true) }
+                    .map { TodoStore.Item(id: $0.calendarItemIdentifier, title: $0.title ?? "", done: true, due: Self.dueDate($0)) }
                 DispatchQueue.main.async {
                     guard let self, self.isActive, current == self.generation else { return }
                     // 卡片只显示今天完成的项，其余的隐藏记录已经用不上，清掉免得越存越多。
@@ -150,9 +163,9 @@ final class ReminderSync: ObservableObject {
         reload()
     }
 
-    func add(_ title: String) {
+    func add(_ title: String, due: Date?) {
         guard let list = currentList else { return }
-        save { try createReminder(title, in: list) }
+        save { try createReminder(title, due: due, in: list) }
     }
 
     func toggle(_ id: String) {
@@ -162,9 +175,10 @@ final class ReminderSync: ObservableObject {
         save { try store.save(reminder, commit: true) }
     }
 
-    func rename(_ id: String, to title: String) {
-        guard let reminder = store.calendarItem(withIdentifier: id) as? EKReminder, reminder.title != title else { return }
+    func update(_ id: String, title: String, due: Date?) {
+        guard let reminder = store.calendarItem(withIdentifier: id) as? EKReminder else { return }
         reminder.title = title
+        reminder.dueDateComponents = Self.components(due)
         save { try store.save(reminder, commit: true) }
     }
 

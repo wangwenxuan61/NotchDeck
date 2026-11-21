@@ -51,6 +51,11 @@ final class AppSettings: ObservableObject {
     @Published var showMenuBarUpdate: Bool {
         didSet { defaults.set(showMenuBarUpdate, forKey: "showMenuBarUpdate") }
     }
+    /// 待办提前几分钟提醒，0 是到点提醒。
+    @Published var todoReminderLead: Int {
+        didSet { defaults.set(todoReminderLead, forKey: "todoReminderLead") }
+    }
+    static let reminderLeadOptions = [0, 5, 10, 15]
     @Published var launchError: String?
 
     private init() {
@@ -60,6 +65,7 @@ final class AppSettings: ObservableObject {
         showMenuBarNetwork = defaults.bool(forKey: "showMenuBarNetwork")
         showMenuBarBattery = defaults.bool(forKey: "showMenuBarBattery")
         showMenuBarUpdate = defaults.object(forKey: "showMenuBarUpdate") as? Bool ?? true
+        todoReminderLead = defaults.object(forKey: "todoReminderLead") as? Int ?? 10
         appearance = defaults.string(forKey: "appAppearance").flatMap(AppearanceMode.init(rawValue:)) ?? .light
     }
 

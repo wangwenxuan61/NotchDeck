@@ -36,9 +36,10 @@ final class SystemNotifier: NSObject, UNUserNotificationCenterDelegate {
     }
 
     /// 提示音已经由 App 自己播放，通知不再带声音。
-    func post(_ title: String) {
+    func post(_ title: String, body: String? = nil) {
         let content = UNMutableNotificationContent()
         content.title = title
+        if let body { content.body = body }
         center?.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
     }
 

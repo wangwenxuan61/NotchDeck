@@ -136,6 +136,17 @@ struct SettingsPage: View {
                     toggle(Binding(get: { reminders.isActive }, set: { reminders.setEnabled($0) }))
                 }
             }
+            row(L("待办提醒")) {
+                Picker("", selection: $settings.todoReminderLead) {
+                    ForEach(AppSettings.reminderLeadOptions, id: \.self) { minutes in
+                        Text(minutes == 0 ? L("到点提醒") : L("提前 %d 分钟", minutes)).tag(minutes)
+                    }
+                }
+                .labelsHidden()
+                .controlSize(.small)
+                .fixedSize()
+            }
+            .help(L("给待办设了提醒时间（点待办旁的闹钟图标）时，到点前在刘海下弹出提醒"))
             row(L("装忙用的文件名")) {
                 HStack(spacing: 8) {
                     Text(busy.usesCustomProject ? busy.project.name : L("演示项目"))

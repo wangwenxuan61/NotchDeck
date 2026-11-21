@@ -39,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AgendaStore.shared.refresh()
         TokenUsageStore.shared.refreshIfNeeded()
         AppUsageStore.shared.start()
+        TodoReminders.shared.start()
         UpdateChecker.shared.start()
         statusBar = StatusItemController(app: self)
         refreshMonitorMode()

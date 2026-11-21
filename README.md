@@ -43,6 +43,7 @@ The screenshots use made-up demo data and the Chinese interface.
 ## Features
 
 **Home**
+- **To-do reminders**: click the alarm icon next to a to-do to set a time, and a reminder drops down below the notch before it, with Done and Remind Me Later.
 - **Cards**: todos, sticky note, system monitor, music, schedule, clipboard, shelf and today's time, plus optional clock, month calendar, timer, token usage and Look Busy cards. Reorder, hide or spread them over two pages.
 - **Schedule**: this week's dates and the events of the next 7 days, with a join button for Zoom, Teams, Google Meet, Tencent Meeting, Feishu and other meeting links.
 - **Shelf**: drop files on the panel to keep them for later, then drag them out or open them.
@@ -97,7 +98,7 @@ NotchDeck only asks when you turn on a feature that needs it:
 - **Calendar**: the schedule card. Events are only read.
 - **Reminders**: Reminders sync. Turning it on moves your unfinished local todos into the chosen list.
 - **Bluetooth**: the Bluetooth toggle and device batteries.
-- **Notifications**: countdown and focus alerts, asked the first time you start a timer.
+- **Notifications**: countdown, focus and to-do alerts, asked the first time you start a timer or set a to-do reminder.
 - **Screen Recording**: capture text and screenshot translation, asked the first time you use either. The screenshot is read on your Mac and deleted right away.
 
 From 0.1.11 on, permissions are kept across updates.

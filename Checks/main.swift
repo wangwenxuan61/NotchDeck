@@ -780,6 +780,36 @@ section("识字和取色") {
     check("识别结果的行数", ScreenTools.lineCount("第一行\n\n第二行\n") == 2 && ScreenTools.lineCount("one") == 1)
 }
 
+section("待办提醒") {
+    let calendar = Calendar.current
+    let today = calendar.startOfDay(for: Date())
+    let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
+    func at(_ day: Date, _ hour: Int, _ minute: Int = 0) -> Date { calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)! }
+    check("默认时间是下一个整点", TodoTime.suggested(now: at(today, 14, 37)) == at(today, 15))
+    let afternoon = TodoTime.quickChoices(now: at(today, 14, 37))
+    check("快捷时间：1 小时后取整到 5 分钟、今晚 8 点、明天 9 点", afternoon.map(\.date) == [at(today, 15, 40), at(today, 20), at(tomorrow, 9)])
+    check("过了 8 点就不给今晚 8 点", TodoTime.quickChoices(now: at(today, 21)).map(\.date) == [at(today, 22), at(tomorrow, 9)])
+    let noon = at(today, 12)
+    check("快到了显示橙色", TodoTime.urgency(of: noon.addingTimeInterval(20 * 60), now: noon, lead: 10) == .soon)
+    check("还早显示灰色", TodoTime.urgency(of: noon.addingTimeInterval(3 * 3600), now: noon, lead: 10) == .later)
+    check("过了显示红色", TodoTime.urgency(of: noon.addingTimeInterval(-60), now: noon, lead: 10) == .overdue)
+    let due = noon.addingTimeInterval(3600)
+    func decide(now: Date, handled: Double? = nil, snoozed: Double? = nil, written: Bool = false) -> TodoReminders.Decision? {
+        TodoReminders.decide(due: due, lead: 600, handled: handled, snoozedUntil: snoozed, justWritten: written, now: now)
+    }
+    check("提前量之前只定闹钟", decide(now: noon) == .wait(due.addingTimeInterval(-600)))
+    check("进入提前量就提醒", decide(now: due.addingTimeInterval(-300)) == .show)
+    check("提醒过的不再弹", decide(now: due.addingTimeInterval(-300), handled: due.timeIntervalSince1970) == nil)
+    check("改了时间会重新提醒", decide(now: due.addingTimeInterval(-300), handled: due.timeIntervalSince1970 - 3600) == .show)
+    check("稍后再提醒按新的时间", decide(now: due, snoozed: due.timeIntervalSince1970 + 600) == .wait(due.addingTimeInterval(600)))
+    check("刚写下就快到点的，等到点再提醒", decide(now: due.addingTimeInterval(-300), written: true) == .remindAtDue)
+    check("刚写下已经过了的不提醒", decide(now: due.addingTimeInterval(60), written: true) == .skip)
+    check("错过半小时以上的不补弹", decide(now: due.addingTimeInterval(3600)) == .skip)
+    check("错过不久的补弹", decide(now: due.addingTimeInterval(600)) == .show)
+    let old = try? JSONDecoder().decode([TodoStore.Item].self, from: Data(#"[{"id":"a","title":"旧待办","done":false}]"#.utf8))
+    check("旧版本的待办没有时间也能读出", old?.first?.due == nil && old?.first?.title == "旧待办")
+}
+
 section("装忙场景和多屏幕") {
     let engine = Engine(project: Project.demo, seed: 7, kinds: [.build], warmup: 1)
     check("只创建要显示的场景", Set(engine.sims.keys) == [.build])
