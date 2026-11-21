@@ -287,10 +287,6 @@ let frenchStrings: [String: String] = [
     "识别出的文字": "Texte reconnu",
     "复制原文": "Copier l’original",
     "框选屏幕上的文字并翻译（⌃⌥Y）": "Sélectionner du texte à l’écran et le traduire (⌃⌥Y)",
-    "截图翻译": "Traduction de capture",
-    "点首页底部的“翻译”或按 ⌃⌥Y，框选屏幕上的一块，用系统自带的翻译在本机翻译里面的文字。": "Cliquez sur Traduire en bas de l’accueil ou ⌃⌥Y, puis sélectionnez une zone de l’écran pour traduire son texte sur le Mac.",
-    "装忙按钮更简洁": "Bouton Air occupé plus compact",
-    "底部的装忙按钮只留下箭头，换场景还是点箭头，空出的位置可以多放几个 App。": "Le bouton Air occupé en bas n’affiche plus que sa flèche pour choisir la scène, ce qui laisse place à plus d’apps.",
     "%d 分钟后再提醒": "Rappeler dans %d min",
     "不提醒": "Ne pas rappeler",
     "到点提醒": "À l’heure",
@@ -311,4 +307,7 @@ let frenchStrings: [String: String] = [
     "确定": "OK",
     "设置提醒时间": "Définir l’heure du rappel",
     "给待办设了提醒时间（点待办旁的闹钟图标）时，到点前在刘海下弹出提醒": "Quand une tâche a une heure de rappel (cliquez sur l’icône réveil à côté), un rappel apparaît sous l’encoche avant l’heure",
+    "完成或稍后再提醒": "Terminer ou rappeler plus tard",
+    "点待办旁的闹钟图标设好时间，到点前在刘海下弹出提醒，同时发一条系统通知。": "Cliquez sur l’icône réveil d’une tâche pour choisir l’heure ; un rappel apparaît sous l’encoche avant, avec une notification.",
+    "提醒卡片上可以直接完成待办，或者 10 分钟后再提醒；提前多久在设置里选。": "Terminez la tâche depuis le rappel ou repoussez-le de 10 minutes ; l’avance se règle dans les réglages.",
 ]

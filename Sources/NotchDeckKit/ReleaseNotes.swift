@@ -17,13 +17,13 @@ struct ReleaseNotes {
     /// 文字在用到时才取，这样换语言后显示的也是新语言。
     static var all: [ReleaseNotes] {
         [
-            ReleaseNotes(version: "0.1.22", items: [
-                Item(symbol: "translate", color: Theme.teal,
-                     title: L("截图翻译"),
-                     detail: L("点首页底部的“翻译”或按 ⌃⌥Y，框选屏幕上的一块，用系统自带的翻译在本机翻译里面的文字。")),
-                Item(symbol: "briefcase.fill", color: Theme.purple,
-                     title: L("装忙按钮更简洁"),
-                     detail: L("底部的装忙按钮只留下箭头，换场景还是点箭头，空出的位置可以多放几个 App。")),
+            ReleaseNotes(version: "0.1.23", items: [
+                Item(symbol: "alarm.fill", color: Theme.orange,
+                     title: L("待办提醒"),
+                     detail: L("点待办旁的闹钟图标设好时间，到点前在刘海下弹出提醒，同时发一条系统通知。")),
+                Item(symbol: "bell.badge.fill", color: Theme.blue,
+                     title: L("完成或稍后再提醒"),
+                     detail: L("提醒卡片上可以直接完成待办，或者 10 分钟后再提醒；提前多久在设置里选。")),
             ]),
         ]
     }

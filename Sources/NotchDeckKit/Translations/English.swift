@@ -287,10 +287,6 @@ let englishStrings: [String: String] = [
     "识别出的文字": "Recognized text",
     "复制原文": "Copy Original",
     "框选屏幕上的文字并翻译（⌃⌥Y）": "Select text on screen and translate it (⌃⌥Y)",
-    "截图翻译": "Screenshot translation",
-    "点首页底部的“翻译”或按 ⌃⌥Y，框选屏幕上的一块，用系统自带的翻译在本机翻译里面的文字。": "Click Translate at the bottom of the home page or press ⌃⌥Y, then select part of the screen to translate its text on your Mac.",
-    "装忙按钮更简洁": "A slimmer Look Busy button",
-    "底部的装忙按钮只留下箭头，换场景还是点箭头，空出的位置可以多放几个 App。": "The Look Busy button at the bottom now shows only its arrow for picking a scene, leaving room for more apps.",
     "%d 分钟后再提醒": "Remind in %d min",
     "不提醒": "Don't Remind",
     "到点提醒": "At the time",
@@ -311,4 +307,7 @@ let englishStrings: [String: String] = [
     "确定": "OK",
     "设置提醒时间": "Set Reminder Time",
     "给待办设了提醒时间（点待办旁的闹钟图标）时，到点前在刘海下弹出提醒": "When a to-do has a reminder time (click the alarm icon next to it), a reminder drops down below the notch before it",
+    "完成或稍后再提醒": "Done or remind me later",
+    "点待办旁的闹钟图标设好时间，到点前在刘海下弹出提醒，同时发一条系统通知。": "Click the alarm icon next to a to-do to set a time; a reminder drops down below the notch before it, plus a notification.",
+    "提醒卡片上可以直接完成待办，或者 10 分钟后再提醒；提前多久在设置里选。": "Finish the to-do right from the reminder or snooze it for 10 minutes; choose how early to be reminded in Settings.",
 ]

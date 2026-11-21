@@ -287,10 +287,6 @@ let spanishStrings: [String: String] = [
     "识别出的文字": "Texto reconocido",
     "复制原文": "Copiar original",
     "框选屏幕上的文字并翻译（⌃⌥Y）": "Seleccionar texto en pantalla y traducirlo (⌃⌥Y)",
-    "截图翻译": "Traducir capturas",
-    "点首页底部的“翻译”或按 ⌃⌥Y，框选屏幕上的一块，用系统自带的翻译在本机翻译里面的文字。": "Pulsa Traducir en la parte inferior del inicio o ⌃⌥Y y selecciona una zona de la pantalla para traducir su texto en el Mac.",
-    "装忙按钮更简洁": "Botón Parecer ocupado más estrecho",
-    "底部的装忙按钮只留下箭头，换场景还是点箭头，空出的位置可以多放几个 App。": "El botón de abajo muestra solo la flecha para elegir la escena, y deja sitio para más apps.",
     "%d 分钟后再提醒": "Recordar en %d min",
     "不提醒": "No recordar",
     "到点提醒": "A la hora",
@@ -311,4 +307,7 @@ let spanishStrings: [String: String] = [
     "确定": "OK",
     "设置提醒时间": "Definir hora del aviso",
     "给待办设了提醒时间（点待办旁的闹钟图标）时，到点前在刘海下弹出提醒": "Si una tarea tiene hora de aviso (haz clic en el icono de alarma a su lado), aparece un aviso bajo la muesca antes de esa hora",
+    "完成或稍后再提醒": "Hecho o recordar más tarde",
+    "点待办旁的闹钟图标设好时间，到点前在刘海下弹出提醒，同时发一条系统通知。": "Haz clic en el icono de alarma de una tarea para fijar la hora; antes aparece un aviso bajo la muesca y una notificación.",
+    "提醒卡片上可以直接完成待办，或者 10 分钟后再提醒；提前多久在设置里选。": "Completa la tarea desde el aviso o pospónlo 10 minutos; elige la antelación en Ajustes.",
 ]

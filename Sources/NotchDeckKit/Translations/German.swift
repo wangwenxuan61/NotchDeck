@@ -287,10 +287,6 @@ let germanStrings: [String: String] = [
     "识别出的文字": "Erkannter Text",
     "复制原文": "Original kopieren",
     "框选屏幕上的文字并翻译（⌃⌥Y）": "Text auf dem Bildschirm auswählen und übersetzen (⌃⌥Y)",
-    "截图翻译": "Bildschirm übersetzen",
-    "点首页底部的“翻译”或按 ⌃⌥Y，框选屏幕上的一块，用系统自带的翻译在本机翻译里面的文字。": "Unten auf der Startseite auf Übersetzen klicken oder ⌃⌥Y drücken und einen Bereich auswählen, um seinen Text auf dem Mac zu übersetzen.",
-    "装忙按钮更简洁": "Schmalere Busy-Taste",
-    "底部的装忙按钮只留下箭头，换场景还是点箭头，空出的位置可以多放几个 App。": "Die Busy-Taste unten zeigt nur noch den Pfeil zur Szenenwahl, so passen mehr Apps daneben.",
     "%d 分钟后再提醒": "In %d Min. erinnern",
     "不提醒": "Nicht erinnern",
     "到点提醒": "Zur Uhrzeit",
@@ -311,4 +307,7 @@ let germanStrings: [String: String] = [
     "确定": "OK",
     "设置提醒时间": "Erinnerungszeit festlegen",
     "给待办设了提醒时间（点待办旁的闹钟图标）时，到点前在刘海下弹出提醒": "Hat ein To-do eine Erinnerungszeit (Weckersymbol daneben anklicken), erscheint vorher eine Erinnerung unter der Notch",
+    "完成或稍后再提醒": "Erledigen oder später erinnern",
+    "点待办旁的闹钟图标设好时间，到点前在刘海下弹出提醒，同时发一条系统通知。": "Klicke auf das Weckersymbol neben einem To-do, um eine Zeit festzulegen; vorher erscheint eine Erinnerung unter der Notch.",
+    "提醒卡片上可以直接完成待办，或者 10 分钟后再提醒；提前多久在设置里选。": "Erledige das To-do direkt in der Erinnerung oder schiebe sie um 10 Minuten; die Vorlaufzeit stellst du in den Einstellungen ein.",
 ]
