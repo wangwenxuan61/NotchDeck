@@ -1,6 +1,6 @@
 import SwiftUI
 
-private var privacyNote: String { L("开启后，NotchDeck 只在本机读取 Claude Code 和 Codex 的用量记录，只统计模型和 token 数，不读取对话内容。") }
+private var privacyNote: String { L("开启后，NotchDeck 只在本机读取 Claude Code、Codex、Gemini CLI 等 AI 编程工具的用量记录，只统计模型和 token 数，不读取对话内容。") }
 private var costNote: String { L("费用按官方 API 价格估算，订阅套餐实际不按 token 计费。") }
 
 /// 各模型的用量明细：输入、缓存读写、输出、合计和估算费用。

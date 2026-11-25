@@ -166,7 +166,7 @@ let japaneseStrings: [String: String] = [
     "刷新": "更新",
     "合计": "合計",
     "开启": "オンにする",
-    "开启后，NotchDeck 只在本机读取 Claude Code 和 Codex 的用量记录，只统计模型和 token 数，不读取对话内容。": "オンにすると、NotchDeck はこの Mac 上の Claude Code と Codex の使用記録だけを読み取り、モデルとトークン数を集計します。会話の内容は読み取りません。",
+    "开启后，NotchDeck 只在本机读取 Claude Code、Codex、Gemini CLI 等 AI 编程工具的用量记录，只统计模型和 token 数，不读取对话内容。": "オンにすると、NotchDeck はこの Mac 上の Claude Code、Codex、Gemini CLI などの AI コーディングツールの使用記録だけを読み取り、モデルとトークン数を集計します。会話の内容は読み取りません。",
     "更新于 %@": "更新: %@",
     "来源": "ソース",
     "查看": "表示",

@@ -1,14 +1,14 @@
 import Foundation
 
-/// 统计 Claude Code 和 Codex 在本机的 token 用量。默认关闭，开启前不读取任何文件。
+/// 统计 Claude Code、Codex、Gemini CLI 等 AI 编程工具在本机的 token 用量。默认关闭，开启前不读取任何文件。
 /// 只看最近 30 天：更早没改动过的记录文件直接跳过，第一次扫描也快得多。
 final class TokenUsageStore: ObservableObject {
     static let shared = TokenUsageStore()
     static let retentionDays = 30
     private static let enabledKey = "tokenUsageEnabled"
     /// 保存格式或价格表变了就把版本号加一，旧的统计会删掉重新读取。
-    static let file = "token-usage-v4.json"
-    private static let legacyFiles = ["token-usage.json", "token-usage-v2.json", "token-usage-v3.json"]
+    static let file = "token-usage-v5.json"
+    private static let legacyFiles = ["token-usage.json", "token-usage-v2.json", "token-usage-v3.json", "token-usage-v4.json"]
 
     enum Range: CaseIterable {
         case today, week, month
@@ -53,14 +53,7 @@ final class TokenUsageStore: ObservableObject {
     @Published private(set) var days: [String: [String: TokenCounts]] = [:]
 
     /// 记录文件所在的目录。检查程序会换成临时目录。
-    var roots: [(url: URL, source: UsageSource)] = {
-        let home = URL(fileURLWithPath: NSHomeDirectory())
-        return [
-            (home.appendingPathComponent(".claude/projects"), .claudeCode),
-            (home.appendingPathComponent(".codex/sessions"), .codex),
-            (home.appendingPathComponent(".codex/archived_sessions"), .codex),
-        ]
-    }()
+    var roots = UsageSource.roots(home: URL(fileURLWithPath: NSHomeDirectory()))
 
     private let queue = DispatchQueue(label: "notchdeck.token-usage", qos: .userInitiated)
     /// 只在 queue 上访问。
@@ -123,14 +116,15 @@ final class TokenUsageStore: ObservableObject {
         let path: String
         let url: URL
         let isOld: Bool
+        let whole: Bool
         var state: UsageFileState
         var needsRead: Bool
-        var entries: [ClaudeEntry] = []
+        var entries: [UsageEntry] = []
     }
 
     /// 返回统计有没有变化，没变就不必重写保存的文件。
     /// 先列出要读的文件，再同时读多个文件，最后按原来的顺序去重计入，结果和逐个读完全一样。
-    private func scan(_ roots: [(url: URL, source: UsageSource)]) -> Bool {
+    private func scan(_ roots: [(url: URL, source: UsageSource, deep: Bool)]) -> Bool {
         var changed = false
         let calendar = Calendar.current
         let cutoffDate = calendar.date(byAdding: .day, value: -(Self.retentionDays - 1), to: calendar.startOfDay(for: Date())) ?? Date()
@@ -141,24 +135,47 @@ final class TokenUsageStore: ObservableObject {
         /// Codex 会话 ID -> 文件，文件名以会话 ID 结尾。
         var codexFiles: [String: URL] = [:]
         for root in roots {
-            guard let enumerator = FileManager.default.enumerator(at: root.url, includingPropertiesForKeys: keys) else { continue }
-            for case let url as URL in enumerator where url.pathExtension == "jsonl" {
-                guard let values = try? url.resourceValues(forKeys: Set(keys)), values.isRegularFile == true else { continue }
-                if root.source == .codex { codexFiles[String(url.deletingPathExtension().lastPathComponent.suffix(36))] = url }
+            let source = root.source
+            guard let enumerator = FileManager.default.enumerator(at: root.url, includingPropertiesForKeys: keys,
+                                                                  options: root.deep ? [] : .skipsSubdirectoryDescendants) else { continue }
+            for case let url as URL in enumerator {
+                guard let mode = source.mode(of: url), let values = try? url.resourceValues(forKeys: Set(keys)), values.isRegularFile == true else { continue }
+                if source == .codex { codexFiles[String(url.deletingPathExtension().lastPathComponent.suffix(36))] = url }
                 let path = url.path
-                // 30 天内没改过的文件，不会有新的用量。
-                let isOld = (values.contentModificationDate ?? Date()) < cutoffDate
-                if isOld, files[path] == nil { continue }
-                var state = files[path] ?? UsageFileState(source: root.source)
-                let size = UInt64(values.fileSize ?? 0)
-                // 文件变小说明被重写了，这个文件从头重新统计，它的请求 ID 也要先放回去。
-                if size < state.offset {
-                    seen.subtract(state.ids)
-                    state = UsageFileState(source: root.source)
-                    changed = true
+                var size = UInt64(values.fileSize ?? 0)
+                var modified = values.contentModificationDate ?? Date()
+                // 数据库的新内容先写进 -wal 文件，要一起看。
+                if mode == .whole, let wal = try? URL(fileURLWithPath: path + "-wal").resourceValues(forKeys: Set(keys)) {
+                    size += UInt64(wal.fileSize ?? 0)
+                    modified = max(modified, wal.contentModificationDate ?? modified)
                 }
-                jobs.append(Job(path: path, url: url, isOld: isOld, state: state, needsRead: size > state.offset))
-                sizes.append(size - min(size, state.offset))
+                // 30 天内没改过的文件，不会有新的用量。
+                let isOld = modified < cutoffDate
+                if isOld, files[path] == nil { continue }
+                var state = files[path] ?? UsageFileState(source: source)
+                let stamp = modified.timeIntervalSince1970
+                let needsRead: Bool
+                if mode == .lines {
+                    // 文件变小说明被重写了，这个文件从头重新统计，它的请求 ID 也要先放回去。
+                    if size < state.offset {
+                        seen.subtract(state.ids)
+                        state = UsageFileState(source: source)
+                        changed = true
+                    }
+                    needsRead = size > state.offset
+                } else {
+                    // 整个重写的文件和数据库：有改动就整个重读，替换这个文件原来的统计。
+                    needsRead = size != state.offset || stamp != state.stamp
+                    if needsRead {
+                        seen.subtract(state.ids)
+                        state = UsageFileState(source: source)
+                        state.offset = size
+                        state.stamp = stamp
+                        changed = true
+                    }
+                }
+                jobs.append(Job(path: path, url: url, isOld: isOld, whole: mode == .whole, state: state, needsRead: needsRead))
+                sizes.append(mode == .lines ? size - min(size, state.offset) : size)
             }
         }
 
@@ -177,8 +194,12 @@ final class TokenUsageStore: ObservableObject {
         jobs.withUnsafeMutableBufferPointer { buffer in
             DispatchQueue.concurrentPerform(iterations: order.count) { index in
                 let i = order[index]
-                try? UsageParsing.readNewLines(of: buffer[i].url, into: &buffer[i].state, entries: &buffer[i].entries,
-                                               copiedCodexTotals: copied[i] ?? [])
+                if buffer[i].whole {
+                    buffer[i].entries = UsageParsing.readWhole(buffer[i].url, source: buffer[i].state.source, since: cutoffDate)
+                } else {
+                    try? UsageParsing.readNewLines(of: buffer[i].url, into: &buffer[i].state, entries: &buffer[i].entries,
+                                                   copiedCodexTotals: copied[i] ?? [])
+                }
             }
         }
 

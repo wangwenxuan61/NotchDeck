@@ -166,7 +166,7 @@ let traditionalChineseStrings: [String: String] = [
     "刷新": "重新整理",
     "合计": "合計",
     "开启": "開啟",
-    "开启后，NotchDeck 只在本机读取 Claude Code 和 Codex 的用量记录，只统计模型和 token 数，不读取对话内容。": "開啟後，NotchDeck 只在本機讀取 Claude Code 和 Codex 的用量紀錄，只統計模型和 token 數，不讀取對話內容。",
+    "开启后，NotchDeck 只在本机读取 Claude Code、Codex、Gemini CLI 等 AI 编程工具的用量记录，只统计模型和 token 数，不读取对话内容。": "開啟後，NotchDeck 只在本機讀取 Claude Code、Codex、Gemini CLI 等 AI 程式設計工具的用量紀錄，只統計模型和 token 數，不讀取對話內容。",
     "更新于 %@": "更新於 %@",
     "来源": "來源",
     "查看": "查看",

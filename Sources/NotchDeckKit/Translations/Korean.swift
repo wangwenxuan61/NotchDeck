@@ -166,7 +166,7 @@ let koreanStrings: [String: String] = [
     "刷新": "새로 고침",
     "合计": "합계",
     "开启": "켜기",
-    "开启后，NotchDeck 只在本机读取 Claude Code 和 Codex 的用量记录，只统计模型和 token 数，不读取对话内容。": "켜면 NotchDeck가 이 Mac에서만 Claude Code와 Codex의 사용 기록을 읽어 모델과 토큰 수를 집계합니다. 대화 내용은 읽지 않습니다.",
+    "开启后，NotchDeck 只在本机读取 Claude Code、Codex、Gemini CLI 等 AI 编程工具的用量记录，只统计模型和 token 数，不读取对话内容。": "켜면 NotchDeck가 이 Mac에서만 Claude Code, Codex, Gemini CLI 등 AI 코딩 도구의 사용 기록을 읽어 모델과 토큰 수를 집계합니다. 대화 내용은 읽지 않습니다.",
     "更新于 %@": "업데이트: %@",
     "来源": "출처",
     "查看": "보기",

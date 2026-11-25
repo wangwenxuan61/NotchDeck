@@ -112,7 +112,7 @@ struct SettingsPage: View {
                     toggle($usage.isEnabled)
                 }
             }
-            .help(L("开启后，NotchDeck 只在本机读取 Claude Code 和 Codex 的用量记录，只统计模型和 token 数，不读取对话内容。"))
+            .help(L("开启后，NotchDeck 只在本机读取 Claude Code、Codex、Gemini CLI 等 AI 编程工具的用量记录，只统计模型和 token 数，不读取对话内容。"))
         }
     }
 

@@ -19,17 +19,6 @@ struct TokenCounts: Codable, Equatable {
     static func += (lhs: inout TokenCounts, rhs: TokenCounts) { lhs = lhs + rhs }
 }
 
-enum UsageSource: String, Codable, CaseIterable {
-    case claudeCode, codex
-
-    var title: String {
-        switch self {
-        case .claudeCode: return "Claude Code"
-        case .codex: return "Codex"
-        }
-    }
-}
-
 /// Codex 记录里的原始累计值。
 struct CodexTotals: Codable, Hashable {
     var input = 0
@@ -75,8 +64,10 @@ struct UsageFileState: Codable {
     /// 这个文件里计入的 Claude Code 请求 ID。同一次请求会在文件里记好几遍，恢复或分叉会话时还会复制到别的文件，
     /// 所以要跨文件去重；文件被删除或重写时，靠这份列表把它的 ID 从全局去重集合里移除。
     var ids: [String] = []
-    /// Codex 的当前模型、是否快速模式和上一次的累计值。
-    var codexModel: String?
+    /// 整个重读的文件上次读到时的修改时间。
+    var stamp: Double?
+    /// 当前模型（Codex、Kimi Code 的用量行里没有模型），Codex 是否快速模式和上一次的累计值。
+    var model: String?
     var codexFast: Bool?
     var codexTotal: CodexTotals?
 
@@ -92,8 +83,8 @@ struct UsageFileState: Codable {
     }
 }
 
-/// Claude Code 的一条用量，跨文件去重后才计入。
-struct ClaudeEntry {
+/// 一条用量。带 id 的跨文件去重后才计入：同一次请求可能记好几遍，或者在分叉会话时复制到别的文件。
+struct UsageEntry {
     var id: String?
     var day: String
     var model: String
@@ -152,10 +143,15 @@ enum UsageParsing {
             let year = number(0, 4), month = number(5, 2), day = number(8, 2)
             let seconds = daysFromCivil(year, month, day) * 86_400 + number(11, 2) * 3_600 + number(14, 2) * 60 + number(17, 2)
             guard valid, (1...12).contains(month), (1...31).contains(day) else { return nil }
-            let local = seconds + TimeZone.current.secondsFromGMT(for: Date(timeIntervalSince1970: Double(seconds)))
-            let (y, m, d) = civilFromDays(local >= 0 ? local / 86_400 : (local - 86_399) / 86_400)
-            return String(format: "%04d-%02d-%02d", y, m, d)
+            return dayKey(unixSeconds: seconds)
         }
+    }
+
+    /// 1970 年起的秒数换成本地日期，同样不经过格式化器。
+    static func dayKey(unixSeconds seconds: Int) -> String {
+        let local = seconds + TimeZone.current.secondsFromGMT(for: Date(timeIntervalSince1970: Double(seconds)))
+        let (y, m, d) = civilFromDays(local >= 0 ? local / 86_400 : (local - 86_399) / 86_400)
+        return String(format: "%04d-%02d-%02d", y, m, d)
     }
 
     /// 公历日期和 1970-01-01 起的天数互换（Howard Hinnant 的算法）。
@@ -180,18 +176,20 @@ enum UsageParsing {
         return (month <= 2 ? yearOfEra + era * 400 + 1 : yearOfEra + era * 400, month, day)
     }
 
-    /// 一行记录。Claude Code 的用量先放进 entries，由 apply 统一去重；Codex 直接计入。
-    static func consume(_ line: Data, into state: inout UsageFileState, entries: inout [ClaudeEntry]) {
+    /// 一行记录。用量先放进 entries，由 apply 统一去重；Codex 直接计入。
+    static func consume(_ line: Data, into state: inout UsageFileState, entries: inout [UsageEntry]) {
         switch state.source {
         case .claudeCode:
             if let entry = line.withUnsafeBytes(claudeEntry) { entries.append(entry) }
         case .codex: consumeCodex(line, into: &state)
+        default:
+            if let entry = line.withUnsafeBytes({ lineEntry($0, into: &state) }) { entries.append(entry) }
         }
     }
 
     /// 读一行并立即去重计入，检查程序用。seen 是所有文件共用的请求 ID 集合。
     static func consume(_ line: Data, into state: inout UsageFileState, seen: inout Set<String>) {
-        var entries: [ClaudeEntry] = []
+        var entries: [UsageEntry] = []
         consume(line, into: &state, entries: &entries)
         apply(entries, to: &state, seen: &seen)
     }
@@ -199,7 +197,7 @@ enum UsageParsing {
     /// 按顺序计入 Claude Code 的用量，已经在任何文件里出现过的请求 ID 跳过。
     /// 同一次请求会记好几遍，先写的那份可能全是 0，或者输出还没写完，所以同一批里只算用量最多的那份；
     /// 全是 0 的不算，也不占用请求 ID，这样下次读到的完整记录还能计入。
-    static func apply(_ entries: [ClaudeEntry], to state: inout UsageFileState, seen: inout Set<String>) {
+    static func apply(_ entries: [UsageEntry], to state: inout UsageFileState, seen: inout Set<String>) {
         var best: [String: Int] = [:]
         for (index, entry) in entries.enumerated() {
             guard let id = entry.id else { continue }
@@ -220,7 +218,7 @@ enum UsageParsing {
     }
 
     /// 用 JSONScanner 只取时间、请求 ID、模型和用量，跳过对话内容；只有用量这一小段交给 JSONSerialization。
-    private static func claudeEntry(_ line: UnsafeRawBufferPointer) -> ClaudeEntry? {
+    private static func claudeEntry(_ line: UnsafeRawBufferPointer) -> UsageEntry? {
         var scanner = JSONScanner(line)
         guard scanner.enterObject() else { return nil }
         var timestamp: String?
@@ -269,8 +267,8 @@ enum UsageParsing {
             regionMultiplier: usage["inference_geo"] as? String == "us" ? 1.1 : 1
         )
         var counts = tokens.counts
-        counts.cost = TokenPricing.cost(of: tokens, model: model) ?? 0
-        return ClaudeEntry(id: id, day: day, model: model, counts: counts)
+        counts.cost = TokenPricing.cost(of: tokens, model: model, day: day) ?? 0
+        return UsageEntry(id: id, day: day, model: model, counts: counts)
     }
 
     /// Codex 子代理的会话文件开头会把父会话的历史整段复制一遍，复制的累计值父会话里都有。
@@ -288,7 +286,7 @@ enum UsageParsing {
     static func codexTotals(in url: URL) -> Set<CodexTotals> {
         var state = UsageFileState(source: .codex)
         var totals = Set<CodexTotals>()
-        var entries: [ClaudeEntry] = []
+        var entries: [UsageEntry] = []
         try? readNewLines(of: url, into: &state, entries: &entries) { totals.insert($0) }
         return totals
     }
@@ -301,13 +299,13 @@ enum UsageParsing {
         guard let object = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
               let payload = object["payload"] as? [String: Any] else { return }
         if object["type"] as? String == "turn_context" {
-            if let model = payload["model"] as? String { state.codexModel = model }
+            if let model = payload["model"] as? String { state.model = model }
             return
         }
         // 切换模型或服务档位时记一条。priority 就是 OpenAI 价格页上的快速模式（2026 年 7 月改名），按快速价格计。
         if payload["type"] as? String == "thread_settings_applied" {
             if let settings = payload["thread_settings"] as? [String: Any] {
-                if let model = settings["model"] as? String { state.codexModel = model }
+                if let model = settings["model"] as? String { state.model = model }
                 if let tier = settings["service_tier"] as? String { state.codexFast = tier == "priority" || tier == "fast" }
             }
             return
@@ -333,11 +331,11 @@ enum UsageParsing {
         }
         state.codexTotal = total
         guard let day = day(fromTimestamp: object["timestamp"] as? String) else { return }
-        let model = state.codexModel ?? "unknown"
+        let model = state.model ?? "unknown"
         var usage = used.usage
         usage.fast = state.codexFast ?? false
         var counts = usage.counts
-        counts.cost = TokenPricing.cost(of: usage, model: model) ?? 0
+        counts.cost = TokenPricing.cost(of: usage, model: model, day: day) ?? 0
         state.add(counts, day: day, model: model)
     }
 
@@ -352,7 +350,7 @@ enum UsageParsing {
     /// 从 offset 开始读文件里新增的完整行。最后一行如果还没写完就留到下次，offset 停在最后一个换行符之后。
     /// Claude Code 的用量放进 entries，之后由 apply 去重计入，这样多个文件可以同时读。
     /// copiedCodexTotals 是 Codex 子代理文件里要跳过的父会话累计值。
-    static func readNewLines(of url: URL, into state: inout UsageFileState, entries: inout [ClaudeEntry],
+    static func readNewLines(of url: URL, into state: inout UsageFileState, entries: inout [UsageEntry],
                              copiedCodexTotals: Set<CodexTotals> = [], onCodexTotal: ((CodexTotals) -> Void)? = nil) throws {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
@@ -388,6 +386,8 @@ enum UsageParsing {
                                 consumeCodex(Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: base + start), count: line.count, deallocator: .none),
                                              into: &state, copied: copiedCodexTotals, onTotal: onCodexTotal)
                             }
+                        default:
+                            if let entry = lineEntry(line, into: &state) { entries.append(entry) }
                         }
                         start = end + 1
                     }
@@ -402,7 +402,7 @@ enum UsageParsing {
     /// 读完立即去重计入，检查程序用。
     static func readNewLines(of url: URL, into state: inout UsageFileState, seen: inout Set<String>,
                              copiedCodexTotals: Set<CodexTotals> = []) throws {
-        var entries: [ClaudeEntry] = []
+        var entries: [UsageEntry] = []
         defer { apply(entries, to: &state, seen: &seen) }
         try readNewLines(of: url, into: &state, entries: &entries, copiedCodexTotals: copiedCodexTotals)
     }

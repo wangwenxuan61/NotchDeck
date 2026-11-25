@@ -65,7 +65,7 @@
 - **截图翻译**：框选屏幕上的一块，用系统自带的翻译在本机翻译里面的文字（需要 macOS 14.4）。
 - **计时器**：倒计时、秒表和 25 分钟专注。
 - **搜索**：应用、文件、待办、短记和剪贴板。
-- **AI Token 用量**（可选）：按模型统计 Claude Code 和 Codex 的 token 和估算费用，只读取用量，不读对话内容。
+- **AI Token 用量**（可选）：按模型统计 Claude Code、Codex、Gemini CLI、Qwen Code、Kimi、ZCode、Antigravity、OpenCode、Copilot CLI、Goose，以及编辑器插件 Cline、Roo Code、Kilo Code 的 token 和估算费用，只读取用量，不读对话内容。
 - **提醒事项同步**（可选）：把“提醒事项”里的一个列表当作待办。
 
 **装忙**：十个全屏工作场景，包括 AI 写代码、训练模型、写论文、监控大屏、编译和测试、MATLAB 仿真等，画面内容都是假的。接了多块屏幕时可以各选一个场景，竖屏会改成上下排。

@@ -66,7 +66,7 @@ The screenshots use made-up demo data and the Chinese interface.
 - **Screenshot translation**: select part of the screen and translate its text on your Mac with the built-in system translation (macOS 14.4 or later).
 - **Timers**: countdown, stopwatch and a 25-minute focus timer.
 - **Search**: apps, files, todos, notes and clipboard history.
-- **AI token usage** (optional): token counts and estimated cost per model for Claude Code and Codex, read from usage fields only, never your conversations.
+- **AI token usage** (optional): token counts and estimated cost per model for Claude Code, Codex, Gemini CLI, Qwen Code, Kimi, ZCode, Antigravity, OpenCode, Copilot CLI, Goose, and the Cline, Roo Code and Kilo Code editor extensions, read from usage fields only, never your conversations.
 - **Reminders sync** (optional): use a list from Reminders as your todo card.
 
 **Look Busy**: ten full-screen work scenes, including AI coding, model training, paper writing, a monitoring dashboard, build and test and a MATLAB simulation. Nothing they show is real. With several displays each one can show its own scene, and portrait displays get a stacked layout.

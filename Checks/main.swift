@@ -1,5 +1,6 @@
 import AppKit
 import Security
+import SQLite3
 @testable import NotchDeckKit
 
 // 逻辑检查：不依赖 XCTest，只装命令行工具也能运行。用法：swift run NotchDeckChecks
@@ -301,7 +302,7 @@ section("Token 用量解析") {
     }
     var repeated = UsageFileState(source: .claudeCode)
     var repeatedSeen = Set<String>()
-    var batch: [ClaudeEntry] = []
+    var batch: [UsageEntry] = []
     for line in [claudeLine("r1", input: 0, read: 0, output: 0), claudeLine("r1", input: 2, read: 800, output: 50),
                  claudeLine("r2", input: 2, read: 500, output: 10), claudeLine("r2", input: 2, read: 500, output: 90), claudeLine("r2", input: 0, read: 0, output: 0)] {
         UsageParsing.consume(Data(line.utf8), into: &repeated, entries: &batch)
@@ -418,6 +419,138 @@ section("Token 用量解析") {
     check("补全后只读新增部分", tokens(partial.days[day]?["m"]) == [7, 0, 0, 3] && partial.days[day]?["claude-opus-5-5"]?.total == 135)
 }
 
+section("其他工具的用量") {
+    let stamp = "2026-11-10T03:00:00.000Z"
+    let day = UsageParsing.dayKey(for: ISO8601DateFormatter().date(from: "2026-11-10T03:00:00Z")!)
+    let seconds = ISO8601DateFormatter().date(from: "2026-11-10T03:00:00Z")!.timeIntervalSince1970
+    func read(_ source: UsageSource, _ lines: [String]) -> UsageFileState {
+        var state = UsageFileState(source: source), seen = Set<String>()
+        for line in lines { UsageParsing.consume(Data(line.utf8), into: &state, seen: &seen) }
+        return state
+    }
+
+    // 同一条消息会写好几遍；input 含缓存，思考和工具提示另算。
+    let gemini = #"{"id":"g1","timestamp":"\#(stamp)","type":"gemini","tokens":{"input":1000,"output":20,"cached":800,"thoughts":30,"tool":5,"total":1055},"model":"gemini-2.5-pro"}"#
+    let g = read(.gemini, [#"{"id":"g1","timestamp":"\#(stamp)","type":"gemini","tokens":null}"#, gemini, gemini, #"{"$set":{"lastUpdated":"\#(stamp)"}}"#])
+    check("Gemini CLI 按消息 id 去重，缓存从输入里扣掉", tokens(g.days[day]?["gemini-2.5-pro"]) == [205, 800, 0, 50])
+
+    let qwen = read(.qwen, [
+        #"{"uuid":"q1","timestamp":"\#(stamp)","type":"assistant","model":"qwen3-coder-flash","usageMetadata":{"promptTokenCount":100,"candidatesTokenCount":10,"thoughtsTokenCount":4,"totalTokenCount":110,"cachedContentTokenCount":60}}"#,
+        #"{"uuid":"q2","timestamp":"\#(stamp)","type":"assistant","model":"qwen3-coder-flash","usageMetadata":{"promptTokenCount":100,"candidatesTokenCount":10,"thoughtsTokenCount":4,"totalTokenCount":114}}"#,
+        #"{"type":"system","subtype":"ui_telemetry","systemPayload":{"usageMetadata":{"promptTokenCount":999}}}"#,
+    ])
+    check("Qwen Code 的思考 token 已含在输出里时不重复加", tokens(qwen.days[day]?["qwen3-coder-flash"]) == [140, 60, 0, 24])
+
+    let kimi = read(.kimi, [
+        #"{"timestamp": \#(seconds), "message": {"type": "StatusUpdate", "payload": {"token_usage": {"input_other": 10, "output": 5, "input_cache_read": 100, "input_cache_creation": 1}, "message_id": "k1"}}}"#,
+        #"{"timestamp": \#(seconds), "message": {"type": "SubagentEvent", "payload": {"event": {"type": "StatusUpdate", "token_usage": {"input_other": 999}}}}}"#,
+        #"{"type":"llm.request","model":"kimi-k2.6","modelAlias":"fast","time":\#(Int(seconds * 1000))}"#,
+        #"{"type":"usage.record","agentId":"main","model":"fast","usage":{"inputOther":20,"output":2,"inputCacheRead":0},"usageScope":"turn","time":\#(Int(seconds * 1000))}"#,
+    ])
+    check("Kimi 新旧两种记录都算，子代理的套娃记录不重复，模型取请求里的真名",
+          tokens(kimi.days[day]?[UsageParsing.kimiModel]) == [10, 100, 1, 5] && tokens(kimi.days[day]?["kimi-k2.6"]) == [20, 0, 0, 2])
+
+    let folder = sandbox.appendingPathComponent("tools")
+    try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    func database(_ name: String, _ sql: String) -> URL {
+        let url = folder.appendingPathComponent(name)
+        var db: OpaquePointer?
+        sqlite3_open(url.path, &db)
+        sqlite3_exec(db, sql, nil, nil, nil)
+        sqlite3_close(db)
+        return url
+    }
+    func whole(_ source: UsageSource, _ url: URL) -> [String: TokenCounts] {
+        var state = UsageFileState(source: source), seen = Set<String>()
+        UsageParsing.apply(UsageParsing.readWhole(url, source: source, since: .distantPast), to: &state, seen: &seen)
+        return state.days[day] ?? [:]
+    }
+    let ms = Int(seconds * 1000)
+    let opencode = database("opencode.db", """
+        CREATE TABLE message (id TEXT, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT);
+        CREATE TABLE session_message (id TEXT, session_id TEXT, type TEXT, time_created INTEGER, data TEXT);
+        INSERT INTO message VALUES ('m1', 's', \(ms), \(ms), '{"role":"assistant","modelID":"glm-4.6","time":{"created":\(ms)},"tokens":{"input":10,"output":5,"reasoning":3,"cache":{"read":100,"write":2}}}');
+        INSERT INTO message VALUES ('m0', 's', \(ms), \(ms), '{"role":"user","time":{"created":\(ms)}}');
+        INSERT INTO session_message VALUES ('m1', 's', 'assistant', \(ms), '{"model":{"id":"glm-4.6"},"time":{"created":\(ms)},"tokens":{"input":10,"output":5,"reasoning":3,"cache":{"read":100,"write":2}}}');
+        INSERT INTO session_message VALUES ('m2', 's', 'assistant', \(ms), '{"model":{"id":"glm-4.6"},"time":{"created":\(ms)},"tokens":{"input":1,"output":1,"cache":{"read":0,"write":0}}}');
+        """)
+    check("OpenCode 两代表都读，升级时复制的消息只算一次，推理算进输出", tokens(whole(.opencode, opencode)["glm-4.6"]) == [11, 100, 2, 9])
+
+    let copilot = database("session-store.db", """
+        CREATE TABLE assistant_usage_events (id INTEGER, model TEXT, copilot_usage_model TEXT, input_tokens INTEGER, output_tokens INTEGER,
+            cache_read_tokens INTEGER, cache_write_tokens INTEGER, created_at TEXT);
+        INSERT INTO assistant_usage_events VALUES (1, 'x', 'claude-sonnet-4.5', 1000, 50, 800, 100, datetime(\(Int(seconds)), 'unixepoch'));
+        """)
+    check("Copilot CLI 的输入扣掉缓存读写", tokens(whole(.copilot, copilot)["claude-sonnet-4.5"]) == [100, 800, 100, 50])
+
+    let goose = database("sessions.db", """
+        CREATE TABLE sessions (id TEXT, model_config_json TEXT);
+        CREATE TABLE usage_ledger (id INTEGER, session_id TEXT, created_timestamp INTEGER, model TEXT, input_tokens INTEGER, output_tokens INTEGER,
+            cache_read_tokens INTEGER, cache_write_tokens INTEGER, cost_source TEXT);
+        INSERT INTO sessions VALUES ('s', '{"model_name":"gpt-5.5"}');
+        INSERT INTO usage_ledger VALUES (1, 's', \(Int(seconds)), NULL, 30, 3, 10, 0, 'computed');
+        INSERT INTO usage_ledger VALUES (2, 's', \(Int(seconds)), NULL, 9999, 9999, 0, 0, 'carried_forward');
+        """)
+    check("Goose 按每次请求的账本统计，升级时补记的累计值不算", tokens(whole(.goose, goose)["gpt-5.5"]) == [20, 10, 0, 3])
+
+    // Antigravity 的 protobuf：1.4 用量、1.19 模型、1.9.4.1 时间。
+    func pb(_ fields: [(Int, Any)]) -> [UInt8] {
+        func varint(_ value: Int) -> [UInt8] {
+            var value = value, out: [UInt8] = []
+            repeat { out.append(UInt8(value & 0x7F) | (value > 0x7F ? 0x80 : 0)); value >>= 7 } while value > 0
+            return out
+        }
+        return fields.flatMap { field, value -> [UInt8] in
+            if let number = value as? Int { return varint(field << 3) + varint(number) }
+            let bytes = (value as? [UInt8]) ?? Array((value as? String ?? "").utf8)
+            return varint(field << 3 | 2) + varint(bytes.count) + bytes
+        }
+    }
+    let hex = { (bytes: [UInt8]) in bytes.map { String(format: "%02X", $0) }.joined() }
+    let generation = pb([(1, pb([(4, pb([(1, 1026), (2, 2000), (3, 120), (5, 500), (11, "resp-1")])), (19, "claude-opus-4-6-thinking"),
+                                 (9, pb([(4, pb([(1, Int(seconds))]))]))]))])
+    let undated = pb([(1, pb([(4, pb([(2, 7), (3, 1), (11, "resp-2")]))])), (3, pb([(28, "gemini-3.8-flash-medium")]))])
+    let step = pb([(1, pb([(1, Int(seconds))])), (9, pb([(11, "resp-2")]))])
+    let antigravity = database("conversation.db", """
+        CREATE TABLE gen_metadata (idx INTEGER, data BLOB, size INTEGER);
+        CREATE TABLE steps (idx INTEGER, metadata BLOB);
+        CREATE TABLE trajectory_metadata_blob (id TEXT, data BLOB);
+        INSERT INTO gen_metadata VALUES (0, X'\(hex(generation))', 1), (1, X'\(hex(undated))', 1), (2, X'0A00', 0);
+        INSERT INTO steps VALUES (0, X'\(hex(step))');
+        """)
+    let agy = whole(.antigravity, antigravity)
+    check("Antigravity 读出用量和模型，没有时间的按同一响应的步骤时间", tokens(agy["claude-opus-4-6-thinking"]) == [2000, 500, 0, 120]
+          && tokens(agy["gemini-3.8-flash-medium"]) == [7, 0, 0, 1] && agy.count == 2)
+
+    // 编辑器插件：Roo 的 tokensIn 含缓存，旧记录没写模型时用对话里最后的 <model> 标签。
+    let task = folder.appendingPathComponent("task-1")
+    try? FileManager.default.createDirectory(at: task, withIntermediateDirectories: true)
+    let request = #"{\"tokensIn\":1100,\"tokensOut\":40,\"cacheWrites\":0,\"cacheReads\":1000,\"cost\":0.01}"#
+    try? Data(#"[{"ts":\#(ms),"type":"say","say":"api_req_started","text":"\#(request)"},{"ts":\#(ms + 1),"type":"say","say":"api_req_started","text":"{\"request\":\"…\"}"},{"ts":\#(ms + 2),"type":"say","say":"text","text":"hi"}]"#.utf8)
+        .write(to: task.appendingPathComponent("ui_messages.json"))
+    try? Data(#"[{"content":"<environment_details><model>old</model></environment_details>"},{"content":"<model>kimi-k2.6</model>"}]"#.utf8)
+        .write(to: task.appendingPathComponent("api_conversation_history.json"))
+    let roo = whole(.roo, task.appendingPathComponent("ui_messages.json"))
+    check("Roo Code 的输入扣掉缓存，模型取对话里最后的标签", tokens(roo["kimi-k2.6"]) == [100, 1000, 0, 40] && roo.count == 1)
+    check("Cline 的 tokensIn 本来就不含缓存", tokens(whole(.cline, task.appendingPathComponent("ui_messages.json"))["kimi-k2.6"]) == [1100, 1000, 0, 40])
+
+    check("各工具的文件认得出来", UsageSource.gemini.mode(of: URL(fileURLWithPath: "/h/.gemini/tmp/p/chats/session-1.jsonl")) == .lines
+          && UsageSource.gemini.mode(of: URL(fileURLWithPath: "/h/.gemini/tmp/p/checkpoint-a.json")) == nil
+          && UsageSource.kimi.mode(of: URL(fileURLWithPath: "/h/.kimi/sessions/a/b/context.jsonl")) == nil
+          && UsageSource.opencode.mode(of: URL(fileURLWithPath: "/h/opencode-stable.db")) == .whole
+          && UsageSource.kilo.mode(of: URL(fileURLWithPath: "/h/kilo.db")) == .whole)
+
+    check("价格不分大小写，去掉服务商前缀，认得 Claude 的点号写法",
+          TokenPricing.price(for: "GLM-5.2")?.rates.input == 1.4 && TokenPricing.price(for: "openrouter/z-ai/glm-4.6")?.rates.input == 0.6
+          && TokenPricing.price(for: "claude-sonnet-4.5")?.rates.input == 3 && TokenPricing.price(for: "MiniMax-M3")?.rates.input == 0.3
+          && TokenPricing.price(for: "gemini-3.8-flash-medium")?.rates.input == 0.75)
+    check("到日子改价的模型按用量那天的价格", TokenPricing.price(for: "gemini-4-carbon", day: "2026-11-30")?.rates.input == 2
+          && TokenPricing.price(for: "gemini-4-carbon", day: "2026-12-01")?.rates.input == 4)
+    check("通义千问按单次输入长度分档", near(TokenPricing.cost(of: TokenUsage(input: 32_000), model: "qwen3-coder-flash"), 0.0096)
+          && near(TokenPricing.cost(of: TokenUsage(input: 40_000), model: "qwen3-coder-flash"), 0.02)
+          && near(TokenPricing.cost(of: TokenUsage(input: 300_000), model: "qwen3-coder-flash"), 0.48))
+}
+
 section("Token 用量汇总") {
     let claudeRoot = sandbox.appendingPathComponent("claude/projects/demo")
     let codexRoot = sandbox.appendingPathComponent("codex/sessions/2026/11/10")
@@ -444,7 +577,7 @@ section("Token 用量汇总") {
     // 旧版本的统计文件在第一次读取时删掉。
     try? Data("{}".utf8).write(to: Storage.folder.appendingPathComponent("token-usage.json"))
     let store = TokenUsageStore.shared
-    store.roots = [(sandbox.appendingPathComponent("claude/projects"), .claudeCode), (sandbox.appendingPathComponent("codex/sessions"), .codex)]
+    store.roots = [(sandbox.appendingPathComponent("claude/projects"), .claudeCode, true), (sandbox.appendingPathComponent("codex/sessions"), .codex, true)]
     func waitForScan() {
         var done = false
         store.refresh { done = true }

@@ -166,7 +166,7 @@ let frenchStrings: [String: String] = [
     "刷新": "Actualiser",
     "合计": "Total",
     "开启": "Activer",
-    "开启后，NotchDeck 只在本机读取 Claude Code 和 Codex 的用量记录，只统计模型和 token 数，不读取对话内容。": "Une fois activé, NotchDeck lit uniquement sur ce Mac les relevés d’utilisation de Claude Code et Codex pour compter les modèles et les jetons. Il ne lit jamais vos conversations.",
+    "开启后，NotchDeck 只在本机读取 Claude Code、Codex、Gemini CLI 等 AI 编程工具的用量记录，只统计模型和 token 数，不读取对话内容。": "Une fois activé, NotchDeck lit uniquement sur ce Mac les relevés d’utilisation des outils de code IA comme Claude Code, Codex et Gemini CLI pour compter les modèles et les jetons. Il ne lit jamais vos conversations.",
     "更新于 %@": "Mis à jour : %@",
     "来源": "Source",
     "查看": "Voir",
