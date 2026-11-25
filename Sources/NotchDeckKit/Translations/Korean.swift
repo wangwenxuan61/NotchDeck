@@ -307,7 +307,8 @@ let koreanStrings: [String: String] = [
     "确定": "확인",
     "设置提醒时间": "알림 시간 설정",
     "给待办设了提醒时间（点待办旁的闹钟图标）时，到点前在刘海下弹出提醒": "할 일에 알림 시간을 설정하면(옆의 알람 아이콘 클릭) 그 전에 노치 아래에 알림이 나타납니다",
-    "完成或稍后再提醒": "완료 또는 나중에 알림",
-    "点待办旁的闹钟图标设好时间，到点前在刘海下弹出提醒，同时发一条系统通知。": "할 일 옆 알람 아이콘으로 시간을 정하면 그 전에 노치 아래에 알림이 나타나고 시스템 알림도 옵니다.",
-    "提醒卡片上可以直接完成待办，或者 10 分钟后再提醒；提前多久在设置里选。": "알림 카드에서 바로 할 일을 완료하거나 10분 후 다시 알릴 수 있습니다. 몇 분 전에 알릴지는 설정에서 고릅니다.",
+    "更多 AI 工具的用量": "더 많은 AI 도구의 사용량",
+    "Token 用量除了 Claude Code 和 Codex，还会统计 Gemini CLI、Qwen Code、Kimi、OpenCode、Copilot CLI 等工具。": "Claude Code와 Codex 외에 Gemini CLI, Qwen Code, Kimi, OpenCode, Copilot CLI 등의 사용량도 집계합니다.",
+    "更多模型的费用": "더 많은 모델의 비용",
+    "补上 GLM、Kimi、DeepSeek、通义千问、Gemini 等模型的官方价格，在 Claude Code 里换用它们也能估算费用。": "GLM, Kimi, DeepSeek, Qwen, Gemini 등의 공식 가격을 추가해 Claude Code에서 모델을 바꿔도 비용을 추정합니다.",
 ]

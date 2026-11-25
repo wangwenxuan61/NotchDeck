@@ -307,7 +307,8 @@ let frenchStrings: [String: String] = [
     "确定": "OK",
     "设置提醒时间": "Définir l’heure du rappel",
     "给待办设了提醒时间（点待办旁的闹钟图标）时，到点前在刘海下弹出提醒": "Quand une tâche a une heure de rappel (cliquez sur l’icône réveil à côté), un rappel apparaît sous l’encoche avant l’heure",
-    "完成或稍后再提醒": "Terminer ou rappeler plus tard",
-    "点待办旁的闹钟图标设好时间，到点前在刘海下弹出提醒，同时发一条系统通知。": "Cliquez sur l’icône réveil d’une tâche pour choisir l’heure ; un rappel apparaît sous l’encoche avant, avec une notification.",
-    "提醒卡片上可以直接完成待办，或者 10 分钟后再提醒；提前多久在设置里选。": "Terminez la tâche depuis le rappel ou repoussez-le de 10 minutes ; l’avance se règle dans les réglages.",
+    "更多 AI 工具的用量": "Utilisation d’autres outils d’IA",
+    "Token 用量除了 Claude Code 和 Codex，还会统计 Gemini CLI、Qwen Code、Kimi、OpenCode、Copilot CLI 等工具。": "L’utilisation des jetons couvre désormais Gemini CLI, Qwen Code, Kimi, OpenCode, Copilot CLI et d’autres, en plus de Claude Code et Codex.",
+    "更多模型的费用": "Coûts pour plus de modèles",
+    "补上 GLM、Kimi、DeepSeek、通义千问、Gemini 等模型的官方价格，在 Claude Code 里换用它们也能估算费用。": "Prix officiels de GLM, Kimi, DeepSeek, Qwen, Gemini et d’autres : le coût s’affiche même si vous changez de modèle dans Claude Code.",
 ]

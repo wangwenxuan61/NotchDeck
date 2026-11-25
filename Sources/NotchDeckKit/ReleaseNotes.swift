@@ -17,13 +17,13 @@ struct ReleaseNotes {
     /// 文字在用到时才取，这样换语言后显示的也是新语言。
     static var all: [ReleaseNotes] {
         [
-            ReleaseNotes(version: "0.1.23", items: [
-                Item(symbol: "alarm.fill", color: Theme.orange,
-                     title: L("待办提醒"),
-                     detail: L("点待办旁的闹钟图标设好时间，到点前在刘海下弹出提醒，同时发一条系统通知。")),
-                Item(symbol: "bell.badge.fill", color: Theme.blue,
-                     title: L("完成或稍后再提醒"),
-                     detail: L("提醒卡片上可以直接完成待办，或者 10 分钟后再提醒；提前多久在设置里选。")),
+            ReleaseNotes(version: "0.1.24", items: [
+                Item(symbol: "chart.bar.xaxis", color: Theme.purple,
+                     title: L("更多 AI 工具的用量"),
+                     detail: L("Token 用量除了 Claude Code 和 Codex，还会统计 Gemini CLI、Qwen Code、Kimi、OpenCode、Copilot CLI 等工具。")),
+                Item(symbol: "dollarsign.circle.fill", color: Theme.teal,
+                     title: L("更多模型的费用"),
+                     detail: L("补上 GLM、Kimi、DeepSeek、通义千问、Gemini 等模型的官方价格，在 Claude Code 里换用它们也能估算费用。")),
             ]),
         ]
     }

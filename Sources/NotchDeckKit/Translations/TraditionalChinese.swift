@@ -307,7 +307,8 @@ let traditionalChineseStrings: [String: String] = [
     "确定": "確定",
     "设置提醒时间": "設定提醒時間",
     "给待办设了提醒时间（点待办旁的闹钟图标）时，到点前在刘海下弹出提醒": "為待辦設了提醒時間（點待辦旁的鬧鐘圖示）時，到點前在瀏海下彈出提醒",
-    "完成或稍后再提醒": "完成或稍後再提醒",
-    "点待办旁的闹钟图标设好时间，到点前在刘海下弹出提醒，同时发一条系统通知。": "點待辦旁的鬧鐘圖示設好時間，到點前在瀏海下彈出提醒，同時發一則系統通知。",
-    "提醒卡片上可以直接完成待办，或者 10 分钟后再提醒；提前多久在设置里选。": "提醒卡片上可以直接完成待辦，或 10 分鐘後再提醒；提前多久在設定裡選。",
+    "更多 AI 工具的用量": "更多 AI 工具的用量",
+    "Token 用量除了 Claude Code 和 Codex，还会统计 Gemini CLI、Qwen Code、Kimi、OpenCode、Copilot CLI 等工具。": "Token 用量除了 Claude Code 和 Codex，還會統計 Gemini CLI、Qwen Code、Kimi、OpenCode、Copilot CLI 等工具。",
+    "更多模型的费用": "更多模型的費用",
+    "补上 GLM、Kimi、DeepSeek、通义千问、Gemini 等模型的官方价格，在 Claude Code 里换用它们也能估算费用。": "補上 GLM、Kimi、DeepSeek、通義千問、Gemini 等模型的官方價格，在 Claude Code 裡換用它們也能估算費用。",
 ]

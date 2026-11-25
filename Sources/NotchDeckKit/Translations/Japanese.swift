@@ -307,7 +307,8 @@ let japaneseStrings: [String: String] = [
     "确定": "OK",
     "设置提醒时间": "通知時刻を設定",
     "给待办设了提醒时间（点待办旁的闹钟图标）时，到点前在刘海下弹出提醒": "To-Do に通知時刻を設定すると（横のアラームアイコンをクリック）、その前にノッチの下に通知が出ます",
-    "完成或稍后再提醒": "完了または後で通知",
-    "点待办旁的闹钟图标设好时间，到点前在刘海下弹出提醒，同时发一条系统通知。": "To-Do 横のアラームアイコンで時刻を設定すると、その前にノッチの下に通知が出て、システム通知も届きます。",
-    "提醒卡片上可以直接完成待办，或者 10 分钟后再提醒；提前多久在设置里选。": "通知カードから To-Do を完了するか、10 分後に再通知できます。何分前に通知するかは設定で選べます。",
+    "更多 AI 工具的用量": "ほかの AI ツールの使用量",
+    "Token 用量除了 Claude Code 和 Codex，还会统计 Gemini CLI、Qwen Code、Kimi、OpenCode、Copilot CLI 等工具。": "Claude Code と Codex に加えて、Gemini CLI、Qwen Code、Kimi、OpenCode、Copilot CLI などの使用量も集計します。",
+    "更多模型的费用": "より多くのモデルの料金",
+    "补上 GLM、Kimi、DeepSeek、通义千问、Gemini 等模型的官方价格，在 Claude Code 里换用它们也能估算费用。": "GLM、Kimi、DeepSeek、Qwen、Gemini などの公式価格を追加し、Claude Code でモデルを切り替えても料金を見積もれます。",
 ]
